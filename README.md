@@ -1,3 +1,3 @@
 # Chamanthi000.github.io
 
-# Portfolio website deigned using HTML, CSS
+# Portfolio website designed using HTML, CSS
