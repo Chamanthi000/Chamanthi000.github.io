@@ -80,6 +80,7 @@ styles to reset headings https://github.com/melnik909/r-title
   card component
   */
   
+
   /*
   core styles
   */
@@ -107,6 +108,7 @@ styles to reset headings https://github.com/melnik909/r-title
   extensions
   */
   
+
   .card__title{
     --rTitleMarginTop: var(--cardTitleMarginTop, 1rem);
     font-size: var(--cardTitleFontSize, 1.25rem);
@@ -218,6 +220,10 @@ styles to reset headings https://github.com/melnik909/r-title
     line-height: 1.5;
   }
   
+  .h_light{
+font-size: large;
+  }
+
   p:last-child{
     margin-bottom: 0;
   }

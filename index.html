@@ -8,390 +8,254 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="css/timeline.css">
 <style>
-body {font-family: "Lato", sans-serif}
-.mySlides {display: none}
+  body {
+    font-family: "Lato", sans-serif
+  }
+
+  .mySlides {
+    display: none
+  }
 </style>
+
 <body>
 
-<!-- Navbar -->
-<div class="w3-top">
-  <div class="w3-bar w3-black w3-card">
-    <a class="w3-bar-item w3-button w3-padding-large w3-hide-medium w3-hide-large w3-right" href="javascript:void(0)" onclick="myFunction()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
-    <a href="#aboutme" class="w3-bar-item w3-button w3-padding-large">ABOUT ME</a>
-    <a href="#skills" class="w3-bar-item w3-button w3-padding-large w3-hide-small">SKILLS</a>
-    <a href="#experience" class="w3-bar-item w3-button w3-padding-large w3-hide-small">EXPERIENCE</a>
-    <a href="#courses" class="w3-bar-item w3-button w3-padding-large w3-hide-small">COURSES</a>
-    <a href="projects.html" target="_blank" class="w3-bar-item w3-button w3-padding-large w3-hide-small">PROJECTS</a>
-    <a href="https://medium.com/@chamschamanthi36" target="_blank" class="w3-bar-item w3-button w3-padding-large w3-hide-small">MEDIUM</a>
-    <a href="https://github.com/Chamanthi000" target="_blank" class="w3-bar-item w3-button w3-padding-large w3-hide-small">GITHUB</a>
-    <a href="https://www.hackerrank.com/chamschamanthi36" target="_blank"class="w3-bar-item w3-button w3-padding-large w3-hide-small">HACKER RANK</a>
-  
-    <a href="https://www.linkedin.com/in/chamanthi-aki-13a305a0/" target="_blank" class="w3-bar-item w3-button w3-padding-large w3-hide-small">LINKED IN</a>
-    <a href="#contact" class="w3-bar-item w3-button w3-padding-large w3-hide-small">CONTACT</a>
-  
-  </div>
-</div>
+  <!-- Navbar -->
+  <div class="w3-top">
+    <div class="w3-bar w3-black w3-card">
+      <a class="w3-bar-item w3-button w3-padding-large w3-hide-medium w3-hide-large w3-right" href="javascript:void(0)"
+        onclick="myFunction()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
+      <a href="#aboutme" class="w3-bar-item w3-button w3-padding-large">ABOUT ME</a>
+      <a href="#skills" class="w3-bar-item w3-button w3-padding-large w3-hide-small">SKILLS</a>
+      <a href="#experience" class="w3-bar-item w3-button w3-padding-large w3-hide-small">EXPERIENCE</a>
+      <a href="#courses" class="w3-bar-item w3-button w3-padding-large w3-hide-small">COURSES</a>
+      <a href="projects.html" target="_blank" class="w3-bar-item w3-button w3-padding-large w3-hide-small">PROJECTS</a>
+      <a href="https://medium.com/@chamanthiaki5/introduction-to-change-point-detection-d6a04da25a83" target="_blank"
+        class="w3-bar-item w3-button w3-padding-large w3-hide-small">MEDIUM</a>
+      <a href="https://github.com/Chamanthi000" target="_blank"
+        class="w3-bar-item w3-button w3-padding-large w3-hide-small">GITHUB</a>
+      <a href="https://www.hackerrank.com/chamschamanthi36" target="_blank"
+        class="w3-bar-item w3-button w3-padding-large w3-hide-small">HACKER RANK</a>
 
-<!-- Navbar on small screens (remove the onclick attribute if you want the navbar to always show on top of the content when clicking on the links) -->
-<div id="navDemo" class="w3-bar-block w3-black w3-hide w3-hide-large w3-hide-medium w3-top" style="margin-top:46px">
-  <a href="#aboutme" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">ABOUT ME</a>
-  <a href="#skills" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">SKILLS</a>
-  <a href="#experience" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">EXPERIENCE</a>
-  <a href="#courses" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">COURSES</a>
-  <a href="projects.html" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">PROJECTS</a>
-  <a href="https://medium.com/@chamschamanthi36" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">MEDIUM</a>
-  <a href="https://github.com/Chamanthi000" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">GITHUB</a>
-  <a href="https://www.hackerrank.com/chamschamanthi36" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">HACKER RANK</a>
-  <!--<a href="gallery.html" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">GALLERY</a>
+      <a href="https://www.linkedin.com/in/chamanthi-aki-13a305a0/" target="_blank"
+        class="w3-bar-item w3-button w3-padding-large w3-hide-small">LINKED IN</a>
+      <a href="#contact" class="w3-bar-item w3-button w3-padding-large w3-hide-small">CONTACT</a>
+
+    </div>
+  </div>
+
+  <!-- Navbar on small screens (remove the onclick attribute if you want the navbar to always show on top of the content when clicking on the links) -->
+  <div id="navDemo" class="w3-bar-block w3-black w3-hide w3-hide-large w3-hide-medium w3-top" style="margin-top:46px">
+    <a href="#aboutme" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">ABOUT ME</a>
+    <a href="#skills" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">SKILLS</a>
+    <a href="#experience" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">EXPERIENCE</a>
+    <a href="#courses" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">COURSES</a>
+    <a href="projects.html" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">PROJECTS</a>
+    <a href="https://medium.com/@chamschamanthi36" class="w3-bar-item w3-button w3-padding-large"
+      onclick="myFunction()">MEDIUM</a>
+    <a href="https://github.com/Chamanthi000" class="w3-bar-item w3-button w3-padding-large"
+      onclick="myFunction()">GITHUB</a>
+    <a href="https://www.hackerrank.com/chamschamanthi36" class="w3-bar-item w3-button w3-padding-large"
+      onclick="myFunction()">HACKER RANK</a>
+    <!--<a href="gallery.html" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">GALLERY</a>
   <a href="extras.html" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">EXTRAS</a>-->
-  <a href="https://www.linkedin.com/in/chamanthi/" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">LINKED IN</a>
-  <a href="#contact" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">CONTACT</a>
-
-</div>
-
-<!-- Page content -->
-<div  style="max-width:100%;margin-top:46px"><!--class="w3-content"-->
-
-  
-
-  <!-- The About me Section -->
-  <div class="w3-container w3-content w3-center w3-padding-64" style="max-width:800px;margin-bottom: -200px;" id="aboutme">
-    <h2 class="w3-wide">CHAMANTHI AKI</h2>
-    <p class="w3-opacity"><b>Aspiring DataScientist</b></p>
-    <p class="w3-wide">I learned how to code through different online and offline courses, StackOverflow and trial & error.<br> I do projects on what I learn and each project teaches me new skills.<br>Technology has never been a barrier to me. If you want me to learn and explore new technology, then just give me a couple of days and I will be good to go !!!.<br> Do you have data and want to come up with an application/solution? I can brainstorm and come up with amazing product ideas.<br>I always have the quest to solve problems and I enjoy the process.</p>
-    <div>
-      <div class="column" style="float:right;">
-        <img src="images/1678987475489.jpeg" height="200" width="160" style="margin-right: -600px;margin-top:-250px;">
-      </div>
-    </div>
-  </div>
-<!--Skills section-->
-  <div class="w3-black w3-container w3-content w3-center w3-padding-64" style="max-width:100%" id="skills">
-    <h2 class="w3-wide">SKILLS</h2><br><p class="w3-wide">1-Basic, 2-Novice, 3-Intermediate, 4-Advanced, 5-Expert</p><br><br>
-  
-  
-    
-    <div class="column">
-      <div class="column">
-      <div class="row">
-        <p style="text-align: left;">Python</p>  
-        <div class="w3-light-grey w3-round" style="width:60%">
-          <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
-        </div>
-      </div>
-      
-      <br><br><br>
-
-      <div class="row">
-        <p style="text-align: left;">R Language</p>
-      <div class="w3-light-grey w3-round" style="width:60%">
-      <div class="w3-container w3-round w3-grey" style="width:60%">3</div>
-      </div>
-      </div>
-    <br><br><br>
-
-      <div class="row">
-      <p style="text-align: left;">HTML,CSS</p>
-      <div class="w3-light-grey w3-round" style="width:60%">
-      <div class="w3-container w3-round w3-grey" style="width:100%">5</div>
-      </div>
-      </div>
-
-      </div>
-
-
-      <div class="column">
-        <div class="row">
-          <p style="text-align: left;">Pyspark</p>  
-          <div class="w3-light-grey w3-round" style="width:60%">
-            <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
-          </div>
-        </div>
-        
-        <br><br><br>
-  
-        <div class="row">
-          <p style="text-align: left;">Pytorch</p>  
-        <div class="w3-light-grey w3-round" style="width:60%">
-        <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
-        </div>
-        </div>
-      <br><br><br>
-  
-        <div class="row">
-          <p style="text-align: left;">Pandas and Numpy</p>  
-        <div class="w3-light-grey w3-round" style="width:60%">
-        <div class="w3-container w3-round w3-grey" style="width:100%">5</div>
-        </div>
-        </div>
-  
-        </div>
-    
-
-   
-    </div>
-  
-  <div class="column">
-    <div class="column">
-    <div class="row">
-     
-    <p style="text-align: left;">Tableau</p>  
-    <div class="w3-light-grey w3-round" style="width:60%" > 
-    <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
-    </div>
-    </div><br><br><br>
-  
-    <div class="row">
-      <p style="text-align: left;">PHP</p>  
-    <div class="w3-light-grey w3-round" style="width:60%" >
-    <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
-    </div>
-    </div>
-  <br><br><br>
-
-    <div class="row">
-      <p style="text-align: left;">SQL</p>  
-    <div class="w3-light-grey w3-round" style="width:60%">
-    <div class="w3-container w3-round w3-grey" style="width:100%">5</div>
-    </div>
-    </div>
+    <a href="https://www.linkedin.com/in/chamanthi/" class="w3-bar-item w3-button w3-padding-large"
+      onclick="myFunction()">LINKED IN</a>
+    <a href="#contact" class="w3-bar-item w3-button w3-padding-large" onclick="myFunction()">CONTACT</a>
 
   </div>
-  
-  
 
-  <div class="column">
-    <div class="row">
-      <p style="text-align: left;">Machine Learning Algorithms</p>  
-      <div class="w3-light-grey w3-round" style="width:60%">
-        <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
-      </div>
-    </div>
-    
-    <br><br><br>
-
-    <div class="row">
-      <p style="text-align: left;">ggplot2</p>  
-    <div class="w3-light-grey w3-round" style="width:60%">
-    <div class="w3-container w3-round w3-grey" style="width:60%">3</div>
-    </div>
-    </div>
-  <br><br><br>
-
-    <div class="row">
-      <p style="text-align: left;">Plotly, Matplotlib, Seaborn</p> 
-    <div class="w3-light-grey w3-round" style="width:80%">
-    <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
-    </div>
-    </div>
-
-    </div>
-</div>
-</div>
+  <!-- Page content -->
+  <div style="max-width:100%;margin-top:46px"><!--class="w3-content"-->
 
 
-  <!-- Ticket Modal -->
-  <div id="ticketModal" class="w3-modal">
-    <div class="w3-modal-content w3-animate-top w3-card-4">
-      <header class="w3-container w3-teal w3-center w3-padding-32"> 
-        <span onclick="document.getElementById('ticketModal').style.display='none'" 
-       class="w3-button w3-teal w3-xlarge w3-display-topright">×</span>
-        <h2 class="w3-wide"><i class="fa fa-suitcase w3-margin-right"></i>Tickets</h2>
-      </header>
-      <div class="w3-container">
-        <p><label><i class="fa fa-shopping-cart"></i> Tickets, $15 per person</label></p>
-        <input class="w3-input w3-border" type="text" placeholder="How many?">
-        <p><label><i class="fa fa-user"></i> Send To</label></p>
-        <input class="w3-input w3-border" type="text" placeholder="Enter email">
-        <button class="w3-button w3-block w3-teal w3-padding-16 w3-section w3-right">PAY <i class="fa fa-check"></i></button>
-        <button class="w3-button w3-red w3-section" onclick="document.getElementById('ticketModal').style.display='none'">Close <i class="fa fa-remove"></i></button>
-        <p class="w3-right">Need <a href="#" class="w3-text-blue">help?</a></p>
-      </div>
-    </div>
-  </div>
-
-  <!--Experience section-->
-  <div class="w3-container w3-content w3-center w3-padding-64" style="max-width:800px" id="experience">
-    <h2 class="w3-wide">EXPERIENCE</h2></div>
-    
-   <div class="page">
-      <div class="timeline">
-        <div class="timeline__group">
-          <span class="timeline__year time" aria-hidden="true">2020</span>
-          <div class="timeline__cards">
-            <div class="timeline__card card">
-              <header class="card__header">
-                <time class="time" datetime="2020-17-7">
-                  <span class="time__day">5</span>
-                  <span class="time__month">June</span>
-                </time>
-              </header>
-              <div class="card__content">
-                <h3 class="card__title r-title"><b>Widhya,  Mission Advocate</b></h3> 
-                 <p> Developed Data science missions and tasks for the students to get real-time experience through learning- learned about data analysis in-depth, and implementation of various machine learning algorithms.
-                  </p>
-              </div>
-            </div>
-            <div class="timeline__card card">
-              <header class="card__header">
-                <time class="time" datetime="2008-09-01">
-                  <span class="time__day">1</span>
-                  <span class="time__month">July</span>
-                </time>
-                <div class="card__content">
-                <h3 class="card__title r-title">
-                <b>Widhya,  Artificial Intelligence Research Intern </b></h3>
-                 <p> Worked on Real-Time Predictions of Adverse Digressions in Critical and Noisy Industrial Processes, the confidence score of the model, and prediction of the series of input and their outputs.
-                 </p> </h3>
-              </header>
-              
-              </div>
-              <div class="timeline__card card">
-                <header class="card__header">
-                  <time class="time" datetime="2008-09-01">
-                    <span class="time__day">1</span>
-                    <span class="time__month">July</span>
-                  </time>
-                  <div class="card__content">
-                  <h3 class="card__title r-title">
-                  <b>Jovian.ML,  Community Lead for Datascience Vizag</b></h3>
-                   <p>Lead the Datascience community of the city, helped students to develop projects and portfolio, tutored them about the pathway to become a Data Scientist.
-                   </p> </h3>
-                </header>
-                
-                </div>
-            </div>
-          </div>
-        </div>
-       
-    </div>
-    
-  </div>
-
-</div>
-   
- <!-- The courses Section -->
- <div class="w3-black" id="courses">
-  <div class="w3-container w3-content w3-padding-64" style="max-width:800px">
-    <h2 class="w3-wide w3-center">COURSES</h2>
-    
-    <div class="gallery">
-      <a target="_blank" href="images\download.jpeg">
-        <img src="images\download.jpeg" alt="Cinque Terre" width="600" height="400">
-      </a>
-      <div class="desc">Andrew Ng's Machine Learning Course</div>
-    </div>
-    
-    <div class="gallery">
-      <a target="_blank" href="images\23fc7167-4812-45da-a1a3-d4842d723ce7.png">
-        <img src="images\23fc7167-4812-45da-a1a3-d4842d723ce7.png" alt="Forest" width="600" height="400">
-      </a>
-      <div class="desc">IBM Data Science Professional Certification (9 courses)</div>
-    </div>
-    
-    <div class="gallery">
-      <a target="_blank" href="images\1302062522ae.jpg">
-        <img src="images\1302062522ae.jpg" alt="Northern Lights" width="600" height="400">
-      </a>
-      <div class="desc">Depp Learning with Pytorch-Zero to Gans (Jovian.ml)</div>
-    </div>
-    
-    <div class="gallery">
-      <a target="_blank" href="images\fast.png">
-        <img src="images\fast.png" alt="Mountains" width="600" height="400">
-      </a>
-      <div class="desc">Fast.ai, DeepLearning for Coders by Jeremy Howard</div>
-    </div>
-    
-
-    </div>
-</div>
-
-
-<!-- Page content -->
-<div  style="max-width:100%;margin-top:46px"><!--class="w3-content"-->
-
-  
 
     <!-- The About me Section -->
-    <div class="w3-container w3-content w3-center w3-padding-64" style="max-width:100%" id="projects">
-      <h2 class="w3-wide">PROJECTS</h2>
-      <div class="row" >
-        <div class="column" style="margin-top:100px;">
-          <div class="gallery1">
-          <img src="images\bird.png" style="height:250px;width:300px;margin-left: 150px;">
-          <div class="desc1 w3-wide" style="margin-left: 22%;"><b>Image Classification of Birds</b>
-            <div><button><a href="https://jovian.ml/chamschamanthi36/img-classification-of-birds" target="_blank" >Code</a></button> <button><a href="https://medium.com/@chamschamanthi36/how-to-classify-animal-images-via-a-convolutional-neural-network-aeaadaa1a9b3" target="_blank">Blog</a></button></div>
-            </div>
-            </div>
+    <div class="w3-container w3-content w3-center w3-padding-64" style="max-width:800px;margin-bottom: -200px;"
+      id="aboutme">
+      <h2 class="w3-wide">CHAMANTHI AKI</h2>
+      <p class="w3-opacity"><b>Data Enthusiast</b></p>
+      <p class="w3-wide">I learned how to code through different online and offline courses, StackOverflow and trial &
+        error.<br> I do projects on what I learn and each project teaches me new skills.<br>Technology has never been a
+        barrier to me. If you want me to learn and explore new technology, then just give me a couple of days and I will
+        be good to go !!!.<br> Do you have data and want to come up with an application/solution? I can brainstorm and
+        come up with amazing product ideas.<br>I always have the quest to solve problems and I enjoy working with data.
+      
+       <br>
+       <br>
+       <b class=h_light>I have the unique ability to wear multiple hats in the data field - whether it's crunching numbers as a <i>Data Scientist</i>, 
+       building complex systems as a <i>Data Engineer</i>, or analyzing insights as a <i>Data Analyst</i></b></p>
+      <div>
+        <div class="column" style="float:right;">
+          <img src="images/prof_pic.jpg" height="200" width="200" style="margin-right: -700px;margin-top:-400px;">
         </div>
-        <div class="column" style="margin-top:100px;">
-          <div class="gallery1">
-          <img src="images\twitter.png" style="height:250px;width:300px;margin-right: 150px;">
-          <div class="desc1 w3-wide" style="margin-left:-20%;"><b>Twitter Sentiment Analysis using NLTK</b>
-          <div><button><a href="https://github.com/Chamanthi000/twitter-based-sentiment-analysis" target="_blank" >Code</a></button> <button><a href="https://medium.com/@chamschamanthi36/twitter-sentiment-analysis-using-nltk-python-7383e1f2a266?source=friends_link&sk=f067ff81ce37f918358e6a320e304822" target="_blank">Blog</a></button></div>
-            </div>
-            </div>
-        </div>
-  
       </div>
-  
-  
-        <div class="row" >
-        <div class="column" style="margin-top:100px;">
-          <div class="gallery1">
-          <img src="images\retinal.png" style="height:250px;width:300px;margin-left: 150px;">
-          <div class="desc1 w3-wide" style="margin-left: 22%;"><b>Predicting Retinal Diseases</b>
-            <div><button><a href="https://jovian.ml/chamschamanthi36/collections/retinal-diseases-prediction" target="_blank" >Code</a></button> <button><a href="https://medium.com/@chamschamanthi36/fast-ai-lesson-1-notes-b9a226ec5ef8?source=friends_link&sk=c1de65bdde5cc240898a286606bac12a" target="_blank">Blog</a></button></div>
-            </div>
-            </div>
-        </div>
-        <div class="column" style="margin-top:100px;">
-          <div class="gallery1">
-          <img src="images\locality.png" style="height:250px;width:300px;margin-right: 150px;">
-          <div class="desc1 w3-wide" style="margin-left:-20%;"><b>Locality Management System(DBMS)</b>
-            <div><button><a href="https://github.com/Chamanthi000/project1" target="_blank" >Code</a></button> <button><a href="https://gihttps://github.com/Chamanthi000/project1thub.com/Chamanthi000/project1/blob/master/final%20documentation.pdf" target="_blank">Blog</a></button></div>
-            </div>
-            </div>
-        </div>
-        </div>
-  
-  
-        <div class="row" >
-          <div class="column" style="margin-top:100px;">
-            <div class="gallery1">
-            <img src="images\astar.png" style="height:250px;width:300px;margin-left: 150px;">
-            <div class="desc1 w3-wide" style="margin-left: 22%;"><b>A-star Search Visualizer</b>
-              <div><button><a href="https://github.com/Chamanthi000/astar" target="_blank" >Code</a></button> <button><a href="https://medium.com/@chamschamanthi36/twitter-sentiment-analysis-using-nltk-python-7383e1f2a266?source=friends_link&sk=f067ff81ce37f918358e6a320e304822" target="_blank">Blog</a></button></div>
-              </div>
-              </div>
-          </div>
-          <div class="column" style="margin-top:100px;">
-            <div class="gallery1">
-            <img src="images\amazon.png" style="height:250px;width:300px;margin-right: 150px;object-fit:cover;">
-            <div class="desc1 w3-wide" style="margin-left:-20%;"><b>Amazon Web Scrapper</b>
-              <div><button><a href="https://github.com/Chamanthi000/amazon-web-scrapper." target="_blank" >Code</a></button> <button><a href="https://medium.com/@chamschamanthi36/how-to-scrape-web-amazon-47ae8cd6b939" target="_blank">Blog</a></button></div>
-              </div>
-              </div>
-          </div>
-          </div>
-          
-              
-          
-      </div>
-      
-      
-      
     </div>
-  
-  
-  
+
+    <!--Skills section-->
+    <div class="w3-black w3-container w3-content w3-center w3-padding-64" style="max-width:100%;" id="skills">
+      <h2 class="w3-wide">SKILLS</h2><br>
+      <!--<p class="w3-wide">1-Basic, 2-Novice, 3-Intermediate, 4-Advanced, 5-Expert</p><br><br>-->
+
+
+
+      <div class="column">
+        <div class="column">
+          <div class="row">
+            <p style="text-align: left;">Python</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
+            </div>
+          </div>
+
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">R Language</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:60%">3</div>
+            </div>
+          </div>
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">SQL</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:60%">3</div>
+            </div>
+          </div>
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">Power BI</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:100%">5</div>
+            </div>
+          </div>
+        
+        </div>
+
+
+        <div class="column">
+          <div class="row">
+            <p style="text-align: left;">Machine Learning Algorithms</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
+            </div>
+          </div>
+
+          <br><br>
+
+
+          <div class="row">
+            <p style="text-align: left;">Deep Learning</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:100%">5</div>
+            </div>
+          </div>
+          <br><br>
+          <div class="row">
+            <p style="text-align: left;">Recommendation Systems</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:100%">5</div>
+            </div>
+          </div>
+          <br><br>
+          <div class="row">
+            <p style="text-align: left;">Natural Language Processing</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:100%">5</div>
+            </div>
+          </div>
+
+        </div>
+
+
+
+      </div>
+
+      <div class="column">
+        <div class="column">
+          <div class="row">
+
+            <p style="text-align: left;">AWS</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
+            </div>
+          </div>
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">PySpark</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
+            </div>
+          </div>
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">Airflow</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
+            </div>
+          </div>
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">Databricks</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:100%">5</div>
+            </div>
+          </div>
+
+        </div>
+
+
+
+        <div class="column">
+          <div class="row">
+            <p style="text-align: left;">Probability & Stats</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
+            </div>
+          </div>
+
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">Data Analytics</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:80%">4</div>
+            </div>
+          </div>
+
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">Git</p>
+            <div class="w3-light-grey w3-round" style="width:60%">
+              <div class="w3-container w3-round w3-grey" style="width:60%">3</div>
+            </div>
+          </div>
+          <br><br>
+
+          <div class="row">
+            <p style="text-align: left;">Web Development</p>
+            <div class="w3-light-grey w3-round" style="width:60% ">
+              <div class="w3-container w3-round w3-grey" style="width:60%"> 4</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
     <!-- Ticket Modal -->
     <div id="ticketModal" class="w3-modal">
       <div class="w3-modal-content w3-animate-top w3-card-4">
-        <header class="w3-container w3-teal w3-center w3-padding-32"> 
-          <span onclick="document.getElementById('ticketModal').style.display='none'" 
-         class="w3-button w3-teal w3-xlarge w3-display-topright">×</span>
+        <header class="w3-container w3-teal w3-center w3-padding-32">
+          <span onclick="document.getElementById('ticketModal').style.display='none'"
+            class="w3-button w3-teal w3-xlarge w3-display-topright">×</span>
           <h2 class="w3-wide"><i class="fa fa-suitcase w3-margin-right"></i>Tickets</h2>
         </header>
         <div class="w3-container">
@@ -399,87 +263,428 @@ body {font-family: "Lato", sans-serif}
           <input class="w3-input w3-border" type="text" placeholder="How many?">
           <p><label><i class="fa fa-user"></i> Send To</label></p>
           <input class="w3-input w3-border" type="text" placeholder="Enter email">
-          <button class="w3-button w3-block w3-teal w3-padding-16 w3-section w3-right">PAY <i class="fa fa-check"></i></button>
-          <button class="w3-button w3-red w3-section" onclick="document.getElementById('ticketModal').style.display='none'">Close <i class="fa fa-remove"></i></button>
+          <button class="w3-button w3-block w3-teal w3-padding-16 w3-section w3-right">PAY <i
+              class="fa fa-check"></i></button>
+          <button class="w3-button w3-red w3-section"
+            onclick="document.getElementById('ticketModal').style.display='none'">Close <i
+              class="fa fa-remove"></i></button>
           <p class="w3-right">Need <a href="#" class="w3-text-blue">help?</a></p>
         </div>
       </div>
     </div>
-  
+
+    <!--Experience section-->
+    <div class="w3-container w3-content w3-center w3-padding-64" style="max-width:800px" id="experience">
+      <h2 class="w3-wide">EXPERIENCE</h2>
+    </div>
+
+    <div class="page">
+      <div class="timeline">
+        <div class="timeline__group">
+          <span class="timeline__year time" aria-hidden="true">2022</span>
+          <div class="timeline__cards">
+            <div class="timeline__card card">
+              <header class="card__header">
+                <time class="time" datetime="2020-17-7">
+                  <span class="time__day"></span>
+                  <span class="time__month">Jul - Dec</span>
+                </time>
+              </header>
+              <div class="card__content">
+                <h3 class="card__title r-title"><b>Pontoon Solutions, Data Scientist</b></h3>
+                <ul>
+                  <li> Performed data extraction and manipulation from API’s to develop a star based database schema.
+                    Used AWS S3 buckets, glue crawlers and AWS Athena to explore and analyze the data using advanced SQL
+                    queries and worked on 80 CTE queries </li>
+                  <li> Developed ETL pipelines to implement Time series analysis on an end to end cross-functional
+                    Demand forecasting model. </li>
+                  <li> Performed Exploratory data analysis to identify KPI’s which saved 90% of the time and maximized
+                    60% of the revenue.</li>
+                  <li> Conducted Co-integration test, Granger Causality test & Anomaly detection test to understand
+                    relationships between features. Built Univariate and Multi-variate models like ARIMA, TBATS,
+                    FB-PROPHET and trained the model on exponential smoothing methods.</li>
+                  <li> Evaluated models using metrics like MAPE, AIC score, p-values and interpreted predictions using
+                    shap-values and changepoint detection.</li>
+                  <li> Developed the documentation and deployed the python-based statistical model on interactive and
+                    dynamic visual dashboards leveraging POWER -BI through statistical modeling for trend analysis and
+                    to communicate business insights. </li>
+                </ul>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+   
+      <div class="timeline">
+        <div class="timeline__group">
+          <span class="timeline__year time" aria-hidden="true">2021</span>
+          <div class="timeline__cards">
+
+            <div class="timeline__card card">
+              <header class="card__header">
+                <time class="time" datetime="2008-09-01">
+                  <span class="time__day"></span>
+                  <span class="time__month"> MAY'19 - AUG'21</span>
+                </time>
+                <div class="card__content">
+                  <h3 class="card__title r-title">
+                    <b>Widhya, Data Scientist </b>
+                  </h3>
+                  <ul>
+                    <li> Collected requirements and worked collaboratively to construct a predictive model that is 30%
+                      more accurate, generalized, scalable, and has better latency than state-of-the-art models by
+                      implementing Transformer and python libraries to predict the Estimated Time of Arrival.</li>
+                    <li> Explored various Feature encoding, Geospatial embedding, and optimization approaches that
+                      improved
+                      the accuracy of the Transformer. Added a Bias-segment layer to generalize the model and
+                      implemented
+                      Asymmetric Huber Loss to deal with the outliers. Linearized the self-attention matrix calculation
+                      to
+                      solve the problem of latency and performance which reduced the time complexity from O(n^2) to
+                      O(n).</li>
+                    <li> Worked on Real-Time Predictions of Adverse Digressions in Critical and Noisy Industrial
+                      Processes,
+                      the confidence score of the model, and prediction of the series of input and their outputs.</li>
+                  </ul>
+                  </h3>
+              </header>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline__group">
+          <span class="timeline__year time" aria-hidden="true">2019</span>
+          <div class="timeline__cards">
+
+          
+
+            <div class="timeline__card card">
+              <header class="card__header">
+                <time class="time" datetime="2020-17-7">
+                  <span class="time__day"></span>
+                  <span class="time__month">May</span>
+                </time>
+              </header>
+              <div class="card__content">
+                <h3 class="card__title r-title"><b>Widhya, Mission Advocate</b></h3>
+                <p> Developed Data science missions and tasks for the students to get real-time experience through
+                  learning- learned about data analysis in-depth, and implementation of various machine learning
+                  algorithms.
+                </p>
+              </div>
+            </div>
+
+            <div class="timeline__card card">
+              <header class="card__header">
+                <time class="time" datetime="2008-09-01">
+                  <span class="time__day"></span>
+                  <span class="time__month">April</span>
+                </time>
+                <div class="card__content">
+                  <h3 class="card__title r-title">
+                    <b>Jovian.ML, Community Lead for Datascience Vizag</b>
+                  </h3>
+                  <p>Lead the Datascience community of the city, helped students to develop projects and portfolio,
+                    tutored them about the pathway to become a Data Scientist.
+                  </p>
+                  </h3>
+              </header>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+  </div>
+
+  </div>
+
+  <!-- The courses Section -->
+  <div class="w3-black" id="courses">
+    <div class="w3-container w3-content w3-padding-64" style="max-width:800px">
+      <h2 class="w3-wide w3-center">COURSES</h2>
+
+      <div class="gallery">
+        <a target="_blank" href="images\download.jpeg">
+          <img src="images\download.jpeg" alt="Cinque Terre" width="600" height="400">
+        </a>
+        <div class="desc">Andrew Ng's Machine Learning Course</div>
+      </div>
+
+      <div class="gallery">
+        <a target="_blank" href="images\23fc7167-4812-45da-a1a3-d4842d723ce7.png">
+          <img src="images\23fc7167-4812-45da-a1a3-d4842d723ce7.png" alt="Forest" width="600" height="400">
+        </a>
+        <div class="desc">IBM Data Science Professional Certification (9 courses)</div>
+      </div>
+
+      <div class="gallery">
+        <a target="_blank" href="images\1302062522ae.jpg">
+          <img src="images\1302062522ae.jpg" alt="Northern Lights" width="600" height="400">
+        </a>
+        <div class="desc">Depp Learning with Pytorch-Zero to Gans (Jovian.ml)</div>
+      </div>
+
+      <div class="gallery">
+        <a target="_blank" href="images\fast.png">
+          <img src="images\fast.png" alt="Mountains" width="600" height="400">
+        </a>
+        <div class="desc">Fast.ai, DeepLearning for Coders by Jeremy Howard</div>
+      </div>
+
+
+    </div>
+  </div>
+
+
+  <!-- Page content -->
+  <div style="max-width:100%;margin-top:46px"><!--class="w3-content"-->
+
+
+
+    <!-- The About me Section -->
+    <div class="w3-container w3-content w3-center w3-padding-64" style="max-width:100%" id="projects">
+      <h2 class="w3-wide">PROJECTS</h2>
+      
+
+      <div class="row">
+        <div class="column" style="margin-top:100px;">
+          <div class="gallery1">
+            <img src="images\leaf.jpeg" style="height:250px;width:300px;margin-left: 150px;">
+            <div class="desc1 w3-wide" style="margin-left: 22%;"><b>Leaf it to AI: <br>Advanced Disease Detection for Apple Orchards<br> (ongoing project)
+            </b>
+              <div><button><a href="https://github.com/Chamanthi000/leaf_it_to_ai"
+                    target="_blank">Code</a></button> <button><a
+                    href="https://github.com/Chamanthi000/leaf_it_to_ai"
+                    target="_blank">Blog</a></button></div>
+            </div>
+          </div>
+        </div>
+        <div class="column" style="margin-top:100px;">
+          <div class="gallery1">
+            <img src="images\stock_dl.png" style="height:250px;width:300px;margin-right: 150px;">
+            <div class="desc1 w3-wide" style="margin-left:-20%;"><b>Deep Learning for Stock Price Forecasting: <br>Combining Financial News, SEC 8-K Filings, <br>and Twitter Data</b>
+              <div><button><a href="https://github.com/Chamanthi000/Deep-Learning-for-Stock-Price-Forecasting-Combining-Financial-News-SEC-8-K-Filings-and-Twitter-Da" target="_blank">Code</a></button>
+                <button><a
+                    href="https://github.com/Chamanthi000/Deep-Learning-for-Stock-Price-Forecasting-Combining-Financial-News-SEC-8-K-Filings-and-Twitter-Da/blob/main/Project_Report_Team-16%20(1).pdf"
+                    target="_blank">Blog</a></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="column" style="margin-top:100px;">
+          <div class="gallery1">
+            <img src="images\music.jpeg" style="height:250px;width:300px;margin-left: 150px;">
+            <div class="desc1 w3-wide" style="margin-left: 22%;"><b>Find Similar Users based on Music Taste
+            </b>
+              <div><button><a href="https://github.com/Chamanthi000/find_similar_users_based_on_music_taste"
+                    target="_blank">Code</a></button> <button><a
+                    href="https://github.com/Chamanthi000/find_similar_users_based_on_music_taste/blob/main/documentation/AkiChamanthiProjectReport.pdf"
+                    target="_blank">Blog</a></button></div>
+            </div>
+          </div>
+        </div>
+        <div class="column" style="margin-top:100px;">
+          <div class="gallery1">
+            <img src="images\stack.png" style="height:250px;width:300px;margin-right: 150px;">
+            <div class="desc1 w3-wide" style="margin-left:-20%;"><b>Predicting Tags for Stackoverflow data </b>
+              <div><button><a href="https://github.com/Chamanthi000/Predicting-Tags-for-Stackoverflow-data/blob/main/Predicting%20Tags%20for%20Stackoverflow%20data.pdf"
+                    target="_blank">Code</a></button> <button><a
+                    href="https://github.com/Chamanthi000/Predicting-Tags-for-Stackoverflow-data/blob/main/Predicting%20Tags%20for%20Stackoverflow%20data.pdf"
+                    target="_blank">Blog</a></button></div>
+            </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="column" style="margin-top:100px;">
+            <div class="gallery1">
+              <img src="images\fake.jpeg" style="height:250px;width:300px;margin-left: 150px;">
+              <div class="desc1 w3-wide" style="margin-left: 22%;"><b>Detection of Fake Job Postings
+              </b>
+                <div><button><a href="https://github.com/Chamanthi000/NLP--Detection-of-Fake-Job-Postings/blob/main/CS6120%20Project%20-%20Group%2011%20Report.pdf"
+                      target="_blank">Code</a></button> <button><a
+                      href="https://github.com/Chamanthi000/NLP--Detection-of-Fake-Job-Postings/blob/main/CS6120%20Project%20-%20Group%2011%20Report.pdf"
+                      target="_blank">Blog</a></button></div>
+              </div>
+            </div>
+          </div>
+          <div class="column" style="margin-top:100px;">
+            <div class="gallery1">
+              <img src="images\twitter.png" style="height:250px;width:300px;margin-right: 150px;">
+              <div class="desc1 w3-wide" style="margin-left:-20%;"><b>Twitter Sentiment Analysis using NLTK</b>
+                <div><button><a href="https://github.com/Chamanthi000/twitter-based-sentiment-analysis"
+                      target="_blank">Code</a></button> <button><a
+                      href="https://medium.com/@chamschamanthi36/twitter-sentiment-analysis-using-nltk-python-7383e1f2a266?source=friends_link&sk=f067ff81ce37f918358e6a320e304822"
+                      target="_blank">Blog</a></button></div>
+              </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="column" style="margin-top:100px;">
+              <div class="gallery1">
+                <img src="images\goldstock.png" style="height:250px;width:300px;margin-left: 150px;">
+                <div class="desc1 w3-wide" style="margin-left: 22%;"><b>Exploratory Data Analysis to compare Gold-vs-SP-500-index
+                </b>
+                  <div><button><a href="https://github.com/Chamanthi000/Exploratory-Data-Analysis-project-to-compare-Gold-vs-S-P-500-index"
+                        target="_blank">Code</a></button> <button><a
+                        href="https://github.com/Chamanthi000/Exploratory-Data-Analysis-project-to-compare-Gold-vs-S-P-500-index"
+                        target="_blank">Blog</a></button></div>
+                </div>
+              </div>
+            </div>
+            <div class="column" style="margin-top:100px;">
+              <div class="gallery1">
+                <img src="images\plane.png" style="height:250px;width:300px;margin-right: 150px;">
+                <div class="desc1 w3-wide" style="margin-left:-20%;"><b>Airline Passenger Satisfaction </b>
+                  <div><button><a href="https://github.com/Chamanthi000/Airline-Passenger-Satisfaction/blob/main/idmp%20report.pdf"
+                        target="_blank">Code</a></button> <button><a
+                        href="https://github.com/Chamanthi000/Airline-Passenger-Satisfaction/blob/main/idmp%20report.pdf"
+                        target="_blank">Blog</a></button></div>
+                </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="column" style="margin-top:100px;">
+                <div class="gallery1">
+                  <img src="images\locality.png" style="height:250px;width:300px;margin-left: 150px;">
+                  <div class="desc1 w3-wide" style="margin-left: 22%;"><b>Locality Management Web System
+                  </b>
+                    <div><button><a href="https://github.com/Chamanthi000/Locality-Management-Web-System"
+                          target="_blank">Code</a></button> <button><a
+                          href="https://github.com/Chamanthi000/Locality-Management-Web-System/blob/master/final%20documentation.pdf"
+                          target="_blank">Blog</a></button></div>
+                  </div>
+                </div>
+              </div>
+             
+              </div>
+      </div>
+
+
+
+    </div>
+
+
+
+  </div>
+
+
+
+  <!-- Ticket Modal -->
+  <div id="ticketModal" class="w3-modal">
+    <div class="w3-modal-content w3-animate-top w3-card-4">
+      <header class="w3-container w3-teal w3-center w3-padding-32">
+        <span onclick="document.getElementById('ticketModal').style.display='none'"
+          class="w3-button w3-teal w3-xlarge w3-display-topright">×</span>
+        <h2 class="w3-wide"><i class="fa fa-suitcase w3-margin-right"></i>Tickets</h2>
+      </header>
+      <div class="w3-container">
+        <p><label><i class="fa fa-shopping-cart"></i> Tickets, $15 per person</label></p>
+        <input class="w3-input w3-border" type="text" placeholder="How many?">
+        <p><label><i class="fa fa-user"></i> Send To</label></p>
+        <input class="w3-input w3-border" type="text" placeholder="Enter email">
+        <button class="w3-button w3-block w3-teal w3-padding-16 w3-section w3-right">PAY <i
+            class="fa fa-check"></i></button>
+        <button class="w3-button w3-red w3-section"
+          onclick="document.getElementById('ticketModal').style.display='none'">Close <i
+            class="fa fa-remove"></i></button>
+        <p class="w3-right">Need <a href="#" class="w3-text-blue">help?</a></p>
+      </div>
+    </div>
+  </div>
+
 
 
   <!-- The Contact Section -->
   <div class="w3-container w3-content w3-padding-64" style="max-width:800px" id="contact">
     <h2 class="w3-wide w3-center">CONTACT</h2>
-    
+
     <div class="w3-row w3-padding-32">
       <div class="w3-wide w3-center">
         <i class="fa fa-map-marker" style="width:30px"></i> Boston, Massachusetts <br>
-        
+
         <i class="fa fa-envelope" style="width:30px"> </i> chamanthiaki5@gmail.com <br>
 
         <i class="fa fa-envelope" style="width:30px"> </i> aki.c@northeastern.edu <br>
 
         <i class="fa fa-instagram" style="width:30px"> </i> Chamanthi (chamzzzxp) <br>
 
-        <i class="fa fa-facebook-official" style="width:30px"> </i> chamanthi 
-        
+        <i class="fa fa-facebook-official" style="width:30px"> </i> chamanthi
+
         <br>
       </div>
-    
+
     </div>
   </div>
-  
- 
-  
-<!-- End Page Content -->
-</div>
 
 
 
-<!-- Footer -->
-<footer class="w3-container w3-padding-64 w3-center w3-opacity w3-light-grey w3-xlarge">
-  
- <p> &copy Chamanthi Aki</p>
-</footer>
+  <!-- End Page Content -->
+  </div>
 
-<script>
-// Automatic Slideshow - change image every 4 seconds
-var myIndex = 0;
-carousel();
 
-function carousel() {
-  var i;
-  var x = document.getElementsByClassName("mySlides");
-  for (i = 0; i < x.length; i++) {
-    x[i].style.display = "none";  
-  }
-  myIndex++;
-  if (myIndex > x.length) {myIndex = 1}    
-  x[myIndex-1].style.display = "block";  
-  setTimeout(carousel, 4000);    
-}
 
-// Used to toggle the menu on small screens when clicking on the menu button
-function myFunction() {
-  var x = document.getElementById("navDemo");
-  if (x.className.indexOf("w3-show") == -1) {
-    x.className += " w3-show";
-  } else { 
-    x.className = x.className.replace(" w3-show", "");
-  }
-}
+  <!-- Footer -->
+  <footer class="w3-container w3-padding-64 w3-center w3-opacity w3-light-grey w3-xlarge">
 
-// When the user clicks anywhere outside of the modal, close it
-var modal = document.getElementById('ticketModal');
-window.onclick = function(event) {
-  if (event.target == modal) {
-    modal.style.display = "none";
-  }
-}
-</script>
+    <p> &copy Chamanthi Aki</p>
+  </footer>
+
+  <script>
+    // Automatic Slideshow - change image every 4 seconds
+    var myIndex = 0;
+    carousel();
+
+    function carousel() {
+      var i;
+      var x = document.getElementsByClassName("mySlides");
+      for (i = 0; i < x.length; i++) {
+        x[i].style.display = "none";
+      }
+      myIndex++;
+      if (myIndex > x.length) { myIndex = 1 }
+      x[myIndex - 1].style.display = "block";
+      setTimeout(carousel, 4000);
+    }
+
+    // Used to toggle the menu on small screens when clicking on the menu button
+    function myFunction() {
+      var x = document.getElementById("navDemo");
+      if (x.className.indexOf("w3-show") == -1) {
+        x.className += " w3-show";
+      } else {
+        x.className = x.className.replace(" w3-show", "");
+      }
+    }
+
+    // When the user clicks anywhere outside of the modal, close it
+    var modal = document.getElementById('ticketModal');
+    window.onclick = function (event) {
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+  </script>
 
 </body>
+
 </html>
-
-
