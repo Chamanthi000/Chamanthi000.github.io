@@ -23,7 +23,7 @@ async function boot(){
 try{
 show('Loading Firebase…');
 const base='https://www.gstatic.com/firebasejs/13.2.0/';
-const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,signOut,onAuthStateChanged},{getFirestore,collection,doc,setDoc,onSnapshot}]=await Promise.all([
+const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,signOut,onAuthStateChanged},{getFirestore,collection,doc,setDoc,onSnapshot,getDocs}]=await Promise.all([
   import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-firestore.js')
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
@@ -68,7 +68,24 @@ requestLogin=async()=>{try{await signInWithPopup(auth,provider)}catch(e){
 }};initialized=true;window.dispatchEvent(new Event('recall-firebase-ready'));show('Firebase ready · Sign in with Google to enable cloud sync');
 if(logout)logout.onclick=()=>signOut(auth);
 window.addEventListener('recall-cloud-local',e=>{const {kind,items}=e.detail||{};if(!kinds.includes(kind))return;if(!state.user){statusText('Saved on this device · Sign in for cloud sync');return}putLocal(kind,items)});
-window.RecallCloud={get user(){return state.user},sync(kind,items){if(state.user)putLocal(kind,items)},get ready(){return initialized}};
+window.RecallCloud={
+  get user(){return state.user},
+  sync(kind,items){if(state.user)putLocal(kind,items)},
+  get ready(){return initialized},
+  // Full cloud read: all four collections, not just the current page.
+  async readAll(){
+    if(!state.user)throw new Error('Sign in with Google before exporting your cloud data.');
+    const entries=await Promise.all(kinds.map(async kind=>{
+      const snapshot=await getDocs(list(kind));
+      const byId=new Map(snapshot.docs.map(x=>[idOf(kind,x.data()),x.data()]));
+      for(const [key,item] of state.pending){
+        if(key.startsWith(kind+':'))byId.set(idOf(kind,item),item);
+      }
+      return [kind,[...byId.values()]];
+    }));
+    return Object.fromEntries(entries);
+  }
+};
 
 }catch(e){console.error('Firebase initialization failed:',e);show('⚠ Firebase could not load: '+e.message+'. Try refreshing or disabling blockers.');window.dispatchEvent(new Event('recall-firebase-error'));if(login)login.disabled=false}
 }
