@@ -52,6 +52,25 @@ function linkOf(t,tasks){
  if(matches.length===1)return matches[0];
  // Unambiguous multiword habit names may match a longer checklist label.
  matches=habits.filter(h=>{const n=normalize(h.name);return n.length>=8&&n.split(' ').length>=2&&name.split(' ').join(' ').includes(n)});
+ if(matches.length===1)return matches[0];
+ // Match short, common names only for unchanged tasks from the initial template.
+ // Avoid guessing if two existing habits fit: the task editor lets the user choose.
+ const original=defaults.find(x=>x.id===t.id);
+ if(!original||normalize(original.name)!==name)return null;
+ const aliases={
+  exercise:['gym','workout','exercise','run','running','fitness'],
+  morningcare:['skincare','skin care','red light'],
+  breakfast:['breakfast','matcha'],
+  othot:['work','othot','othot work'],
+  feed:['feed lucas','feed dog','dog feeding'],
+  lucaswalk:['dog walk','walk dog','lucas walk'],
+  driving:['driving','sql','resume','career preparation'],
+  class:['coding class','coding practice','leetcode','dsa practice'],
+  nightcare:['skincare','night skincare','household chores'],
+  assignment:['coding assignment','class assignment','leetcode homework']
+ };
+ const names=aliases[t.id]||[];
+ matches=habits.filter(h=>names.includes(normalize(h.name)));
  return matches.length===1?matches[0]:null;
 }
 function isDone(t,tasks){const h=linkOf(t,tasks);return h?(h.dates||[]).includes(selected):!!t.done}
