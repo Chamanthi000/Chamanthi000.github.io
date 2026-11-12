@@ -230,3 +230,64 @@ body.rev-goals .nav a{font-size:14px}
  body.rev-sql-guide .brand{font-size:17px}
  body.rev-sql-guide .logo{width:29px;height:29px}
 }
+
+
+/* Review workflow and progress accuracy, Nov 2026 */
+body.rev-index .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+body.rev-index .stat{min-width:0;padding:17px}
+body.rev-index .stat label{min-height:2.7em;display:block}
+body.rev-index .solved-badge{display:inline-block;margin-left:9px;vertical-align:middle}
+body.rev-index .row-quick-actions{display:flex;flex-wrap:wrap;gap:6px}
+body.rev-index .row-quick-actions .quick{flex:1 1 auto;min-height:44px}
+body.rev-index .solve-quick{background:#f1f7ef;color:#315943;border:1px solid #d2e4d4}
+body.rev-index tr.item:focus-visible{outline:3px solid #4b9c68;outline-offset:-3px;background:#eff8ee}
+body.rev-index .solved-check{display:flex;gap:12px;align-items:center;min-height:52px;border:1px solid #dbeadf;border-radius:12px;padding:12px 14px;background:#f5faf4;text-transform:none;font-size:16px;font-weight:800;letter-spacing:0;color:#2a6341}
+body.rev-index .solved-check input{width:23px;height:23px;accent-color:#358656;flex:none}
+body.rev-index #saveState{color:#41694d;line-height:1.6}
+body.rev-index #firebaseStatus{font-size:14px!important;line-height:1.6}
+body.rev-index .stats .stat:nth-child(2) strong{color:#2a8053}
+body.rev-index .stats .stat:nth-child(3) strong{color:#437c6f}
+body.rev-index .stats .stat:nth-child(4) strong{color:#b28a4d}
+body.rev-index .stats .stat:nth-child(5) strong{color:#4f8e6d}
+body.rev-index .stats .stat:nth-child(6) strong{color:#498764}
+body.rev-index .stats .stat:nth-child(7) strong{color:#7c75a8}
+/* Structured learning reviews: tap targets and legible recall state */
+body.rev-page .concept-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:17px 0 0;padding:16px;background:#f1f8ef;border:1px solid #d4e7d4;border-radius:13px}
+body.rev-page .concept-prompt{flex:1 1 100%;color:#2c5e40;font-size:14px;font-weight:800;line-height:1.6}
+body.rev-page .concept-rate{display:inline-flex;align-items:center;justify-content:center;min-height:46px;border-radius:11px;padding:11px 15px;font-size:14px;font-weight:800;cursor:pointer;line-height:1.45}
+body.rev-page .concept-rate.needs{background:#fff;border:1px solid #d0e0d2;color:#816332}
+body.rev-page .concept-rate.remembered{background:#287149;border:1px solid #287149;color:white}
+body.rev-page .concept-status{display:block;width:100%;color:#43654d;font-size:13px;line-height:1.65}
+body.rev-index .ds-meta .concept-controls{flex:1 1 100%;order:5;margin-top:7px}
+body.rev-index .ds-meta .concept-status{font-size:14px}
+body.rev-sql-guide .pattern-body .concept-controls{margin-top:22px}
+body.rev-sql-guide .guide-sync-strip,body.rev-sql-guide .guide-sync-strip .download{font-size:14px}
+body.rev-sql-guide .guide-sync-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 18px;margin:6px auto 0;max-width:1080px;border:1px solid #e0eddf;border-radius:12px;background:#f7fbf5;color:#4d7657}
+body.rev-sql-guide .guide-sync-strip span{flex:1 1 230px;line-height:1.5}
+body.rev-sql-guide .guide-sync-strip [hidden]{display:none!important}
+/* Small-screen Goals: show today's checklist first, keep advanced controls tucked away */
+body.rev-goals .settings-content{display:grid;gap:13px}
+body.rev-goals .settings-content>.tile{margin:0!important}
+body.rev-goals .settings-content>.dailyReminder{margin:0}
+body.rev-goals .restore-preview{padding:17px;border:1px solid #e7bad3;background:#fff8fc;border-radius:13px}
+body.rev-goals .restore-preview[hidden]{display:none!important}
+body.rev-goals .restore-preview p{font-size:14px;line-height:1.7}
+body.rev-goals .settings-content button{min-height:44px}
+body.rev-goals #syncSummary{font-size:13px;color:#8c5f79;line-height:1.5}
+@media(max-width:920px){
+ body.rev-index .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ body.rev-index .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.rev-index .stat label{min-height:0;font-size:12px}
+ body.rev-index .row-quick-actions{gap:9px}
+ body.rev-index .row-quick-actions .quick{flex:1 1 135px}
+ body.rev-goals .settings-content{gap:12px}
+ body.rev-page .concept-rate{flex:1 1 140px}
+ body.rev-sql-guide .guide-sync-strip{margin:7px 14px 0;padding:12px}
+}
+@media(max-width:400px){
+ body.rev-index .stat strong{font-size:25px}
+ body.rev-page .concept-controls{padding:12px}
+ body.rev-page .concept-rate{padding:11px}
+}
