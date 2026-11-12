@@ -174,20 +174,38 @@ $('dailyGoToday').onclick=()=>{selected=isoDate();editing=null;render();checkRem
 $('dailyDate').onchange=e=>{if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){selected=e.target.value;editing=null;render();checkReminders()}};
 const alertKey=(day,task,event)=>'recall-notify-v2:'+day+':'+task+':'+event;
 function browserNotify(title,body,key){
- if(Notification.permission!=='granted'||localStorage.getItem(key))return;
+ if(!('Notification' in window)||Notification.permission!=='granted'||localStorage.getItem(key))return;
  try{
   const n=new Notification(title,{body,tag:key});
   n.onclick=()=>{window.focus();$('dailyChecklist').scrollIntoView({behavior:'smooth'});n.close()};
   localStorage.setItem(key,'1');
  }catch(e){console.warn('Notification not available:',e)}
 }
+function checkPlanPrompt(){
+ const now=new Date(),day=isoDate(now),key='recall-night-plan-v1:'+day;
+ const isTime=now.getHours()>=22;
+ const show=!templateMode&&selected===day&&isTime&&!localStorage.getItem(key);
+ $('dailyPlanBanner').hidden=!show;
+ if(show)browserNotify('Plan tomorrow ✨','Review and edit tomorrow’s daily checklist before bed.',alertKey(day,'tomorrow','plan'));
+}
+$('dailyPlanTomorrow').onclick=()=>{
+ const current=isoDate(),next=new Date();next.setDate(next.getDate()+1);
+ selected=isoDate(next);
+ localStorage.setItem('recall-night-plan-v1:'+current,'1');
+ editing=null;
+ $('dailyPlanBanner').hidden=true;
+ $('dailyAddDetails').open=false;
+ render();
+ $('dailyChecklist').scrollIntoView({behavior:'smooth',block:'start'});
+};
 function checkReminders(){
  const current=isoDate();
  if(current!==lastDate){
   if(selected===lastDate)selected=current;
   lastDate=current;editing=null;
  }
- render();
+ if(!document.querySelector('.dailyTaskEditor')&&!document.activeElement?.closest?.('#dailyAddDetails'))render();
+ checkPlanPrompt();
  if(templateMode||selected!==current)return;
  const now=Date.now(),tasks=getTasks();
  for(const t of tasks){
