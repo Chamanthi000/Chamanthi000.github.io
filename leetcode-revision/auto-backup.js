@@ -6,7 +6,7 @@ const list=document.getElementById('autoBackupVersions')||{value:'',innerHTML:''
 const download=document.getElementById('autoBackupDownload')||{disabled:true,onclick:null};
 // On Coding/SQL, run snapshots without the Goals page's backup-history controls.
 const DB_NAME='recall-autobackups-v1',STORE='snapshots',MAX=20;
-const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1'};
+const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1',structures:'recall-structures-v1'};
 const KINDS=Object.keys(KEYS);
 let timer=null,running=false,resave=false;
 const local=kind=>{
