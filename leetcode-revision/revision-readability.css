@@ -1,0 +1,216 @@
+/* Recall study-first readability layer. Shared across Coding, SQL, Goals, and reference pages.
+   Version 2026-11-12. Visual-only; no stored data or app logic is changed. */
+:root{--rev-readable-ink:#2c4736;--rev-readable-muted:#526c5c;--rev-readable-border:#d5e2d6;--rev-focus:#338658}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body.rev-page{font-size:16px;line-height:1.6;overflow-wrap:break-word}
+body.rev-page p{line-height:1.68}
+body.rev-page :is(button,a,input,textarea,select,summary){-webkit-tap-highlight-color:transparent}
+body.rev-page :is(button,a,input,textarea,select,summary):focus-visible{outline:3px solid #418d62;outline-offset:3px}
+body.rev-page :is(input,textarea,select){font-size:16px;line-height:1.55}
+body.rev-page :is(input,textarea)::placeholder{color:#708675;opacity:1}
+body.rev-page :is(input,textarea,select){max-width:100%}
+body.rev-page :is(h1,h2,h3){text-wrap:balance}
+body.rev-page :is(.app,.shell,main){min-width:0}
+body.rev-page pre,body.rev-page code,body.rev-page textarea{tab-size:4}
+body.rev-page :is(.btn,.back,.download){line-height:1.3}
+body.rev-page a:not(.btn):not(.back):not(.download):hover{text-decoration-thickness:2px}
+@media(prefers-reduced-motion:reduce){
+ body.rev-page *,body.rev-page *::before,body.rev-page *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+/* Main Coding and SQL practice dashboard */
+body.rev-index{color:var(--rev-readable-ink)}
+body.rev-index p{color:#506b58}
+body.rev-index :is(.hero p,#heroDescription){font-size:16px;max-width:62ch;color:#54705e}
+body.rev-index .eyebrow{font-size:12px;color:#437d57}
+body.rev-index h1{line-height:1.2}
+body.rev-index :is(.hint,.learning span,.sectionHead p,.panelHead .hint,.legend,.heatLegend,.foot,.empty,.sqlPracticeHeader p){font-size:14px;color:#56715d}
+body.rev-index .learning{padding:18px 20px}
+body.rev-index .learning b{font-size:16px;color:#2d553e}
+body.rev-index .learning span{line-height:1.65;margin-top:5px}
+body.rev-index .stat label{font-size:12px;color:#526d59;letter-spacing:.5px;line-height:1.45}
+body.rev-index .stat strong{font-size:31px;line-height:1.2}
+body.rev-index :is(.panelHead h3,.sectionHead h2){line-height:1.35}
+body.rev-index .tag{font-size:13px;line-height:1.5}
+body.rev-index .difficulty{font-size:14px}
+body.rev-index .status{font-size:13px;line-height:1.4}
+body.rev-index th{font-size:12px;color:#5c7661}
+body.rev-index td{font-size:15px;line-height:1.55}
+body.rev-index td small{font-size:13px;color:#57715f;line-height:1.55}
+body.rev-index .quick{font-size:14px;min-height:44px}
+body.rev-index .btn.small{font-size:13px;min-height:44px}
+body.rev-index .group label{font-size:12px;letter-spacing:.4px;color:#516f59;line-height:1.5}
+body.rev-index :is(.field,.search,.suggestion,.chip){font-size:15px}
+body.rev-index :is(input.field,textarea.field,select.field){font-size:16px}
+body.rev-index .chip{min-height:44px;padding:10px 12px}
+body.rev-index .group textarea{min-height:135px;line-height:1.75;padding:13px 14px}
+body.rev-index .group textarea.sqlQuery{min-height:210px;font:15px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}
+body.rev-index .dialogHeader{padding-block:20px}
+body.rev-index .flashTop{font-size:14px;color:#506d57}
+body.rev-index .flashReveal{font-size:16px;line-height:1.8;max-height:min(58dvh,510px);overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+body.rev-index .flashCard{align-items:stretch;text-align:left}
+body.rev-index .flashCard h2{text-align:center}
+body.rev-index .flashReveal:empty{display:none}
+body.rev-index :is(.foundationLink p,.complexityLink p,.sqlGuide p,.sqlPracticeCard .sqlPracticeDesc){font-size:14px;line-height:1.6;color:#506d58}
+body.rev-index :is(.foundationLink b,.complexityLink strong,.sqlGuide strong){font-size:16px;line-height:1.45}
+body.rev-index :is(.sqlPracticeHeader h2){font-size:19px}
+body.rev-index .sqlPracticeCard .sqlPracticeName{font-size:16px;line-height:1.45}
+body.rev-index .sqlPracticeCard .sqlPracticeAction{font-size:14px}
+body.rev-index .sqlPracticeCard{gap:9px;min-height:140px}
+body.rev-index .sqlGuideActions .plainLink{font-size:14px}
+body.rev-index :is(.foundationLink,.complexityLink,.sqlGuide,.sqlPracticeResources){padding:18px 20px}
+body.rev-index .tab{font-size:14px}
+body.rev-index .nav{flex-wrap:wrap}
+body.rev-index .topActions .btn{font-size:13px}
+/* Editable structure notes are a reading tool, not a compact input */
+body.rev-index .ds-toggle{padding:18px 20px;min-height:77px}
+body.rev-index .ds-toggle strong{font-size:17px}
+body.rev-index .ds-toggle small{font-size:14px;line-height:1.6;color:#56765f}
+body.rev-index .ds-topic summary{padding:16px;min-height:56px}
+body.rev-index .ds-topic-name{font-size:16px;line-height:1.5}
+body.rev-index .ds-note-count{font-size:13px;color:#5c7964}
+body.rev-index .ds-note-input{font:15px/1.9 ui-monospace,SFMono-Regular,Consolas,monospace;padding:19px;min-height:340px;max-height:none;resize:vertical;color:#293f31;background:#fbfdfb;white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:hidden}
+body.rev-index .ds-editor{padding:0 17px 17px}
+body.rev-index .ds-meta{font-size:13px;color:#576f5c;line-height:1.65}
+body.rev-index .ds-search,body.rev-index .ds-new-title{font-size:16px;min-height:48px}
+body.rev-index .ds-delete{font-size:13px}
+/* The searchable Big-O reference: comfortable cards and readable metrics */
+body.rev-complexities{color:var(--rev-readable-ink)}
+body.rev-complexities :is(.hero p,.sectionTop p,.note){font-size:15px;color:#526c58}
+body.rev-complexities :is(.eyebrow,.mini){font-size:12px;color:#48785a}
+body.rev-complexities h1{line-height:1.15}
+body.rev-complexities .ladderCard{padding:18px}
+body.rev-complexities .ladderCard strong{font-size:22px}
+body.rev-complexities .ladderCard span{font-size:13px;color:#526b59}
+body.rev-complexities .ladderCard small{font-size:13px}
+body.rev-complexities .filter{font-size:13px;min-height:44px}
+body.rev-complexities .search{font-size:16px}
+body.rev-complexities .pattern summary{padding:21px}
+body.rev-complexities .cardTitle h3{font-size:18px;line-height:1.45}
+body.rev-complexities .groupLabel{font-size:12px;color:#527760}
+body.rev-complexities .metric span{font-size:12px;color:#597766}
+body.rev-complexities .metric b{font-size:20px;line-height:1.35}
+body.rev-complexities .summaryFooter{font-size:13px;line-height:1.6;color:#58725f}
+body.rev-complexities .details{padding:2px 20px 20px}
+body.rev-complexities .details b{font-size:12px}
+body.rev-complexities .details p{font-size:15px;line-height:1.75;color:#425c48}
+/* The SQL guide: a continuous-reading layout with spacious code */
+body.rev-sql-guide{color:var(--rev-readable-ink)}
+body.rev-sql-guide :is(.hero p,.intro p,.section-head p){font-size:15px;color:#526e59;line-height:1.75}
+body.rev-sql-guide .hero h1{line-height:1.19}
+body.rev-sql-guide .eyebrow{font-size:12px;color:#417a54}
+body.rev-sql-guide .hero-stats span{font-size:13px;line-height:1.5}
+body.rev-sql-guide .intro{padding:21px 24px}
+body.rev-sql-guide .intro b{font-size:16px}
+body.rev-sql-guide .roadmap{gap:12px}
+body.rev-sql-guide .road{padding:20px}
+body.rev-sql-guide .road b{font-size:15px}
+body.rev-sql-guide .road p{font-size:14px;line-height:1.7;color:#526d59}
+body.rev-sql-guide .road .count{font-size:12px}
+body.rev-sql-guide .pattern-grid{grid-template-columns:minmax(0,1fr);max-width:850px;margin-inline:auto;gap:13px}
+body.rev-sql-guide .pattern summary{min-height:95px;padding:20px 24px}
+body.rev-sql-guide .pattern-number{width:40px;height:40px;font-size:14px}
+body.rev-sql-guide .pattern-id strong{font-size:18px;line-height:1.45}
+body.rev-sql-guide .pattern-id small{font-size:15px;line-height:1.6;color:#526d59}
+body.rev-sql-guide .pattern-body{padding:0 24px 24px}
+body.rev-sql-guide .memory{padding:17px 19px}
+body.rev-sql-guide .memory strong{font-size:16px;line-height:1.6}
+body.rev-sql-guide .section-label{font-size:12px}
+body.rev-sql-guide .code-tip{font-size:12px;color:#607766}
+body.rev-sql-guide pre{font:15px/1.85 ui-monospace,SFMono-Regular,Consolas,monospace;padding:21px 23px;white-space:pre;max-width:100%;overflow-x:auto}
+body.rev-sql-guide .pattern-note{font-size:15px;line-height:1.75;margin-top:16px}
+body.rev-sql-guide .pattern-note span{font-size:12px;line-height:1.4}
+body.rev-sql-guide .search{font-size:16px}
+body.rev-sql-guide .filter{font-size:13px;min-height:44px}
+body.rev-sql-guide .quiz-question summary{font-size:15px;line-height:1.6;min-height:60px;padding:15px 18px}
+body.rev-sql-guide .quiz-question summary .hint{font-size:13px;color:#487357}
+body.rev-sql-guide .quiz-num{font-size:13px}
+body.rev-sql-guide .answer{font-size:15px;padding:16px 42px;line-height:1.65}
+body.rev-sql-guide .back,body.rev-sql-guide .download{font-size:13px}
+/* Goals & habits uses a distinct blush theme, but the same legible type scale */
+body.rev-goals{color:#58374b}
+body.rev-goals p{color:#725167}
+body.rev-goals .eyebrow{font-size:12px;color:#a34d7b}
+body.rev-goals :is(.muted,.note,.sectionHead p){font-size:14px;color:#775366;line-height:1.65}
+body.rev-goals .stat label{font-size:12px;color:#795468;letter-spacing:.4px}
+body.rev-goals .stat strong{font-size:29px}
+body.rev-goals .tag{font-size:13px}
+body.rev-goals .tile{padding:22px}
+body.rev-goals .tile p,body.rev-goals .details div{font-size:15px;line-height:1.75;color:#64495a}
+body.rev-goals .day{font-size:13px;line-height:1.4}
+body.rev-goals .day b{font-size:14px}
+body.rev-goals .dailyTop p,body.rev-goals .futureTop p{font-size:15px;color:#755367}
+body.rev-goals .dailyName,body.rev-goals .futureName,body.rev-goals .quickHabitName{font-size:16px;line-height:1.6}
+body.rev-goals .dailyTime,body.rev-goals .futureDate,body.rev-goals .quickHabitStreak{font-size:13px;line-height:1.6;color:#795769}
+body.rev-goals :is(.label,.dailyTools>label){font-size:14px;line-height:1.6;color:#714861}
+body.rev-goals .dailyPanel{padding:23px}
+body.rev-goals :is(.dailyRow,.futureRow){padding:14px;min-height:62px}
+body.rev-goals .quickHabit{min-height:50px}
+body.rev-goals .quickHabitName{font-size:15px}
+body.rev-goals .field{font-size:16px;line-height:1.6}
+body.rev-goals textarea.field{min-height:120px;padding:13px 15px;line-height:1.75}
+body.rev-goals .btn.small{font-size:13px;min-height:44px}
+body.rev-goals .details summary{font-size:15px;line-height:1.55}
+body.rev-goals .nav a{font-size:14px}
+/* Device-specific flow: no tiny text, no clipped toolbars, no sideways reading */
+@media(max-width:920px){
+ body.rev-index .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+ body.rev-sql-guide .roadmap{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.rev-goals .cards{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:700px){
+ body.rev-page :is(input,textarea,select){font-size:16px}
+ body.rev-index .app,body.rev-goals .app{padding-inline:16px}
+ body.rev-index .hero{gap:14px}
+ body.rev-index .heroBtns{gap:8px}
+ body.rev-index .stats,body.rev-goals .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.rev-index .stat,body.rev-goals .stat{padding:15px}
+ body.rev-index .stat label,body.rev-goals .stat label{font-size:12px}
+ body.rev-index .stat strong,body.rev-goals .stat strong{font-size:27px}
+ body.rev-index .learning{padding:16px}
+ body.rev-index :is(.foundationLink,.complexityLink,.sqlGuide,.sqlPracticeResources){padding:16px}
+ body.rev-index .sqlPracticeCard{min-height:0}
+ body.rev-index :is(.foundationLink a,.complexityLink a){width:100%;text-align:center}
+ body.rev-index .sqlGuideActions a{min-height:44px}
+ body.rev-index .ds-toggle{padding:16px}
+ body.rev-index .ds-body{padding:15px}
+ body.rev-index .ds-editor{padding:0 12px 12px}
+ body.rev-index .ds-note-input{font-size:15px;line-height:1.85;padding:15px;min-height:330px}
+ body.rev-index tr.item{gap:9px}
+ body.rev-index tr.item td:first-child{grid-column:1/-1}
+ body.rev-index tr.item td small{white-space:normal;overflow:visible;max-width:none;text-overflow:clip}
+ body.rev-index tr.item td{font-size:14px}
+ body.rev-index .flashDialog{padding:16px}
+ body.rev-index .flashReveal{font-size:15px;line-height:1.75}
+ body.rev-index .filters{gap:8px}
+ body.rev-goals .dailyPanel{padding:17px}
+ body.rev-goals .day{padding:10px 2px}
+ body.rev-goals .futureRow{align-items:flex-start}
+ body.rev-complexities .cards{grid-template-columns:1fr}
+ body.rev-complexities .ladderCard{min-height:105px}
+ body.rev-complexities .ladderCard strong{font-size:19px}
+ body.rev-sql-guide .app{width:calc(100% - 28px)}
+ body.rev-sql-guide .pattern summary{padding:16px}
+ body.rev-sql-guide .pattern-id strong{font-size:17px}
+ body.rev-sql-guide .pattern-id small{font-size:14px}
+ body.rev-sql-guide .pattern-body{padding:0 15px 18px}
+ body.rev-sql-guide pre{font-size:14px;line-height:1.8;padding:16px}
+ body.rev-sql-guide .road{padding:15px}
+ body.rev-sql-guide .quiz-question summary{padding:13px}
+}
+@media(max-width:400px){
+ body.rev-index .nav .tab{padding-inline:9px;font-size:12px}
+ body.rev-index .topActions{width:100%;justify-content:flex-end}
+ body.rev-index .heroBtns{flex-wrap:wrap}
+ body.rev-index .heroBtns button{flex:1 1 130px}
+ body.rev-index .stats{gap:8px}
+ body.rev-index .stat strong{font-size:24px}
+ body.rev-goals .nav a{padding-inline:6px;font-size:12px}
+ body.rev-goals .dailyRow,body.rev-goals .futureRow{gap:8px;padding:11px}
+ body.rev-complexities .hero{padding:22px 18px}
+ body.rev-complexities .ladder{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.rev-sql-guide .nav{gap:5px}
+ body.rev-sql-guide .nav-actions{gap:4px}
+ body.rev-sql-guide .back,body.rev-sql-guide .download{font-size:11px;padding-inline:9px}
+ body.rev-sql-guide .brand{font-size:17px}
+ body.rev-sql-guide .logo{width:29px;height:29px}
+}
