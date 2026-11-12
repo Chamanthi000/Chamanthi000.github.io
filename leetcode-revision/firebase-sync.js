@@ -7,12 +7,15 @@ const show=s=>{if(status)status.textContent=s;};
 const accountLabel=document.createElement('small');
 accountLabel.id='recallSignedInEmail';
 accountLabel.setAttribute('aria-live','polite');
-accountLabel.style.cssText='display:block;font:500 11px/1.35 -apple-system,BlinkMacSystemFont,"DM Sans",sans-serif;color:#708474;max-width:230px;overflow-wrap:anywhere;text-align:right;margin:4px 0;';
+accountLabel.style.cssText='display:block;font:500 11px/1.35 -apple-system,BlinkMacSystemFont,"DM Sans",sans-serif;color:#708474;max-width:180px;overflow-wrap:anywhere;text-align:right;margin:2px 0;';
 accountLabel.textContent='Not signed in';
 const accountHost=login?.closest('.topActions')||logout?.closest('.topActions');
 if(accountHost){
  const group=document.createElement('div');
- group.style.cssText='display:flex;flex-direction:column;align-items:flex-end;min-width:0;max-width:100%;';
+ group.style.cssText='display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:0;max-width:100%;';
+ // Keep the email directly beneath the sign-in/sign-out control on iPhone.
+ if(login)group.appendChild(login);
+ if(logout)group.appendChild(logout);
  group.appendChild(accountLabel);
  accountHost.appendChild(group);
 }else{
