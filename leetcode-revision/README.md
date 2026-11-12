@@ -1,12 +1,28 @@
-# Recall — LeetCode revision notebook
+# Recall — Coding + SQL Revision Studio
 
-Open the site at https://chamanthi000.github.io/leetcode-revision/ (if GitHub Pages is enabled on the main branch).
+A responsive GitHub Pages learning notebook for LeetCode coding and SQL interview preparation.
 
-Enter a LeetCode problem number, save notes, then click the problem to edit it again.
+## Website
+When GitHub Pages is enabled for the `main` branch, root folder, open:
+https://chamanthi000.github.io/leetcode-revision/
 
-## Saving
-Notes always save immediately to browser localStorage. To back them up to GitHub, click **GitHub sync** in the app and enter a fine-grained personal access token restricted to `Chamanthi000.github.io` with **Contents: read/write**. The token is kept in memory only for that page session; re-enter it on reload. The app merges records using their update times and writes to `data/notes.json`. Deleted records are retained as tombstones to keep deletes synchronized.
+**If this URL shows a 404**, confirm repository Settings → Pages → Build and deployment → Deploy from a branch → `main` → `/(root)`. Deployment has not yet been independently verified.
 
-**Privacy:** This GitHub Pages repository is public. Synced notes are public. A public website with a private notes database would require a different backend/auth setup.
+## Learning
+- Switch between **Coding** and **SQL** with top navigation.
+- Coding includes title/number suggestions from a public LeetCode catalog, difficulty, patterns, a time-complexity dropdown, space complexity, data structures, insight, approach, edge cases, and LeetCode links.
+- SQL supports titles, difficulty, source platform, joins, CTEs, window functions, query text, insights, mistakes, and problem URLs. There is no universal SQL practice-problem numbering system, so enter the title manually.
+- See saved problem counts by difficulty, patterns and problems per pattern, a 182-day green activity heatmap (newly saved problems), revision counts and due reviews.
+- **Flashcards:** Reveal your notes and swipe left for Needs Practice or right for Confident. Desktop buttons and keyboard arrows also work. Each rating saves an ISO date-time revision event, mastery status and next review date.
+- Tap **Revised** in the library or editor to record a review without changing confidence.
+- Responsive editor and revision cards designed for iPhone and iPad portrait and landscape.
 
-LeetCode problem metadata lookup uses an external endpoint and can fail; title can always be typed manually. The **My submissions** button opens your LeetCode submissions page while logged in. For an exact solution, paste its LeetCode URL in the editor.
+## Storage and privacy
+Data is saved immediately to localStorage: coding in `recall-notes-v1` and SQL in `recall-sql-v1`.
+For GitHub persistence, click **Sync** and enter a fine-grained token scoped to this repository with **Contents: read and write**. The browser holds the token in memory only for the current page session, and syncs to:
+- `data/notes.json` (coding)
+- `data/sql-notes.json` (SQL)
+
+**This repository is public. Synced notes and SQL queries are publicly readable.** Use a private-repository backend if you require private notes. Avoid putting credentials or sensitive data in notes.
+
+A public LeetCode catalog powers autocomplete; if that resource is unavailable, entering details manually still works. Problem counts are based on saved notes, not an authenticated LeetCode accepted-submission feed.
