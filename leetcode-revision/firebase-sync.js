@@ -39,12 +39,44 @@ function isMember(kind,item){return kind==='structures'?item.recordType==='struc
 function prepare(kind,item){return kind==='structures'?{...item,recordType:'structure'}:kind==='concepts'?{...item,recordType:'conceptReview'}:item}
 function cloudDocId(kind,item){return kind==='structures'?'structure-'+idOf(kind,item):kind==='concepts'?'concept-'+idOf(kind,item):idOf(kind,item)}
 function send(kind){window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind,items:state.snapshots[kind]}}))}
-function putLocal(kind,items){if(!state.user)return;const snapshot=state.snapshots[kind]||[];const cloudIds=new Map(snapshot.map(x=>[idOf(kind,x),x]));for(const item of items){const id=idOf(kind,item);if(!id)continue;const old=cloudIds.get(id);if(!old||String(item.updatedAt||item.createdAt||'')>String(old.updatedAt||old.createdAt||'')){queue(kind,item)}}}
+
+const CONFLICT_KEY='recall-sync-conflicts-v1';
+function archiveConflict(kind,device,cloud){
+ if(!device||!cloud)return;
+ const clean=item=>{const x={...item};delete x.recordType;return x};
+ if(JSON.stringify(clean(device))===JSON.stringify(clean(cloud)))return;
+ try{
+  const records=JSON.parse(localStorage.getItem(CONFLICT_KEY)||'[]');
+  const list=Array.isArray(records)?records:[];
+  const id=kind+':'+idOf(kind,device)+':'+String(device.updatedAt||'')+':'+String(cloud.updatedAt||'');
+  if(list.some(x=>x.id===id))return;
+  list.push({id,kind,recordId:idOf(kind,device),savedAt:new Date().toISOString(),device:clean(device),cloud:clean(cloud)});
+  localStorage.setItem(CONFLICT_KEY,JSON.stringify(list.slice(-100)));
+  window.dispatchEvent(new CustomEvent('recall-sync-conflict',{detail:{kind,count:list.length}}));
+  statusText('⚠ Different versions detected · Copy saved in Settings > Conflict copies');
+ }catch(e){statusText('⚠ Version conflict: export a full backup before editing further');console.error('Cannot archive Recall conflict',e)}
+}
+window.RecallSyncConflicts={
+ read(){try{return JSON.parse(localStorage.getItem(CONFLICT_KEY)||'[]')}catch{return []}},
+ download(){
+  const data=this.read();
+  if(!data.length){statusText('No version conflict copies on this device');return}
+  const blob=new Blob([JSON.stringify({format:'recall-conflict-copies',version:1,exportedAt:new Date().toISOString(),records:data},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='recall-conflict-copies-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+ }
+};
+const conflictButton=document.getElementById('downloadConflictCopies');
+if(conflictButton)conflictButton.addEventListener('click',()=>window.RecallSyncConflicts.download());
+
+function putLocal(kind,items){if(!state.user)return;const snapshot=state.snapshots[kind]||[];const cloudIds=new Map(snapshot.map(x=>[idOf(kind,x),x]));for(const item of items){const id=idOf(kind,item);if(!id)continue;const old=cloudIds.get(id);if(old&&String(old.updatedAt||old.createdAt||'')>String(item.updatedAt||item.createdAt||''))archiveConflict(kind,item,old);if(!old||String(item.updatedAt||item.createdAt||'')>String(old.updatedAt||old.createdAt||'')){queue(kind,item)}}}
 function arm(key,delay){
  clearTimeout(state.timers.get(key));
  state.timers.set(key,setTimeout(async()=>{
   const value=state.pending.get(key);
   if(!value||!state.user)return;
+  const kindName=key.slice(0,key.indexOf(':')),remote=state.snapshots[kindName]?.find(x=>idOf(kindName,x)===idOf(kindName,value));
+  if(remote&&String(remote.updatedAt||'')>String(value.updatedAt||'')){archiveConflict(kindName,value,remote);state.pending.delete(key);return}
   const sep=key.indexOf(':'),kind=key.slice(0,sep);
   try{
    await setDoc(doc(list(kind),cloudDocId(kind,value)),prepare(kind,value));
@@ -83,6 +115,7 @@ const byId=new Map(remote.map(x=>[idOf(kind,x),x]));
 for(const item of existing){const cloud=byId.get(idOf(kind,item));if(!cloud||String(item.updatedAt||item.createdAt||'')>String(cloud.updatedAt||cloud.createdAt||''))queue(kind,item)}
 }
 const pendingIds=new Set([...state.pending.keys()].filter(k=>k.startsWith(kind+':')).map(k=>k.slice(kind.length+1)));
+for(const item of window.RecallLocal?.(kind)||[]){const cloud=remote.find(x=>idOf(kind,x)===idOf(kind,item));if(cloud&&!pendingIds.has(idOf(kind,item))&&String(cloud.updatedAt||'')>String(item.updatedAt||''))archiveConflict(kind,item,cloud)}
 const output=new Map(remote.map(x=>[idOf(kind,x),x]));
 for(const item of window.RecallLocal?.(kind)||[]){const id=idOf(kind,item),old=output.get(id);if(pendingIds.has(id)||(!old&&!state.initial.has(kind)))output.set(id,item)}
 state.snapshots[kind]=[...output.values()];send(kind);
