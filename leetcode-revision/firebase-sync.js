@@ -3,6 +3,27 @@ const status=document.getElementById('firebaseStatus');
 const login=document.getElementById('firebaseLogin');
 const logout=document.getElementById('firebaseLogout');
 const show=s=>{if(status)status.textContent=s;};
+// Show the actual signed-in account on Coding, SQL, Goals and guide pages.
+const accountLabel=document.createElement('small');
+accountLabel.id='recallSignedInEmail';
+accountLabel.setAttribute('aria-live','polite');
+accountLabel.style.cssText='display:block;font:500 11px/1.35 -apple-system,BlinkMacSystemFont,"DM Sans",sans-serif;color:#708474;max-width:230px;overflow-wrap:anywhere;text-align:right;margin:4px 0;';
+accountLabel.textContent='Not signed in';
+const accountHost=login?.closest('.topActions')||logout?.closest('.topActions');
+if(accountHost){
+ const group=document.createElement('div');
+ group.style.cssText='display:flex;flex-direction:column;align-items:flex-end;min-width:0;max-width:100%;';
+ group.appendChild(accountLabel);
+ accountHost.appendChild(group);
+}else{
+ const parent=logout?.parentElement||login?.parentElement||status?.parentElement;
+ if(parent)parent.appendChild(accountLabel);
+ accountLabel.style.textAlign='left';
+}
+function displayAccount(user){
+ accountLabel.textContent=user?.email?'Signed in: '+user.email:'Not signed in';
+ accountLabel.title=user?.email?'Cloud notes belong to '+user.email+'. Use this same account on every device.':'Sign in with the same Google email on every device to sync notes.';
+}
 const diagnostic=code=>{
   if(code==='auth/unauthorized-domain')return 'Google sign-in blocked: add chamanthi000.github.io to Firebase Authentication → Settings → Authorized domains.';
   if(code==='auth/operation-not-allowed')return 'Google sign-in is not enabled in Firebase Authentication → Sign-in method.';
@@ -101,7 +122,7 @@ function queue(kind,item){
 }
 
 async function setup(user){
-for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);state.timers.clear();state.retries.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.user=user;state.ready=!!user;
+for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);state.timers.clear();state.retries.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.user=user;state.ready=!!user;displayAccount(user);
 if(!user){statusText('Saved on this device · Sign in to sync all devices');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 if(login)login.hidden=true;if(logout)logout.hidden=false;statusText('Connecting live cloud sync…');
 for(const kind of page){
