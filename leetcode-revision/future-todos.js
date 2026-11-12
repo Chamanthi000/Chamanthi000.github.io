@@ -83,7 +83,8 @@ $('futureItems').addEventListener('submit',e=>{
 $('futureCalendar').onclick=saveCalendar;
 $('futureOpenButton').onclick=()=>{section.open=true;section.scrollIntoView({behavior:'smooth',block:'start'});$('futureNewName').focus({preventScroll:true})};
 function reminderCheck(){
- render();
+ // Do not reset text fields while someone is editing a deadline or task.
+ if(!document.activeElement?.closest?.('#futureAdd, .futureEdit'))render();
  if(!('Notification' in window)||Notification.permission!=='granted')return;
  const d=today(),now=new Date(),minutes=now.getHours()*60+now.getMinutes();
  // Day-before notification at the first opportunity after 9 AM; while page is open.
