@@ -6,8 +6,8 @@ const status=document.getElementById('backupStatus');
 const restore=document.getElementById('restoreEverything');
 const input=document.getElementById('backupRestoreFile');
 if(!button)return;
-const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1'};
-const KINDS=['coding','sql','goals','habits'];
+const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1',structures:'recall-structures-v1'};
+const KINDS=['coding','sql','goals','habits','structures'];
 function localRecords(kind){
  try{
   const value=JSON.parse(localStorage.getItem(KEYS[kind])||'null');
@@ -65,7 +65,9 @@ if(restore&&input){
   try{
    if(file.size>30*1024*1024)throw Error('Backup file is unusually large (over 30 MB).');
    const payload=JSON.parse(await file.text());
-   if(payload.format!=='recall-full-backup'||payload.version!==1||KINDS.some(k=>!Array.isArray(payload[k])))throw Error('Not a compatible Recall full backup.');
+   if(payload.format!=='recall-full-backup'||payload.version!==1||KINDS.filter(k=>k!=='structures').some(k=>!Array.isArray(payload[k]))||(payload.structures!==undefined&&!Array.isArray(payload.structures)))throw Error('Not a compatible Recall full backup.');
+   // Old backup archives predate structure notebooks; preserve notebooks when absent.
+   if(!Array.isArray(payload.structures))payload.structures=localRecords('structures');
    const count=KINDS.reduce((a,k)=>a+payload[k].length,0);
    if(!confirm('Restore '+count+' records from this backup? Existing records with the same IDs may be replaced. This cannot be undone without another backup.'))return;
    const now=new Date().toISOString();
@@ -73,6 +75,7 @@ if(restore&&input){
    // Restore browser copies first so users never lose the file's records if cloud is unavailable.
    localStorage.setItem(KEYS.coding,JSON.stringify(updated.coding));
    localStorage.setItem(KEYS.sql,JSON.stringify(updated.sql));
+   localStorage.setItem(KEYS.structures,JSON.stringify(updated.structures));
    localStorage.setItem(KEYS.goals,JSON.stringify({goals:updated.goals,habits:updated.habits}));
    let cloudWarning='';
    if(window.RecallCloud?.user){
