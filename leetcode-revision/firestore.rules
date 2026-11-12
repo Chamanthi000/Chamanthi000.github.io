@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Each Google account can access only its own Recall records.
+    match /users/{userId}/{kind}/{recordId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId
+        && kind in ['coding', 'sql', 'goals', 'habits'];
+    }
+    // Deny everything else by default.
+  }
+}
