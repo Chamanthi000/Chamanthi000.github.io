@@ -94,6 +94,29 @@
 .monthlyControls .field{margin:4px 0 0;width:180px}
 .monthlyMeter{margin:2px 0 13px}
 @media(max-width:720px){.habitsQuick{grid-template-columns:1fr;padding:8px 11px}.quickHabit{padding:7px 10px;min-height:45px}.futureTop{align-items:flex-start}.futureBottom .btn{width:100%}.monthlyControls>.label{width:100%}.monthlyControls .field{width:100%}.futureAdd .btn{width:100%}}
+
+/* Compact expandable Future To-Dos & Monthly Goals */
+.futureToolbar{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:14px 0 12px}
+.futureToolbar .field{margin:0;min-width:125px;max-width:220px}
+.futureToolbar .btn.small{min-height:44px}
+.futureRow{display:flex;align-items:center;gap:10px;min-width:0;padding:12px 10px;margin:8px 0;background:#fff;border:1px solid #f0dce9;border-radius:12px}
+.futureRow>input[type=checkbox]{width:21px;height:21px;accent-color:#b95f90;flex:none}
+.futureText{flex:1;min-width:0}
+.futureName{font-weight:800;color:#684157;line-height:1.45;overflow-wrap:anywhere}
+.futureDate{font-size:12px;color:#9b7890;line-height:1.5;margin-top:3px}
+.futureLate{color:#a55c42}
+.futureDone .futureName{text-decoration:line-through;opacity:.65}
+.futureEdit{border:1px solid #ead2e1;background:#fff;border-radius:12px;padding:13px;margin-top:-3px;margin-bottom:10px}
+.futureEdit .field{margin-bottom:10px}
+.futureActions{display:flex;flex-wrap:wrap;gap:8px}
+.futureActions .btn{min-height:44px}
+.futureDueBanner{padding:11px 14px;background:#fff4e9;border:1px solid #f4dfc4;border-radius:12px;color:#895a39;font-weight:800;font-size:12px}
+.futureDueBanner[hidden]{display:none}
+.compactInner .dailyAddDetails{margin-top:14px}
+.monthlyProgressTrack{height:7px;border-radius:20px;background:#f1dce8;overflow:hidden;margin:11px 2px 12px}
+.monthlyProgressTrack span{display:block;width:0;height:100%;border-radius:20px;background:#ba6699;transition:width .2s}
+#futureOpenButton{min-height:44px}
+@media(max-width:650px){.futureToolbar .field{max-width:none;flex:1}.futureToolbar .btn{flex:1}.futureRow{gap:8px;padding:10px}.futureRow .btn{padding:8px 10px}}
 </style></head><body><main class="app"><header class="top"><a class="brand" href="./"><span>↗</span>recall.</a><nav class="nav"><a href="./#coding">⌘ Coding</a><a href="./#sql">▤ SQL</a><a href="./goals.html" class="active" aria-current="page">◎ Goals & Habits</a></nav></header><section class="hero"><div><div class="eyebrow">MAKE YOUR INTENTIONS ACTIONABLE</div><h1>Small steps. Big goals.<br><span style="color:#639a70">Real progress.</span></h1><p>Turn a clear vision into milestones and daily habits.</p></div><div class="row"><button class="btn secondary" type="button" id="futureOpenButton">＋ Future to-dos</button><button class="btn secondary" id="newHabit">＋ New habit</button><button class="btn" id="newGoal">＋ New goal</button></div></section>
 
 <section class="tile dailyPanel" id="dailyChecklist" aria-labelledby="dailyHeading">
@@ -121,6 +144,7 @@
 </section>
 
 <section class="tile" style="margin-bottom:20px;background:#fff0f7"><div class="row between" style="flex-wrap:wrap"><div><strong>☁ Live cloud sync</strong><div class="muted" id="firebaseStatus" role="status" aria-live="polite">Saved on this device · Sign in to sync all devices</div></div><div class="row"><button class="btn small" id="firebaseLogin">Sign in with Google</button><button class="btn secondary small" id="firebaseLogout" hidden>Sign out</button></div></div><p class="note">Local goals remain on this browser; sign in on every device with the same Google account for cloud syncing. Cloud saves confirm when complete.</p></section><section class="stats"><div class="stat"><label>ACTIVE GOALS</label><strong id="goalCount">0</strong></div><div class="stat"><label>GOALS COMPLETED</label><strong id="goalDone">0</strong></div><div class="stat"><label>HABITS TODAY</label><strong id="habitToday">0/0</strong></div><div class="stat"><label>BEST CURRENT STREAK</label><strong id="bestStreak">0</strong></div></section>
+<div class="row" style="justify-content:flex-end;margin-bottom:10px"><button type="button" id="futureOpenButton" class="btn secondary small">＋ Plan a future to-do</button></div>
 <details class="compactSection" id="futureSection">
 <summary><span class="compactIcon">🗓</span><span class="compactMeta"><strong>Future to-dos</strong><small id="futureSummary">Plan ahead with deadlines</small></span><span class="compactCounter" id="futureCount">0 pending</span><span class="compactArrow" aria-hidden="true">⌄</span></summary>
 <div class="compactInner"><div class="futureDueBanner" id="futureDueBanner" hidden></div>
@@ -137,6 +161,56 @@
 <form id="monthlyAdd" class="futureAdd"><label class="label">New monthly goal<input class="field" id="monthlyNewName" required maxlength="160" placeholder="e.g. Finish 30 DSA problems"></label><label class="label">Details / milestones<textarea class="field" id="monthlyNewDetails" rows="2" placeholder="What does success look like?"></textarea></label><button type="submit" class="btn small">＋ Add monthly goal</button></form>
 <p class="note" id="monthlyMessage" role="status">Each month has its own goals and progress.</p>
 </div></details>
+
+<details class="compactSection" id="futureSection">
+ <summary>
+  <span class="compactIcon">☷</span><span class="compactMeta"><strong>Future to-dos</strong><small id="futureSummary">Tasks and deadlines ahead</small></span>
+  <span class="compactCounter" id="futureCount">0 pending</span><span class="compactArrow" aria-hidden="true">⌄</span>
+ </summary>
+ <div class="compactInner">
+  <div class="futureToolbar">
+   <label class="label" for="futureFilter">Show</label>
+   <select id="futureFilter" class="field"><option value="pending">Upcoming</option><option value="all">All tasks</option><option value="done">Completed</option></select>
+   <button type="button" class="btn secondary small" id="futureCalendar">Add deadline alerts to calendar</button>
+  </div>
+  <p class="futureDueBanner" id="futureDueBanner" hidden aria-live="polite"></p>
+  <div id="futureItems"></div>
+  <details class="dailyAddDetails" id="futureAddDetails">
+   <summary>＋ Add a future to-do</summary>
+   <form id="futureAdd">
+    <label class="label" for="futureNewName">To-do<input id="futureNewName" class="field" maxlength="160" required placeholder="Something you don't want to forget"></label>
+    <label class="label" for="futureNewDate">Deadline<input type="date" id="futureNewDate" class="field" required></label>
+    <button type="submit" class="btn small">Save future to-do</button>
+   </form>
+  </details>
+  <p id="futureMessage" class="note" role="status" aria-live="polite">Reminder: one day before each deadline while this page is open. To get alerts when Safari is closed, export calendar alerts and import them into your calendar app.</p>
+ </div>
+</details>
+<details class="compactSection" id="monthlySection">
+ <summary>
+  <span class="compactIcon">◫</span><span class="compactMeta"><strong>Monthly goals</strong><small id="monthlySubtitle">Set this month's priorities</small></span>
+  <span class="compactCounter" id="monthlyCount">0/0 complete</span><span class="compactArrow" aria-hidden="true">⌄</span>
+ </summary>
+ <div class="compactInner">
+  <div class="futureToolbar">
+   <label class="label" for="monthlyMonth">Month</label><input class="field" id="monthlyMonth" type="month" aria-label="Select goal month">
+   <button type="button" class="btn secondary small" id="monthlyToday">This month</button>
+   <button type="button" class="btn secondary small" id="monthlyDoneToggle">Hide completed</button>
+  </div>
+  <div class="monthlyProgressTrack" role="progressbar" aria-label="Monthly goals completed" aria-valuemin="0" aria-valuemax="100"><span id="monthlyFill"></span></div>
+  <div id="monthlyItems"></div>
+  <details class="dailyAddDetails" id="monthlyAddDetails">
+   <summary>＋ Add monthly goal</summary>
+   <form id="monthlyAdd">
+    <label class="label" for="monthlyNewName">Monthly goal<input class="field" id="monthlyNewName" required maxlength="160" placeholder="e.g. Finish 20 LeetCode problems"></label>
+    <label class="label" for="monthlyNewDetails">Details / milestones<textarea class="field" id="monthlyNewDetails" rows="3" placeholder="Break it into achievable steps"></textarea></label>
+    <button type="submit" class="btn small">Save monthly goal</button>
+   </form>
+  </details>
+  <p class="note" id="monthlyMessage" role="status" aria-live="polite">Goals remain saved under their assigned month, including past months.</p>
+ </div>
+</details>
+
 <details class="compactSection" id="goalsSection"><summary><span class="compactIcon">◎</span><span class="compactMeta"><strong>My goals</strong><small>Milestones, deadlines and plans</small></span><span class="compactCounter" id="goalsMiniCount">0 goals</span><span class="compactArrow" aria-hidden="true">⌄</span></summary><div class="compactInner"><div id="goals" class="cards"></div></div></details>
 <details class="compactSection" id="habitsSection"><summary><span class="compactIcon">◈</span><span class="compactMeta"><strong>Habit tracker</strong><small>Streaks and the last seven days</small></span><span class="compactCounter" id="habitsMiniCount">0 habits</span><span class="compactArrow" aria-hidden="true">⌄</span></summary><div class="compactInner"><div id="habits" class="cards"></div></div></details><div class="habitsQuick" id="habitsQuick" aria-label="Quick habit checkboxes for today"></div>
 <p class="note" style="margin-top:27px">Changes are saved on this device. Sign in with Google for Firebase cloud sync, and use Back up everything above for a personal offline copy. Never store private routine data in a public GitHub repository.</p><div class="row"><button class="btn secondary small" id="export">Export backup</button><label class="btn secondary small" style="cursor:pointer">Import backup<input type="file" id="import" accept="application/json,.json" style="display:none"></label></div></main>
@@ -170,7 +244,7 @@ window.RecallLocal=kind=>kind==='goals'?data.goals:kind==='habits'?data.habits:[
 window.addEventListener('recall-cloud-data',event=>{const {kind,items}=event.detail||{};if(!Array.isArray(items))return;if(kind==='goals')data.goals=items;if(kind==='habits')data.habits=items;localStorage.setItem(KEY,JSON.stringify(data));render()});
 
 render()})();
-</script><script src="./daily-checklist.js?v=20261112-daily"></script><script src="./backup-all.js?v=20261112-backup"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script>
+</script><script src="./daily-checklist.js?v=20261112-daily"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261112-backup"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script>
 (function(){
   const status=document.getElementById('firebaseStatus');
   const button=document.getElementById('firebaseLogin');
