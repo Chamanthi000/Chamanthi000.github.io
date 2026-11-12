@@ -1,0 +1,281 @@
+{
+  "title": "Recall SQL Pattern Playbook",
+  "edition": "2026-11-12",
+  "note": "Original expansion of the site's 14-pattern summary; starter SQL examples use PostgreSQL-style features.",
+  "cards": [
+    {
+      "n": 1,
+      "name": "Window ranking",
+      "family": "WINDOWS",
+      "cue": "Rank people, products, or scores inside each group.",
+      "memory": "WINDOW ranks rows without collapsing them.",
+      "code": [
+        "SELECT team, person, score,",
+        "       RANK() OVER (",
+        "         PARTITION BY team",
+        "         ORDER BY score DESC",
+        "       ) AS pos",
+        "FROM scores;"
+      ],
+      "watch": "RANK skips numbers after ties; DENSE_RANK does not.",
+      "recall": "Which rank keeps equal scores tied?"
+    },
+    {
+      "n": 2,
+      "name": "Top N by group",
+      "family": "WINDOWS",
+      "cue": "Find the best 3 or newest 5 within EACH group.",
+      "memory": "PARTITION resets the ranking for every group.",
+      "code": [
+        "WITH ranked AS (",
+        " SELECT team, person, score,",
+        "  ROW_NUMBER() OVER (",
+        "   PARTITION BY team ORDER BY score DESC",
+        "  ) AS rn FROM scores",
+        ") SELECT * FROM ranked WHERE rn <= 3;"
+      ],
+      "watch": "Use DENSE_RANK to include all ties at the cutoff.",
+      "recall": "Why not use LIMIT 3 for top 3 per team?"
+    },
+    {
+      "n": 3,
+      "name": "Running totals",
+      "family": "WINDOWS",
+      "cue": "Show the total SO FAR for every date or transaction.",
+      "memory": "SUM OVER + ORDER BY = rolling accumulation.",
+      "code": [
+        "SELECT user_id, sold_at, amount,",
+        " SUM(amount) OVER (",
+        "  PARTITION BY user_id",
+        "  ORDER BY sold_at, sale_id",
+        "  ROWS BETWEEN UNBOUNDED PRECEDING",
+        "  AND CURRENT ROW) AS running_total",
+        "FROM sales;"
+      ],
+      "watch": "Choose a stable order and explicit ROWS frame.",
+      "recall": "What changes with PARTITION BY user_id?"
+    },
+    {
+      "n": 4,
+      "name": "Previous / next",
+      "family": "WINDOWS",
+      "cue": "Compare an event with the event immediately before or after.",
+      "memory": "LAG looks BACK; LEAD looks AHEAD.",
+      "code": [
+        "SELECT user_id, event_date, value,",
+        " LAG(value) OVER (",
+        "  PARTITION BY user_id",
+        "  ORDER BY event_date",
+        " ) AS previous_value",
+        "FROM events;"
+      ],
+      "watch": "Sort deterministically; first row has no prior row.",
+      "recall": "Which function compares today with yesterday?"
+    },
+    {
+      "n": 5,
+      "name": "Self joins",
+      "family": "RELATIONSHIPS",
+      "cue": "One row refers to another row in the SAME table.",
+      "memory": "One table, two roles, two aliases.",
+      "code": [
+        "SELECT e.name AS employee,",
+        "       m.name AS manager",
+        "FROM employees e",
+        "LEFT JOIN employees m",
+        " ON e.manager_id = m.id;"
+      ],
+      "watch": "LEFT JOIN retains workers without a manager.",
+      "recall": "Why alias employees twice?"
+    },
+    {
+      "n": 6,
+      "name": "Anti-joins",
+      "family": "RELATIONSHIPS",
+      "cue": "Find customers with NO orders or items with NO matches.",
+      "memory": "NOT EXISTS means prove the match is absent.",
+      "code": [
+        "SELECT c.customer_id",
+        "FROM customers c",
+        "WHERE NOT EXISTS (",
+        " SELECT 1 FROM orders o",
+        " WHERE o.customer_id = c.customer_id",
+        ");"
+      ],
+      "watch": "NOT IN is unsafe if its subquery returns NULL.",
+      "recall": "Which clause finds customers who never ordered?"
+    },
+    {
+      "n": 7,
+      "name": "Grouped aggregates",
+      "family": "SUMMARIES",
+      "cue": "One answer per city, department, or product category.",
+      "memory": "GROUP BY changes the GRAIN of the output.",
+      "code": [
+        "SELECT region, COUNT(*) AS n_orders,",
+        "       SUM(amount) AS revenue",
+        "FROM sales",
+        "WHERE amount > 0",
+        "GROUP BY region",
+        "HAVING COUNT(*) >= 3;"
+      ],
+      "watch": "WHERE filters rows; HAVING filters groups.",
+      "recall": "Where do you filter groups with 3+ orders?"
+    },
+    {
+      "n": 8,
+      "name": "Conditional pivots",
+      "family": "SUMMARIES",
+      "cue": "Show categories side by side as separate output columns.",
+      "memory": "CASE chooses a bucket; SUM adds that bucket.",
+      "code": [
+        "SELECT region,",
+        " SUM(CASE WHEN kind = 'A'",
+        "     THEN amount ELSE 0 END) AS a_sales,",
+        " SUM(CASE WHEN kind = 'B'",
+        "     THEN amount ELSE 0 END) AS b_sales",
+        "FROM sales GROUP BY region;"
+      ],
+      "watch": "Check NULLs, the ELSE branch, and row grain.",
+      "recall": "What creates separate A and B columns?"
+    },
+    {
+      "n": 9,
+      "name": "Deduplication",
+      "family": "WINDOWS",
+      "cue": "Keep the latest or preferred row for each ID.",
+      "memory": "Rank within each ID, then KEEP row one.",
+      "code": [
+        "WITH ranked AS (",
+        " SELECT t.*, ROW_NUMBER() OVER (",
+        "  PARTITION BY user_id",
+        "  ORDER BY updated_at DESC, id DESC",
+        " ) AS rn FROM records t",
+        ") SELECT * FROM ranked WHERE rn = 1;"
+      ],
+      "watch": "Add a tie-breaker: updated_at may not be unique.",
+      "recall": "Why is DISTINCT alone insufficient?"
+    },
+    {
+      "n": 10,
+      "name": "CTE pipelines",
+      "family": "BUILD / SEQUENCES",
+      "cue": "Turn a messy problem into named, smaller query steps.",
+      "memory": "WITH is a notebook of intermediate answers.",
+      "code": [
+        "WITH daily AS (",
+        " SELECT sale_date, SUM(amount) AS revenue",
+        " FROM sales GROUP BY sale_date",
+        ")",
+        "SELECT sale_date, revenue",
+        "FROM daily WHERE revenue > 1000;"
+      ],
+      "watch": "CTEs improve readability, not always runtime.",
+      "recall": "When are multiple named CTE steps useful?"
+    },
+    {
+      "n": 11,
+      "name": "Correlated subqueries",
+      "family": "RELATIONSHIPS",
+      "cue": "For each outer row, test a related condition.",
+      "memory": "The inner query refers BACK to an outer row.",
+      "code": [
+        "SELECT c.customer_id",
+        "FROM customers c",
+        "WHERE EXISTS (",
+        " SELECT 1 FROM orders o",
+        " WHERE o.customer_id = c.customer_id",
+        "   AND o.amount > 100",
+        ");"
+      ],
+      "watch": "EXISTS checks existence; inspect plan for speed.",
+      "recall": "Which outer alias does the inner query use?"
+    },
+    {
+      "n": 12,
+      "name": "Gaps and islands",
+      "family": "BUILD / SEQUENCES",
+      "cue": "Find streaks of consecutive dates, IDs, or numbers.",
+      "memory": "For consecutive ints: value minus row_num = island.",
+      "code": [
+        "WITH x AS (",
+        " SELECT value,",
+        "  value - ROW_NUMBER() OVER (",
+        "   ORDER BY value) AS island_key",
+        " FROM (SELECT DISTINCT value FROM nums) d",
+        ") SELECT MIN(value), MAX(value)",
+        "  FROM x GROUP BY island_key;"
+      ],
+      "watch": "Deduplicate first; date math varies by SQL dialect.",
+      "recall": "Why does the subtraction find a streak?"
+    },
+    {
+      "n": 13,
+      "name": "Date cohorts",
+      "family": "BUILD / SEQUENCES",
+      "cue": "Group users by first activity; follow later behavior.",
+      "memory": "FIRST event = cohort; LATER event = activity.",
+      "code": [
+        "WITH firsts AS (",
+        " SELECT user_id,",
+        "  DATE_TRUNC('month', MIN(event_ts)) AS cohort",
+        " FROM events GROUP BY user_id",
+        ") SELECT cohort, COUNT(*) AS users",
+        "FROM firsts GROUP BY cohort;"
+      ],
+      "watch": "This query counts cohort sizes, not retention.",
+      "recall": "What determines a user's cohort?"
+    },
+    {
+      "n": 14,
+      "name": "Recursive queries",
+      "family": "BUILD / SEQUENCES",
+      "cue": "Walk an org chart or parent-child hierarchy.",
+      "memory": "ANCHOR starts; RECURSION follows; STOP guards.",
+      "code": [
+        "WITH RECURSIVE org AS (",
+        " SELECT id, manager_id, 0 AS depth",
+        " FROM employees WHERE id=1",
+        " UNION ALL",
+        " SELECT e.id, e.manager_id, o.depth + 1",
+        " FROM employees e JOIN org o",
+        "   ON e.manager_id=o.id WHERE o.depth<10",
+        ") SELECT * FROM org;"
+      ],
+      "watch": "Depth limits help; visited IDs also prevent cycles.",
+      "recall": "Identify the anchor and recursive parts."
+    }
+  ],
+  "quiz": [
+    "Best 3 salespeople in EACH department?",
+    "Customers who have never ordered?",
+    "Revenue accumulated day by day?",
+    "Latest status row for each user?",
+    "Employee name with manager name?",
+    "Orders per region, only regions with 5+?",
+    "Compare today's value with yesterday's?",
+    "Monthly new users by signup month?",
+    "Apple and banana sales in separate columns?",
+    "Group consecutive dates into streaks?",
+    "Find every descendant of a category?",
+    "Clients with an order above $100?",
+    "Make a query readable in 3 stages?",
+    "Give each student's rank inside the class?"
+  ],
+  "answers": [
+    "Top N by group",
+    "Anti-joins",
+    "Running totals",
+    "Deduplication",
+    "Self joins",
+    "Grouped aggregates",
+    "Previous / next",
+    "Date cohorts",
+    "Conditional pivots",
+    "Gaps and islands",
+    "Recursive queries",
+    "Correlated subqueries",
+    "CTE pipelines",
+    "Window ranking"
+  ]
+}
