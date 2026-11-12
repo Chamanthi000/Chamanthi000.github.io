@@ -84,6 +84,18 @@ window.RecallCloud={
       return [kind,[...byId.values()]];
     }));
     return Object.fromEntries(entries);
+  },
+  async restoreAll(payload){
+    if(!state.user)throw new Error('Sign in to restore the backup to the cloud.');
+    let count=0;
+    for(const kind of kinds){
+      const items=Array.isArray(payload[kind])?payload[kind]:[];
+      for(let i=0;i<items.length;i+=20){
+        await Promise.all(items.slice(i,i+20).map(item=>setDoc(doc(list(kind),idOf(kind,item)),item)));
+        count+=Math.min(20,items.length-i);
+      }
+    }
+    return count;
   }
 };
 
