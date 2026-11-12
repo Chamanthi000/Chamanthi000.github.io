@@ -28,21 +28,48 @@ const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRed
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[]},initial:new Set()};
-const kinds=['coding','sql','goals','habits','structures'];
-const page=location.pathname.endsWith('goals.html')?['goals','habits']:['coding','sql','structures'];
-const statusText=s=>{if(status)status.textContent=s;};
+const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set()};
+const kinds=['coding','sql','goals','habits','structures','concepts'];
+const page=location.pathname.endsWith('goals.html')?['goals','habits']:location.pathname.endsWith('sql-pattern-guide.html')?['concepts']:['coding','sql','structures','concepts'];
+const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:s}}))};
 function idOf(kind,item){return String(item.id||(kind==='coding'?item.number:'')||(kind==='sql'?item.title?.trim().toLowerCase():''));}
 // Structure notebooks share the authorized coding collection; typed records stay separate.
-function list(kind){return collection(db,'users',state.user.uid,kind==='structures'?'coding':kind)}
-function isMember(kind,item){return kind==='structures'?item.recordType==='structure':kind==='coding'?item.recordType!=='structure':true}
-function prepare(kind,item){return kind==='structures'?{...item,recordType:'structure'}:item}
-function cloudDocId(kind,item){return kind==='structures'?'structure-'+idOf(kind,item):idOf(kind,item)}
+function list(kind){return collection(db,'users',state.user.uid,kind==='structures'||kind==='concepts'?'coding':kind)}
+function isMember(kind,item){return kind==='structures'?item.recordType==='structure':kind==='concepts'?item.recordType==='conceptReview':kind==='coding'?item.recordType!=='structure'&&item.recordType!=='conceptReview':true}
+function prepare(kind,item){return kind==='structures'?{...item,recordType:'structure'}:kind==='concepts'?{...item,recordType:'conceptReview'}:item}
+function cloudDocId(kind,item){return kind==='structures'?'structure-'+idOf(kind,item):kind==='concepts'?'concept-'+idOf(kind,item):idOf(kind,item)}
 function send(kind){window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind,items:state.snapshots[kind]}}))}
 function putLocal(kind,items){if(!state.user)return;const snapshot=state.snapshots[kind]||[];const cloudIds=new Map(snapshot.map(x=>[idOf(kind,x),x]));for(const item of items){const id=idOf(kind,item);if(!id)continue;const old=cloudIds.get(id);if(!old||String(item.updatedAt||item.createdAt||'')>String(old.updatedAt||old.createdAt||'')){queue(kind,item)}}}
-function queue(kind,item){if(!state.user)return;const key=kind+':'+idOf(kind,item);const earlier=state.pending.get(key);if(!earlier||String(item.updatedAt||'')>=String(earlier.updatedAt||''))state.pending.set(key,item);statusText('Saved on this device · Cloud syncing…');clearTimeout(state.timers.get(key));state.timers.set(key,setTimeout(async()=>{const value=state.pending.get(key);if(!value)return;try{await setDoc(doc(list(kind),cloudDocId(kind,value)),prepare(kind,value));if(state.pending.get(key)===value)state.pending.delete(key);statusText(state.pending.size?'Saved locally · Cloud syncing…':'✓ All changes saved to cloud')}catch(e){statusText('⚠ Cloud save failed: '+e.message+' · Keep this device data');console.error(e)}},180))}
+function arm(key,delay){
+ clearTimeout(state.timers.get(key));
+ state.timers.set(key,setTimeout(async()=>{
+  const value=state.pending.get(key);
+  if(!value||!state.user)return;
+  const sep=key.indexOf(':'),kind=key.slice(0,sep);
+  try{
+   await setDoc(doc(list(kind),cloudDocId(kind,value)),prepare(kind,value));
+   if(state.pending.get(key)===value)state.pending.delete(key);
+   state.retries.delete(key);
+   statusText(state.pending.size?'✓ Saved on device · Cloud syncing…':'✓ All changes saved to cloud');
+  }catch(e){
+   const count=(state.retries.get(key)||0)+1;state.retries.set(key,count);
+   if(state.pending.get(key)===value)arm(key,Math.min(60000,1000*2**Math.min(count,6)));
+   statusText('⚠ Cloud save failed · Retrying automatically. Local copy retained.');
+   console.error('Recall cloud sync retry:',e);
+  }
+ },delay));
+}
+function queue(kind,item){
+ if(!state.user)return;
+ const key=kind+':'+idOf(kind,item);
+ const earlier=state.pending.get(key);
+ if(!earlier||String(item.updatedAt||'')>=String(earlier.updatedAt||''))state.pending.set(key,item);
+ statusText('✓ Saved on device · Syncing to cloud…');
+ state.retries.set(key,0);arm(key,180);
+}
+
 async function setup(user){
-for(const u of state.unsub)u();state.unsub=[];state.pending.clear();state.initial.clear();state.user=user;state.ready=!!user;
+for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);state.timers.clear();state.retries.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.user=user;state.ready=!!user;
 if(!user){statusText('Saved on this device · Sign in to sync all devices');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 if(login)login.hidden=true;if(logout)logout.hidden=false;statusText('Connecting live cloud sync…');
 for(const kind of page){
@@ -67,16 +94,18 @@ onAuthStateChanged(auth,setup);
 getRedirectResult(auth).catch(e=>statusText(diagnostic(e.code)+' '+(e.message||'')));
 requestLogin=async()=>{try{await signInWithPopup(auth,provider)}catch(e){
   if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'){
-    show(diagnostic('auth/popup-blocked'));
-  }else{show(diagnostic(e.code)+' '+(e.message||''))}
+    statusText('Popup sign-in unavailable. Switching to Google redirect…');
+    try{await signInWithRedirect(auth,provider)}catch(error){statusText(diagnostic(error.code)+' '+(error.message||''))}
+  }else{statusText(diagnostic(e.code)+' '+(e.message||''))}
 }};initialized=true;window.dispatchEvent(new Event('recall-firebase-ready'));show('Firebase ready · Sign in with Google to enable cloud sync');
 if(logout)logout.onclick=()=>signOut(auth);
 window.addEventListener('recall-cloud-local',e=>{const {kind,items}=e.detail||{};if(!kinds.includes(kind))return;if(!state.user){statusText('Saved on this device · Sign in for cloud sync');return}putLocal(kind,items)});
+window.addEventListener('online',()=>{if(!state.user)return;for(const key of state.pending.keys())arm(key,0)});
 window.RecallCloud={
   get user(){return state.user},
   sync(kind,items){if(state.user)putLocal(kind,items)},
   get ready(){return initialized},
-  // Full cloud read: all four collections, not just the current page.
+  // Full cloud read across all record types (concepts share the coding collection).
   async readAll(){
     if(!state.user)throw new Error('Sign in with Google before exporting your cloud data.');
     const entries=await Promise.all(kinds.map(async kind=>{
