@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id),button=$('backupEverything'),status=$('backupStatus'),restore=$('restoreEverything'),input=$('backupRestoreFile');
 if(!button)return;
 const preview=$('backupRestorePreview'),confirmButton=$('confirmRestore'),cancelButton=$('cancelRestore');
-const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1',structures:'recall-structures-v1',concepts:'recall-concept-reviews-v1'};
+const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1',structures:'recall-structures-v1',concepts:'recall-concept-reviews-v1',conflicts:'recall-sync-conflicts-v1'};
 const KINDS=Object.keys(KEYS);
 const readable=kind=>kind==='structures'?'Data structure notebooks':kind==='concepts'?'Pattern reviews':kind.charAt(0).toUpperCase()+kind.slice(1);
 const localRecords=kind=>{try{const v=JSON.parse(localStorage.getItem(KEYS[kind])||'null');return kind==='goals'||kind==='habits'?Array.isArray(v?.[kind])?v[kind]:[]:Array.isArray(v)?v:[]}catch{return []}};
@@ -25,7 +25,7 @@ function payloadFrom(cloud){
 function validate(data){
  if(!data||data.format!=='recall-full-backup'||![1,2].includes(data.version))throw Error('This is not a compatible Recall full backup.');
  for(const key of KINDS){
-  if(data[key]===undefined){if(data.version===1){data[key]=[];continue}throw Error('Missing '+key+' from the backup')}
+  if(data[key]===undefined){if(data.version===1||key==='conflicts'){data[key]=[];continue}throw Error('Missing '+key+' from the backup')}
   if(!Array.isArray(data[key])||data[key].length>50000)throw Error('Invalid '+key+' in backup');
   if(data[key].some(item=>!item||typeof item!=='object'||!identity(key,item)))throw Error('Invalid record in '+key);
  }
@@ -88,7 +88,7 @@ if(confirmButton)confirmButton.onclick=async()=>{
   // Stage all previous values in memory; roll back local writes if any setItem fails.
   const previous=Object.fromEntries([...new Set(Object.values(KEYS))].map(k=>[k,localStorage.getItem(k)]));
   try{
-   for(const kind of ['coding','sql','structures','concepts'])localStorage.setItem(KEYS[kind],JSON.stringify(updated[kind]));
+   for(const kind of ['coding','sql','structures','concepts','conflicts'])localStorage.setItem(KEYS[kind],JSON.stringify(updated[kind]));
    localStorage.setItem(KEYS.goals,JSON.stringify({goals:updated.goals,habits:updated.habits}));
   }catch(e){
    for(const [key,value] of Object.entries(previous))try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value)}catch{}
