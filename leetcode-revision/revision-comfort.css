@@ -1,0 +1,165 @@
+/* Recall study-first readability refresh — shared by Coding, SQL and pattern references.
+   Reading sizes are opt-in and preference-only; this stylesheet never modifies saved data. */
+:root{
+  --read-text:#263f30;
+  --read-muted:#526d5b;
+  --read-line:#dce9dc;
+}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:90px}
+body{font-size:16px;line-height:1.65;color:var(--read-text);-webkit-font-smoothing:antialiased}
+p,.hint,.eyebrow,small,td small,.label,.legend,.note{color:var(--read-muted)}
+a,button,summary,input,textarea,select{-webkit-tap-highlight-color:transparent}
+button,a,input,textarea,select{touch-action:manipulation}
+button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+ outline:3px solid #71ac81;outline-offset:3px
+}
+/* Tappable reading preference */
+.read-size-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;min-width:44px;padding:9px 13px;border:1px solid #cddfd0;background:#fff;border-radius:11px;color:#315f41;font-size:13px;font-weight:800;white-space:nowrap;cursor:pointer}
+.read-size-toggle:hover{background:#edf5ee}
+.read-size-toggle[aria-pressed="true"]{background:#e4f2e6;border-color:#78a98a}
+/* Main coding / SQL dashboard */
+body:has(#codingTab) .app{max-width:1120px}
+body:has(#codingTab) .hero p{font-size:16px;color:#546e5b;line-height:1.65}
+body:has(#codingTab) .learning b{font-size:15px}
+body:has(#codingTab) .learning span{font-size:14px;line-height:1.6;color:#526d5b}
+body:has(#codingTab) .eyebrow{font-size:11px;color:#497d59}
+body:has(#codingTab) .hint{font-size:13px;color:#5c7562}
+body:has(#codingTab) .stat label{font-size:11px;color:#526d5b;line-height:1.5}
+body:has(#codingTab) .panelHead h3{font-size:17px}
+body:has(#codingTab) .sectionHead h2{font-size:24px}
+body:has(#codingTab) .sectionHead p{font-size:14px;color:#566d5c}
+body:has(#codingTab) .tags,.legend{line-height:1.5}
+body:has(#codingTab) .tag{font-size:13px}
+body:has(#codingTab) .tab{font-size:14px}
+body:has(#codingTab) .btn:not(.small){font-size:14px}
+body:has(#codingTab) .btn.small{font-size:13px}
+body:has(#codingTab) th{font-size:11px;color:#526e59}
+body:has(#codingTab) td{font-size:14px;line-height:1.5}
+body:has(#codingTab) td small{font-size:12.5px;color:#607e66}
+body:has(#codingTab) .field{font-size:16px;line-height:1.45}
+body:has(#codingTab) .group label{font-size:12px;color:#4c6c55}
+body:has(#codingTab) .group textarea{min-height:105px;line-height:1.65}
+body:has(#codingTab) .sqlQuery{font-size:14px!important;line-height:1.6}
+body:has(#codingTab) .flashReveal{font-size:16px;line-height:1.7}
+body:has(#codingTab) .flashCard{padding:27px 22px}
+body:has(#codingTab) .status{font-size:12px}
+body:has(#codingTab) .quick{font-size:13px}
+body:has(#codingTab) .sqlPracticeCard .sqlPracticeName{font-size:16px}
+body:has(#codingTab) .sqlPracticeCard .sqlPracticeDesc{font-size:14px;color:#536c59}
+body:has(#codingTab) .sqlPracticeCard .sqlPracticeAction{font-size:13px}
+body:has(#codingTab) .sqlGuide strong,.foundationLink b,.complexityLink strong{font-size:16px}
+body:has(#codingTab) .sqlGuide p,.foundationLink p,.complexityLink p{font-size:14px;color:#526e5b}
+body:has(#codingTab) .sqlGuideActions .plainLink{font-size:13px}
+/* Jump links keep study content one tap away without hiding metrics or notes. */
+.studyJump{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-3px 0 17px;padding:2px 0}
+.studyJump span{font-size:11px;letter-spacing:1px;font-weight:800;color:#6a846f;margin-right:5px}
+.studyJump a{border-radius:22px;border:1px solid #d7e5d7;background:#fff;padding:9px 13px;font-size:12.5px;font-weight:800;color:#396349;text-decoration:none;min-height:40px;display:inline-flex;align-items:center}
+.studyJump a:hover{background:#eef6ed}
+body.sql .studyJump .codingJump,body:not(.sql) .studyJump .sqlJump{display:none}
+#problemLibrary,#dataStructureRevision,#sqlInterviewGuide,#sqlPracticeResources{scroll-margin-top:30px}
+/* SQL study reader */
+body:has(.pattern-grid) .app{max-width:940px}
+body:has(.pattern-grid) .hero p{font-size:16px;color:#536f5c;line-height:1.7}
+body:has(.pattern-grid) .intro{max-width:850px}
+body:has(.pattern-grid) .intro b{font-size:16px}
+body:has(.pattern-grid) .intro p{font-size:15px;line-height:1.75;color:#4d6654}
+body:has(.pattern-grid) .road b{font-size:15px}
+body:has(.pattern-grid) .road p{font-size:13.5px;line-height:1.65;color:#4f6b58}
+body:has(.pattern-grid) .section-head h2{font-size:24px}
+body:has(.pattern-grid) .section-head p{font-size:14px;color:#526f5b}
+body:has(.pattern-grid) .pattern-grid{grid-template-columns:1fr;max-width:840px;gap:14px}
+body:has(.pattern-grid) .pattern summary{min-height:90px;padding:20px}
+body:has(.pattern-grid) .pattern-id strong{font-size:18px;line-height:1.4}
+body:has(.pattern-grid) .pattern-id small{font-size:14px;color:#506958;line-height:1.6;margin-top:6px}
+body:has(.pattern-grid) .pattern-body{padding:0 21px 21px}
+body:has(.pattern-grid) .memory{padding:17px}
+body:has(.pattern-grid) .memory strong{font-size:16px;line-height:1.7}
+body:has(.pattern-grid) .section-label{font-size:12px}
+body:has(.pattern-grid) pre{font-size:14px;line-height:1.75;tab-size:2;max-width:100%;-webkit-overflow-scrolling:touch}
+body:has(.pattern-grid) .pattern-note{font-size:15px;line-height:1.75;margin-top:16px}
+body:has(.pattern-grid) .pattern-note span{font-size:11px;color:#416b4c}
+body:has(.pattern-grid) .quiz-question{font-size:15px;line-height:1.65}
+body:has(.pattern-grid) .answer{font-size:15px}
+body:has(.pattern-grid) .filter{font-size:12px}
+body:has(.pattern-grid) .search{font-size:16px}
+body:has(.pattern-grid) .back,body:has(.pattern-grid) .download{font-size:12px}
+/* Recall first, then reveal the solution; no SQL content is deleted. */
+.code-reveal{border:1px solid #cbdccf;border-radius:12px;overflow:hidden;margin-top:9px}
+.code-reveal>summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 15px;min-height:48px;list-style:none;background:#f2f7f0;color:#2f6949;font-weight:800;font-size:13px}
+.code-reveal>summary::-webkit-details-marker{display:none}
+.code-reveal>summary:after{content:"⌄";font-size:17px}
+.code-reveal[open]>summary:after{transform:rotate(180deg)}
+.code-reveal pre{margin:0;border-radius:0}
+.code-reveal .code-hint{font-size:12px;font-weight:500;color:#597a61}
+.recall-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 20px}
+.recall-actions a{font-size:13px;color:#346b49;font-weight:800;text-decoration:none;border:1px solid #d2e2d4;background:#fff;border-radius:11px;padding:10px 14px;min-height:44px;display:inline-flex;align-items:center}
+/* Pattern complexity reference */
+body:has(.ladder) .hero p{font-size:16px;line-height:1.7;color:#536f5b}
+body:has(.ladder) .sectionTop p{font-size:14px;color:#526c58}
+body:has(.ladder) .ladderCard span{font-size:13px;color:#576e5d}
+body:has(.ladder) .ladderCard small{font-size:12px}
+body:has(.ladder) .note{font-size:14px;line-height:1.7}
+body:has(.ladder) .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+body:has(.ladder) .cardTitle h3{font-size:18px;line-height:1.4}
+body:has(.ladder) .groupLabel{font-size:12px;color:#4f7358}
+body:has(.ladder) .metric span{font-size:11px}
+body:has(.ladder) .metric b{font-size:18px}
+body:has(.ladder) .summaryFooter{font-size:13px}
+body:has(.ladder) .details b{font-size:12px}
+body:has(.ladder) .details p{font-size:15px;line-height:1.7;color:#4e6754}
+body:has(.ladder) .search{font-size:16px}
+body:has(.ladder) .filter{font-size:12px}
+body:has(.ladder) .pattern summary{padding:20px}
+/* Larger reading mode across all three pages */
+html.reading-large body:has(#codingTab) .learning span,
+html.reading-large body:has(#codingTab) .hero p,
+html.reading-large body:has(#codingTab) .sectionHead p,
+html.reading-large body:has(#codingTab) td,
+html.reading-large body:has(#codingTab) .sqlPracticeCard .sqlPracticeDesc,
+html.reading-large body:has(#codingTab) .sqlGuide p,
+html.reading-large body:has(#codingTab) .foundationLink p,
+html.reading-large body:has(#codingTab) .complexityLink p{font-size:17px}
+html.reading-large body:has(.pattern-grid) .pattern-id small,
+html.reading-large body:has(.pattern-grid) .pattern-note,
+html.reading-large body:has(.pattern-grid) .quiz-question,
+html.reading-large body:has(.pattern-grid) .intro p,
+html.reading-large body:has(.pattern-grid) .road p{font-size:17px}
+html.reading-large body:has(.pattern-grid) pre{font-size:16px}
+html.reading-large body:has(.ladder) .details p,
+html.reading-large body:has(.ladder) .sectionTop p{font-size:17px}
+html.reading-large body:has(.ladder) .cardTitle h3{font-size:21px}
+@media(max-width:980px){
+ body:has(.ladder) .cards{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+ body:has(#codingTab) .app{padding:16px 14px 64px}
+ body:has(#codingTab) .stat,.panel{padding:15px}
+ body:has(#codingTab) .stat label{font-size:11px}
+ body:has(#codingTab) .hero p{font-size:15px}
+ body:has(#codingTab) .nav .tab{font-size:13px;padding:12px 7px}
+ body:has(#codingTab) td small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-clamp:2;overflow:hidden;max-width:none}
+ body:has(#codingTab) .stat strong{font-size:27px}
+ body:has(#codingTab) .field{font-size:16px}
+ body:has(#codingTab) .flashDialog{padding:14px}
+ .studyJump{gap:7px;margin:0 0 14px}
+ .studyJump span{width:100%}
+ .studyJump a{font-size:12px;padding:8px 12px}
+ body:has(.pattern-grid) .hero{padding:21px 19px}
+ body:has(.pattern-grid) .hero p{font-size:15px}
+ body:has(.pattern-grid) .pattern summary{padding:15px}
+ body:has(.pattern-grid) .pattern-id strong{font-size:16px}
+ body:has(.pattern-grid) .pattern-id small{font-size:14px}
+ body:has(.pattern-grid) .pattern-body{padding:0 14px 15px}
+ body:has(.pattern-grid) .memory{padding:12px}
+ body:has(.pattern-grid) pre{font-size:13px;padding:13px}
+ body:has(.pattern-grid) .nav-actions{gap:6px}
+ body:has(.ladder) .ladder{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body:has(.ladder) .ladderCard{min-height:106px}
+}
+@media(max-width:385px){
+ body:has(.pattern-grid) .nav .brand{font-size:16px}
+ body:has(.pattern-grid) .nav .logo{display:none}
+ body:has(.pattern-grid) .nav-actions a{font-size:11px;padding:8px}
+ body:has(#codingTab) .heroBtns{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition-duration:0s!important;animation-duration:0s!important}}
