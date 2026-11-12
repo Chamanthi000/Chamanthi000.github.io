@@ -1,10 +1,10 @@
 /* Automatic browser snapshots for Recall. Keeps past versions of every major data collection.
    This does not upload personal data to public GitHub. Firebase provides separate live cloud sync. */
 (()=>{'use strict';
-const status=document.getElementById('autoBackupStatus');
-const list=document.getElementById('autoBackupVersions');
-const download=document.getElementById('autoBackupDownload');
-if(!status||!list||!download)return;
+const status=document.getElementById('autoBackupStatus')||{textContent:''};
+const list=document.getElementById('autoBackupVersions')||{value:'',innerHTML:''};
+const download=document.getElementById('autoBackupDownload')||{disabled:true,onclick:null};
+// On Coding/SQL, run snapshots without the Goals page's backup-history controls.
 const DB_NAME='recall-autobackups-v1',STORE='snapshots',MAX=20;
 const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1'};
 const KINDS=Object.keys(KEYS);
