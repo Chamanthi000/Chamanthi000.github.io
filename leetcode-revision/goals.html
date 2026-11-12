@@ -25,4 +25,22 @@ window.RecallLocal=kind=>kind==='goals'?data.goals:kind==='habits'?data.habits:[
 window.addEventListener('recall-cloud-data',event=>{const {kind,items}=event.detail||{};if(!Array.isArray(items))return;if(kind==='goals')data.goals=items;if(kind==='habits')data.habits=items;localStorage.setItem(KEY,JSON.stringify(data));render()});
 
 render()})();
+</script><script>
+(function(){
+  const status=document.getElementById('firebaseStatus');
+  const button=document.getElementById('firebaseLogin');
+  let firebaseLoaded=false;
+  window.addEventListener('recall-firebase-ready',()=>firebaseLoaded=true);
+  window.addEventListener('recall-firebase-error',()=>firebaseLoaded=true);
+  button?.addEventListener('click',()=>{
+    if(firebaseLoaded)return;
+    if(status)status.textContent='Loading Google sign-in…';
+    setTimeout(()=>{
+      if(!firebaseLoaded&&status)status.textContent='Firebase sign-in code is not loading. Refresh this page, turn off content blockers for this site, or try another browser.';
+    },2500);
+  },true);
+  setTimeout(()=>{
+    if(!firebaseLoaded&&status)status.textContent='Firebase sign-in could not initialize. Please refresh or disable content blockers, then retry.';
+  },9000);
+})();
 </script><script type="module" src="./firebase-sync.js"></script></body></html>
