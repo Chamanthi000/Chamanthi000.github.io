@@ -3,7 +3,7 @@
    The existing Firebase sync remains the cross-device store when signed in. */
 (()=>{'use strict';
 const status=document.getElementById('autoBackupStatus'),button=document.getElementById('downloadAutoBackup');
-if(!status||!button)return;
+// Run autosaves from Coding, SQL and Goals pages, with optional recovery UI.
 const DB='recall-local-recovery-v1',STORE='snapshots';
 const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1'};
 const KINDS=['coding','sql','goals','habits'];
@@ -53,10 +53,10 @@ async function snapshot(){
   const db=await open();
   await saveSnapshot(db,payload);
   previousText=content;
-  status.textContent='✓ Automatic local recovery copy updated '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+'. Google cloud sync works separately when signed in.';
-  button.disabled=false;
+  if(status)status.textContent='✓ Automatic local recovery copy updated '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+'. Google cloud sync works separately when signed in.';
+  if(button)button.disabled=false;
  }catch(e){
-  status.textContent='Automatic recovery copy unavailable on this device. Use Back up everything to save a file.';
+  if(status)status.textContent='Automatic recovery copy unavailable on this device. Use Back up everything to save a file.';
   console.warn('Recall recovery backup:',e);
  }
 }
@@ -64,17 +64,17 @@ function queue(){clearTimeout(timeout);timeout=setTimeout(snapshot,300)}
 for(const event of ['recall-cloud-local','recall-cloud-data'])window.addEventListener(event,queue);
 window.addEventListener('focus',queue);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)queue()});
-button.onclick=async()=>{
+if(button)button.onclick=async()=>{
  try{
   const latest=await mostRecent(await open());
-  if(!latest){status.textContent='No local recovery copy yet. Try again after saving a task.';return}
+  if(!latest){if(status)status.textContent='No local recovery copy yet. Try again after saving a task.';return}
   const url=URL.createObjectURL(new Blob([JSON.stringify(latest.payload,null,2)],{type:'application/json'}));
   const a=document.createElement('a');a.href=url;
   a.download='recall-auto-recovery-'+latest.savedAt.slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),30000);
-  status.textContent='✓ Recovery file downloaded. Keep it in a private folder such as iCloud Drive.';
- }catch(e){status.textContent='Could not download local recovery copy: '+(e?.message||e)}
+  if(status)status.textContent='✓ Recovery file downloaded. Keep it in a private folder such as iCloud Drive.';
+ }catch(e){if(status)status.textContent='Could not download local recovery copy: '+(e?.message||e)}
 };
-button.disabled=true;
+if(button)button.disabled=true;
 queue();
 })();
