@@ -10,9 +10,30 @@ panel.innerHTML='<button class="ds-toggle" type="button" id="dsToggle" aria-expa
 container.insertAdjacentElement('afterend',panel);
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const read=()=>{try{const p=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(p)?p.filter(x=>x&&typeof x.id==='string'&&typeof x.title==='string'):[]}catch{return []}};
-let records=read(),cloudTimer=null;
+let records=read(),cloudTimer=null;const editingIds=new Set();
 for(const d of presets)if(!records.some(x=>x.id===d.id))records.push({...d,createdAt:STAMP,updatedAt:STAMP});
 const sorted=items=>items.slice().sort((a,b)=>a.title.localeCompare(b.title));
+function readable(notes){
+ const lines=String(notes||'').replace(/\r\n?/g,'\n').split('\n'),parts=[];
+ let paragraph=[],bullets=[],code=[];
+ const flushParagraph=()=>{if(paragraph.length){parts.push('<p>'+escape(paragraph.join(' '))+'</p>');paragraph=[]}};
+ const flushBullets=()=>{if(bullets.length){parts.push('<ul>'+bullets.map(s=>'<li>'+escape(s)+'</li>').join('')+'</ul>');bullets=[]}};
+ const flushCode=()=>{if(code.length){parts.push('<pre><code>'+escape(code.join('\n'))+'</code></pre>');code=[]}};
+ const flush=()=>{flushParagraph();flushBullets();flushCode()};
+ for(const value of lines){
+   const text=value.trim();
+   if(!text){flush();continue}
+   const heading=/^(?:\d+\.\s+[A-Z][A-Z0-9 /&:().-]*|[A-Z][A-Z0-9 /&:().-]{3,})$/.test(text);
+   const bullet=/^(?:[•*-]\s+)(.+)$/.exec(text);
+   const isCode=/^(?:\s{2,}(?![•*-])|class\s|def\s|while\s|if\s|for\s|from\s|import\s|#\s|head[.=]|second[.=]|third[.=]|chars\s*=|left,\s*right|result\s*=|return\s)/.test(value);
+   if(heading){flush();parts.push('<h4>'+escape(text)+'</h4>')}
+   else if(bullet){flushParagraph();flushCode();bullets.push(bullet[1])}
+   else if(isCode){flushParagraph();flushBullets();code.push(value)}
+   else{flushBullets();flushCode();paragraph.push(text)}
+ }
+ flush();
+ return parts.join('')||'<p class="ds-no-notes">No notes yet. Select <strong>Edit notes</strong> to write your first concept.</p>';
+}
 function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(records));return true}catch{$('dsStatus').textContent='⚠ Device storage unavailable';return false}}
 saveLocal();
 window.RecallStructures=()=>records;
@@ -25,10 +46,14 @@ const q=$('dsSearch').value.trim().toLowerCase();
 const show=sorted(records.filter(x=>!x.deleted&&(x.title.toLowerCase().includes(q)||String(x.notes||'').toLowerCase().includes(q))));
 const allCount=records.filter(x=>!x.deleted).length,filled=records.filter(x=>!x.deleted&&String(x.notes||'').trim()).length;
 $('dsSummary').textContent=filled+' of '+allCount+' notebooks have notes';
-$('dsList').innerHTML=show.map(item=>'<details class="ds-topic" data-id="'+escape(item.id)+'" '+(openIds.has(item.id)?'open':'')+'><summary><span class="ds-topic-symbol" aria-hidden="true">›</span><span class="ds-topic-name">'+escape(item.title)+'</span><span class="ds-note-count">'+(String(item.notes||'').trim()?'Has notes':'Add notes')+'</span></summary><div class="ds-editor"><textarea class="ds-note-input" data-ds-id="'+escape(item.id)+'" aria-label="Notes for '+escape(item.title)+'" placeholder="Write concepts, complexities, Python snippets, edge cases, and examples here…" spellcheck="false"></textarea><div class="ds-meta"><span>Edits save as you type. Use this like your personal revision notebook.</span>'+(presets.some(p=>p.id===item.id)?'':'<button class="ds-delete" type="button" data-remove="'+escape(item.id)+'">Delete topic</button>')+'</div></div></details>').join('')||'<p class="ds-empty">No matching topics. Try a different search.</p>';
+$('dsList').innerHTML=show.map(item=>'<details class="ds-topic" data-id="'+escape(item.id)+'" '+(openIds.has(item.id)?'open':'')+'><summary><span class="ds-topic-symbol" aria-hidden="true">›</span><span class="ds-topic-name">'+escape(item.title)+'</span><span class="ds-note-count">'+(String(item.notes||'').trim()?'Has notes':'Add notes')+'</span></summary><div class="ds-editor"><div class="ds-readview" data-read-id="'+escape(item.id)+'"></div><textarea class="ds-note-input" data-ds-id="'+escape(item.id)+'" aria-label="Notes for '+escape(item.title)+'" placeholder="Write concepts, complexities, Python snippets, edge cases, and examples here…" spellcheck="false"></textarea><div class="ds-meta"><button class="ds-edit-toggle btn secondary small" type="button" data-edit-id="'+escape(item.id)+'">Edit notes</button><span>Edits save automatically. Switch back to reading anytime.</span>'+(presets.some(p=>p.id===item.id)?'':'<button class="ds-delete" type="button" data-remove="'+escape(item.id)+'">Delete topic</button>')+'</div></div></details>').join('')||'<p class="ds-empty">No matching topics. Try a different search.</p>';
 for(const el of $('dsList').querySelectorAll('textarea[data-ds-id]')){
 const item=records.find(x=>x.id===el.dataset.dsId);if(!item)continue;el.value=item.notes||'';
-el.addEventListener('input',()=>{item.notes=el.value;item.updatedAt=new Date().toISOString();persist();el.closest('details').querySelector('.ds-note-count').textContent=el.value.trim()?'Has notes':'Add notes'});
+const block=el.closest('.ds-editor'),view=block.querySelector('[data-read-id]'),switcher=block.querySelector('[data-edit-id]');
+function setEditing(flag){if(flag)editingIds.add(item.id);else editingIds.delete(item.id);el.hidden=!flag;view.hidden=flag;switcher.textContent=flag?'Done reading ✓':'Edit notes ✎';switcher.setAttribute('aria-pressed',String(flag));if(flag){el.focus();}}
+view.innerHTML=readable(item.notes);setEditing(editingIds.has(item.id));
+switcher.addEventListener('click',()=>{const wasEditing=editingIds.has(item.id);setEditing(!wasEditing);if(wasEditing){view.innerHTML=readable(item.notes);cloudSend()}});
+el.addEventListener('input',()=>{item.notes=el.value;item.updatedAt=new Date().toISOString();persist();view.innerHTML=readable(item.notes);el.closest('details').querySelector('.ds-note-count').textContent=el.value.trim()?'Has notes':'Add notes'});
 el.addEventListener('blur',()=>{cloudSend();$('dsSummary').textContent=records.filter(x=>!x.deleted&&String(x.notes||'').trim()).length+' of '+records.filter(x=>!x.deleted).length+' notebooks have notes'});
 }
 for(const btn of $('dsList').querySelectorAll('[data-remove]'))btn.addEventListener('click',()=>{
@@ -42,7 +67,7 @@ $('dsSearch').addEventListener('input',render);
 function add(){const title=$('dsNewTitle').value.trim();if(!title)return $('dsNewTitle').focus();if(title.length>80)return;
 const existing=records.find(x=>!x.deleted&&x.title.toLowerCase()===title.toLowerCase());if(existing){$('dsSearch').value=title;$('dsNewTitle').value='';render();return}
 const id='custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),now=new Date().toISOString();
-records.push({id,title,notes:'',createdAt:now,updatedAt:now});$('dsNewTitle').value='';$('dsSearch').value='';persist();cloudSend();render();
+records.push({id,title,notes:'',createdAt:now,updatedAt:now});editingIds.add(id);$('dsNewTitle').value='';$('dsSearch').value='';persist();cloudSend();render();
 const section=[...$('dsList').querySelectorAll('.ds-topic')].find(x=>x.dataset.id===id);if(section){section.open=true;section.querySelector('textarea').focus()}
 }
 $('dsAdd').addEventListener('click',add);$('dsNewTitle').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add()}});
