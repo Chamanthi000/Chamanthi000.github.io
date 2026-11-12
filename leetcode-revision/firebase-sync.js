@@ -2,12 +2,21 @@
 const status=document.getElementById('firebaseStatus');
 const login=document.getElementById('firebaseLogin');
 const logout=document.getElementById('firebaseLogout');
-const show=s=>{if(status)status.textContent=s};
+const show=s=>{if(status)status.textContent=s;};
+const diagnostic=code=>{
+  if(code==='auth/unauthorized-domain')return 'Google sign-in blocked: add chamanthi000.github.io to Firebase Authentication → Settings → Authorized domains.';
+  if(code==='auth/operation-not-allowed')return 'Google sign-in is not enabled in Firebase Authentication → Sign-in method.';
+  if(code==='auth/popup-blocked')return 'Your browser blocked the Google sign-in popup. Allow popups for chamanthi000.github.io and retry.';
+  if(code==='auth/popup-closed-by-user')return 'Google sign-in was closed before completion. Click Sign in to retry.';
+  if(code==='auth/network-request-failed')return 'Network request failed. Check your connection, content blockers, or VPN and try again.';
+  if(code==='auth/unauthorized-continue-uri')return 'Sign-in redirect domain is unauthorized in Firebase.';
+  return 'Google sign-in failed ('+(code||'unknown error')+'). Check browser settings and Firebase Authentication.';
+};
 let initialized=false;
 let requestLogin=null;
 if(login)login.addEventListener('click',async()=>{
   show('Opening Google sign-in…');
-  if(!initialized){show('Firebase is still loading. Please try again.');return}
+  if(!initialized){show('Firebase is still loading or blocked. Please refresh and check your browser content blockers.');return}
   try{await requestLogin()}catch(e){show('Sign-in error: '+(e.message||e))}
 });
 async function boot(){
@@ -51,18 +60,16 @@ if(!state.pending.size)statusText('✓ Live sync connected · '+(user.email||'Go
 state.unsub.push(unsub);
 }}
 onAuthStateChanged(auth,setup);
-getRedirectResult(auth).catch(e=>statusText('Sign-in error: '+e.message));
+getRedirectResult(auth).catch(e=>statusText(diagnostic(e.code)+' '+(e.message||'')));
 requestLogin=async()=>{try{await signInWithPopup(auth,provider)}catch(e){
   if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'){
-    show('Popup blocked. Trying Google redirect…');await signInWithRedirect(auth,provider);
-  }else if(e.code==='auth/unauthorized-domain'){
-    show('Sign-in blocked: add chamanthi000.github.io in Firebase Authentication → Settings → Authorized domains.');
-  }else{show('Sign-in failed ('+(e.code||'error')+'): '+e.message)}
-}};initialized=true;show('Saved on this device · Sign in to sync all devices');
+    show(diagnostic('auth/popup-blocked'));
+  }else{show(diagnostic(e.code)+' '+(e.message||''))}
+}};initialized=true;window.dispatchEvent(new Event('recall-firebase-ready'));show('Firebase ready · Sign in with Google to enable cloud sync');
 if(logout)logout.onclick=()=>signOut(auth);
 window.addEventListener('recall-cloud-local',e=>{const {kind,items}=e.detail||{};if(!kinds.includes(kind))return;if(!state.user){statusText('Saved on this device · Sign in for cloud sync');return}putLocal(kind,items)});
-window.RecallCloud={get user(){return state.user},sync(kind,items){if(state.user)putLocal(kind,items)}};
+window.RecallCloud={get user(){return state.user},sync(kind,items){if(state.user)putLocal(kind,items)},get ready(){return initialized}};
 
-}catch(e){console.error('Firebase initialization failed:',e);show('⚠ Firebase could not load: '+e.message+'. Try refreshing or disabling blockers.');if(login)login.disabled=false}
+}catch(e){console.error('Firebase initialization failed:',e);show('⚠ Firebase could not load: '+e.message+'. Try refreshing or disabling blockers.');window.dispatchEvent(new Event('recall-firebase-error'));if(login)login.disabled=false}
 }
 boot();
