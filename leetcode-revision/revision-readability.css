@@ -73,6 +73,22 @@ body.rev-index .ds-editor{padding:0 17px 17px}
 body.rev-index .ds-meta{font-size:13px;color:#576f5c;line-height:1.65}
 body.rev-index .ds-search,body.rev-index .ds-new-title{font-size:16px;min-height:48px}
 body.rev-index .ds-delete{font-size:13px}
+
+/* Readable view for personal structure notes; the original editable text stays intact */
+body.rev-index .ds-note-input[hidden],body.rev-index .ds-readview[hidden]{display:none!important}
+body.rev-index .ds-readview{display:block;max-width:100%;background:#fbfdfb;border:1px solid #dbe8dd;border-radius:12px;padding:19px 22px;color:#304b39;font-size:16px;line-height:1.85;overflow-wrap:anywhere}
+body.rev-index .ds-readview> :first-child{margin-top:0}
+body.rev-index .ds-readview> :last-child{margin-bottom:0}
+body.rev-index .ds-readview p{max-width:76ch;font-size:16px;line-height:1.9;color:#314c3a;margin:0 0 17px}
+body.rev-index .ds-readview h4{margin:25px 0 12px;padding:0 0 8px;border-bottom:1px solid #dbe8dd;font:800 16px/1.45 'Plus Jakarta Sans',sans-serif;letter-spacing:0;color:#225d3f}
+body.rev-index .ds-readview ul{margin:9px 0 21px;padding-left:24px;max-width:76ch}
+body.rev-index .ds-readview li{font-size:16px;line-height:1.85;padding-left:3px;margin:5px 0}
+body.rev-index .ds-readview li::marker{color:#3c9060}
+body.rev-index .ds-readview pre{margin:14px 0 20px;padding:19px;overflow-x:auto;max-width:100%;background:#263e32;color:#eaf6ea;border-radius:12px;white-space:pre;font:14px/1.85 ui-monospace,SFMono-Regular,Consolas,monospace}
+body.rev-index .ds-readview .ds-no-notes{font-size:15px;color:#58745e}
+body.rev-index .ds-edit-toggle{min-height:44px;font-size:14px;white-space:nowrap}
+@media(max-width:700px){body.rev-index .ds-readview{padding:15px;font-size:15px}body.rev-index .ds-readview p,body.rev-index .ds-readview li{font-size:15px}body.rev-index .ds-readview pre{font-size:13px;padding:13px}body.rev-index .ds-readview h4{font-size:15px}body.rev-index .ds-meta{align-items:flex-start}}
+
 /* The searchable Big-O reference: comfortable cards and readable metrics */
 body.rev-complexities{color:var(--rev-readable-ink)}
 body.rev-complexities :is(.hero p,.sectionTop p,.note){font-size:15px;color:#526c58}
