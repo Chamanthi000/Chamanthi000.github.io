@@ -117,6 +117,14 @@
 .monthlyProgressTrack span{display:block;width:0;height:100%;border-radius:20px;background:#ba6699;transition:width .2s}
 #futureOpenButton{min-height:44px}
 @media(max-width:650px){.futureToolbar .field{max-width:none;flex:1}.futureToolbar .btn{flex:1}.futureRow{gap:8px;padding:10px}.futureRow .btn{padding:8px 10px}}
+
+.autoBackupHistory{margin-top:10px;border:1px solid #efd5e2;border-radius:11px;background:#fff;padding:12px}
+.autoBackupHistory summary{cursor:pointer;font-weight:800;color:#a2628b;min-height:23px}
+.autoBackupControls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.autoBackupControls .field{margin:0;min-width:150px;flex:1;max-width:270px}
+.autoBackupControls .btn{min-height:44px}
+.autoBackupHistory .label{white-space:nowrap}
+@media(max-width:650px){.autoBackupControls .field{max-width:none;width:100%}.autoBackupControls .btn{flex:1}}
 </style></head><body><main class="app"><header class="top"><a class="brand" href="./"><span>↗</span>recall.</a><nav class="nav"><a href="./#coding">⌘ Coding</a><a href="./#sql">▤ SQL</a><a href="./goals.html" class="active" aria-current="page">◎ Goals & Habits</a></nav></header><section class="hero"><div><div class="eyebrow">MAKE YOUR INTENTIONS ACTIONABLE</div><h1>Small steps. Big goals.<br><span style="color:#639a70">Real progress.</span></h1><p>Turn a clear vision into milestones and daily habits.</p></div><div class="row"><button class="btn secondary" type="button" id="futureOpenButton">＋ Future to-dos</button><button class="btn secondary" id="newHabit">＋ New habit</button><button class="btn" id="newGoal">＋ New goal</button></div></section>
 
 <section class="tile dailyPanel" id="dailyChecklist" aria-labelledby="dailyHeading">
@@ -140,7 +148,24 @@
  </form></details>
  <div class="dailyReminder dailyPlan" id="dailyPlanBanner" hidden><div><strong>✨ It’s 10 PM — plan tomorrow</strong><p>Take five minutes to adjust tomorrow’s tasks and times. Your new checklist is ready to customize.</p></div><button type="button" class="btn small" id="dailyPlanTomorrow">Plan tomorrow →</button></div>
  <div class="dailyReminder"><div><strong>🔔 Task reminders</strong><p id="dailyNotifyStatus" role="status">Notifications need permission. The checklist also asks Yes or No after a scheduled task ends.</p><p class="note">Browser alerts run only while the site stays open. For reliable reminders after closing Safari, use native iPhone reminders or a push-notification backend.</p></div><button type="button" class="btn secondary small" id="dailyNotify">Enable browser notifications</button></div>
- <div class="dailyReminder"><div><strong>☁ Back up your entire Recall account</strong><p id="backupStatus" role="status">Download coding, SQL, goals, habits and dated checklists in a single file. When signed in, your cloud data is included.</p></div><div class="row" style="flex-wrap:wrap"><button type="button" class="btn secondary small" id="backupEverything">Back up everything ↓</button><button type="button" class="btn secondary small" id="downloadAutoBackup" disabled>Latest autosave ↓</button><p class="note" id="autoBackupStatus" role="status">Automatic private recovery copies are stored on this device after each change. Google cloud sync is separate.</p><button type="button" class="btn secondary small" id="restoreEverything">Restore backup</button><input id="backupRestoreFile" type="file" accept=".json,application/json" hidden aria-label="Choose Recall full backup file"></div></div>
+ 
+<div class="dailyReminder">
+ <div style="flex:1;min-width:0">
+  <strong>⟲ Automatic version history</strong>
+  <p id="autoBackupStatus" role="status" aria-live="polite">Creating an automatic copy of your latest tasks and goals…</p>
+  <details class="autoBackupHistory">
+   <summary>Previous saved versions</summary>
+   <div class="autoBackupControls">
+    <label class="label" for="autoBackupVersions">Choose a version</label>
+    <select id="autoBackupVersions" class="field" aria-label="Choose previous backup version"></select>
+    <button class="btn secondary small" type="button" id="autoBackupDownload">Download this version</button>
+    <button class="btn secondary small" type="button" id="autoBackupRefresh">Refresh versions</button>
+   </div>
+  </details>
+  <p class="note">Automatic copies are stored in this browser, with up to 20 past versions. When signed in, Firebase also saves your latest changes. Export to iCloud Drive for an independent copy that survives browser-data removal.</p>
+ </div>
+</div>
+<div class="dailyReminder"><div><strong>☁ Back up your entire Recall account</strong><p id="backupStatus" role="status">Download coding, SQL, goals, habits and dated checklists in a single file. When signed in, your cloud data is included.</p></div><div class="row" style="flex-wrap:wrap"><button type="button" class="btn secondary small" id="backupEverything">Back up everything ↓</button><button type="button" class="btn secondary small" id="downloadAutoBackup" disabled>Latest autosave ↓</button><p class="note" id="autoBackupStatus" role="status">Automatic private recovery copies are stored on this device after each change. Google cloud sync is separate.</p><button type="button" class="btn secondary small" id="restoreEverything">Restore backup</button><input id="backupRestoreFile" type="file" accept=".json,application/json" hidden aria-label="Choose Recall full backup file"></div></div>
 </section>
 
 <section class="tile" style="margin-bottom:20px;background:#fff0f7"><div class="row between" style="flex-wrap:wrap"><div><strong>☁ Live cloud sync</strong><div class="muted" id="firebaseStatus" role="status" aria-live="polite">Saved on this device · Sign in to sync all devices</div></div><div class="row"><button class="btn small" id="firebaseLogin">Sign in with Google</button><button class="btn secondary small" id="firebaseLogout" hidden>Sign out</button></div></div><p class="note">Local goals remain on this browser; sign in on every device with the same Google account for cloud syncing. Cloud saves confirm when complete.</p></section><section class="stats"><div class="stat"><label>ACTIVE GOALS</label><strong id="goalCount">0</strong></div><div class="stat"><label>GOALS COMPLETED</label><strong id="goalDone">0</strong></div><div class="stat"><label>HABITS TODAY</label><strong id="habitToday">0/0</strong></div><div class="stat"><label>BEST CURRENT STREAK</label><strong id="bestStreak">0</strong></div></section>
@@ -195,7 +220,7 @@ window.RecallLocal=kind=>kind==='goals'?data.goals:kind==='habits'?data.habits:[
 window.addEventListener('recall-cloud-data',event=>{const {kind,items}=event.detail||{};if(!Array.isArray(items))return;if(kind==='goals')data.goals=items;if(kind==='habits')data.habits=items;localStorage.setItem(KEY,JSON.stringify(data));render()});
 
 render()})();
-</script><script src="./daily-checklist.js?v=20261112-daily"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261112-backup"></script><script src="./auto-backup.js?v=20261112-autosave"></script><script>
+</script><script src="./daily-checklist.js?v=20261112-daily"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261112-backup"></script><script src="./auto-backup.js?v=20261112-versioned"></script><script src="./auto-backup.js?v=20261112-autosave"></script><script>
 (function(){
   const status=document.getElementById('firebaseStatus');
   const button=document.getElementById('firebaseLogin');
