@@ -1,0 +1,354 @@
+%PDF-1.4
+%ASCII
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 3427 >>
+stream
+1 1 1 rg
+0 0 612 792 re f
+0.17 0.43 0.3 rg
+0 748 612 44 re f
+1 1 1 rg
+BT /F2 11 Tf 1 0 0 1 36 767 Tm (RECALL / SQL) Tj ET
+1 1 1 rg
+BT /F2 10 Tf 1 0 0 1 475 767 Tm (PATTERN STUDY) Tj ET
+0.13 0.23 0.2 rg
+BT /F2 25 Tf 1 0 0 1 36 702 Tm (14 SQL patterns, one mental map) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 36 678 Tm (Identify the pattern first. Then write the query.) Tj ET
+0.84 0.9 0.85 RG 0.6 w 36 663 m 576 663 l S
+0.43 0.53 0.46 rg
+BT /F1 9 Tf 1 0 0 1 36 37 Tm (An independent study reference. Original guide by Reliable Data Engineering.) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 10 Tf 1 0 0 1 562 37 Tm (1) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 535 540 107 re B
+0.17 0.43 0.3 rg
+36.2 535 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 618 Tm (01  Window ranking) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 600 Tm (Rank rows within groups) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 579 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 579 Tm (ROW_NUMBER\(\), RANK\(\), DENSE_RANK\(\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 557 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 557 Tm (Define how ties should behave.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 420 540 107 re B
+0.17 0.43 0.3 rg
+36.2 420 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 503 Tm (02  Top N by group) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 485 Tm (Return leaders in each segment) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 464 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 464 Tm (PARTITION BY group_key + rank filter) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 442 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 442 Tm (Choose ROW_NUMBER or DENSE_RANK intentionally.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 305 540 107 re B
+0.17 0.43 0.3 rg
+36.2 305 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 388 Tm (03  Running totals) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 370 Tm (Accumulate values over a timeline) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 349 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 349 Tm (SUM\(amount\) OVER \(ORDER BY dt\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 327 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 327 Tm (Specify the window frame for tied dates.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 190 540 107 re B
+0.17 0.43 0.3 rg
+36.2 190 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 273 Tm (04  Previous / next) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 255 Tm (Compare adjacent observations) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 234 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 234 Tm (LAG\(metric\) / LEAD\(metric\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 212 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 212 Tm (Partition separately for each entity.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 75 540 107 re B
+0.17 0.43 0.3 rg
+36.2 75 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 158 Tm (05  Self joins) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 140 Tm (Relate rows within one table) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 119 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 119 Tm (JOIN employees e ON e.manager_id = m.id) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 97 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 97 Tm (Use LEFT JOIN when roots must stay.) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 3423 >>
+stream
+1 1 1 rg
+0 0 612 792 re f
+0.17 0.43 0.3 rg
+0 748 612 44 re f
+1 1 1 rg
+BT /F2 11 Tf 1 0 0 1 36 767 Tm (RECALL / SQL) Tj ET
+1 1 1 rg
+BT /F2 10 Tf 1 0 0 1 475 767 Tm (PATTERN STUDY) Tj ET
+0.13 0.23 0.2 rg
+BT /F2 25 Tf 1 0 0 1 36 702 Tm (Think in reusable patterns) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 36 678 Tm (Recognize the cue; choose the right SQL tool.) Tj ET
+0.84 0.9 0.85 RG 0.6 w 36 663 m 576 663 l S
+0.43 0.53 0.46 rg
+BT /F1 9 Tf 1 0 0 1 36 37 Tm (An independent study reference. Original guide by Reliable Data Engineering.) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 10 Tf 1 0 0 1 562 37 Tm (2) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 535 540 107 re B
+0.17 0.43 0.3 rg
+36.2 535 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 618 Tm (06  Anti-joins) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 600 Tm (Find missing relationships) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 579 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 579 Tm (NOT EXISTS \(SELECT 1 FROM ...\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 557 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 557 Tm (NOT IN + NULL can surprise you.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 420 540 107 re B
+0.17 0.43 0.3 rg
+36.2 420 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 503 Tm (07  Grouped aggregates) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 485 Tm (Summarize one row per group) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 464 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 464 Tm (GROUP BY + COUNT/SUM/AVG + HAVING) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 442 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 442 Tm (Filter rows before GROUP BY with WHERE.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 305 540 107 re B
+0.17 0.43 0.3 rg
+36.2 305 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 388 Tm (08  Conditional pivots) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 370 Tm (Turn categories into columns) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 349 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 349 Tm (SUM\(CASE WHEN ... THEN ... END\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 327 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 327 Tm (Include a sensible ELSE and NULL policy.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 190 540 107 re B
+0.17 0.43 0.3 rg
+36.2 190 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 273 Tm (09  Deduplication) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 255 Tm (Keep one preferred row per key) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 234 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 234 Tm (ROW_NUMBER\(\) OVER \(PARTITION BY key...\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 212 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 212 Tm (Make the tie-break order deterministic.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 75 540 107 re B
+0.17 0.43 0.3 rg
+36.2 75 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 158 Tm (10  CTE pipelines) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 140 Tm (Name intermediate query steps) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 119 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 119 Tm (WITH step_a AS \(...\), step_b AS \(...\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 97 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 97 Tm (CTEs improve clarity, not always speed.) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 3281 >>
+stream
+1 1 1 rg
+0 0 612 792 re f
+0.17 0.43 0.3 rg
+0 748 612 44 re f
+1 1 1 rg
+BT /F2 11 Tf 1 0 0 1 36 767 Tm (RECALL / SQL) Tj ET
+1 1 1 rg
+BT /F2 10 Tf 1 0 0 1 475 767 Tm (PATTERN STUDY) Tj ET
+0.13 0.23 0.2 rg
+BT /F2 25 Tf 1 0 0 1 36 702 Tm (Interview-ready SQL reasoning) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 36 678 Tm (Cover edge cases, not just the happy path.) Tj ET
+0.84 0.9 0.85 RG 0.6 w 36 663 m 576 663 l S
+0.43 0.53 0.46 rg
+BT /F1 9 Tf 1 0 0 1 36 37 Tm (An independent study reference. Original guide by Reliable Data Engineering.) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 10 Tf 1 0 0 1 562 37 Tm (3) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 535 540 107 re B
+0.17 0.43 0.3 rg
+36.2 535 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 618 Tm (11  Correlated subqueries) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 600 Tm (Test a condition per candidate) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 579 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 579 Tm (EXISTS \(SELECT 1 ... WHERE outer.id=...\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 557 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 557 Tm (Inspect execution plans before claiming slower.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 420 540 107 re B
+0.17 0.43 0.3 rg
+36.2 420 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 503 Tm (12  Gaps and islands) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 485 Tm (Group consecutive dates / IDs) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 464 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 464 Tm (value - ROW_NUMBER\(\) as group key) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 442 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 442 Tm (Watch for duplicate values and date gaps.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 305 540 107 re B
+0.17 0.43 0.3 rg
+36.2 305 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 388 Tm (13  Date cohorts) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 370 Tm (Measure activity after a start date) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 349 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 349 Tm (DATE_TRUNC + first_event + GROUP BY) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 327 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 327 Tm (Handle time zones and partial periods.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 190 540 107 re B
+0.17 0.43 0.3 rg
+36.2 190 4 107 re f
+0.13 0.23 0.2 rg
+BT /F2 14 Tf 1 0 0 1 53 273 Tm (14  Recursive queries) Tj ET
+0.43 0.53 0.46 rg
+BT /F1 10 Tf 1 0 0 1 53 255 Tm (Walk hierarchical relationships) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 234 Tm (TOOL:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 99 234 Tm (WITH RECURSIVE nodes AS \(...\)) Tj ET
+0.17 0.43 0.3 rg
+BT /F2 9 Tf 1 0 0 1 53 212 Tm (WATCH:) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 9 Tf 1 0 0 1 108 212 Tm (Bound depth and guard against cycles.) Tj ET
+0.95 0.98 0.95 rg
+0.84 0.9 0.85 RG
+36 155 540 65 re B
+0.17 0.43 0.3 rg
+BT /F2 11 Tf 1 0 0 1 50 199 Tm (MINI CHECKLIST) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 50 178 Tm (Clarify NULLs and ties   |   Pick a grain   |   Verify joins and filters) Tj ET
+0.13 0.23 0.2 rg
+BT /F1 10 Tf 1 0 0 1 50 163 Tm (Test small examples   |   Explain assumptions   |   Check the execution plan) Tj ET
+endstream
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000016 00000 n 
+0000000065 00000 n 
+0000000134 00000 n 
+0000000204 00000 n 
+0000000279 00000 n 
+0000000415 00000 n 
+0000003893 00000 n 
+0000004029 00000 n 
+0000007503 00000 n 
+0000007640 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+10973
+%%EOF
