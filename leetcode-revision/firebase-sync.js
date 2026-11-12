@@ -1,14 +1,27 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js';
-import { getFirestore, collection, doc, getDocs, setDoc, onSnapshot, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js';
+// Load the SDK dynamically so a missing module is reported on screen.
+const status=document.getElementById('firebaseStatus');
+const login=document.getElementById('firebaseLogin');
+const logout=document.getElementById('firebaseLogout');
+const show=s=>{if(status)status.textContent=s};
+let initialized=false;
+let requestLogin=null;
+if(login)login.addEventListener('click',async()=>{
+  show('Opening Google sign-in…');
+  if(!initialized){show('Firebase is still loading. Please try again.');return}
+  try{await requestLogin()}catch(e){show('Sign-in error: '+(e.message||e))}
+});
+async function boot(){
+try{
+show('Loading Firebase…');
+const base='https://www.gstatic.com/firebasejs/13.2.0/';
+const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,signOut,onAuthStateChanged},{getFirestore,collection,doc,setDoc,onSnapshot}]=await Promise.all([
+  import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-firestore.js')
+]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
 const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[]},initial:new Set()};
 const kinds=['coding','sql','goals','habits'];
 const page=location.pathname.endsWith('goals.html')?['goals','habits']:['coding','sql'];
-const status=document.getElementById('firebaseStatus');
-const login=document.getElementById('firebaseLogin');
-const logout=document.getElementById('firebaseLogout');
 const statusText=s=>{if(status)status.textContent=s;};
 function idOf(kind,item){return String(item.id||(kind==='coding'?item.number:'')||(kind==='sql'?item.title?.trim().toLowerCase():''));}
 function list(kind){return collection(db,'users',state.user.uid,kind)}
@@ -39,7 +52,17 @@ state.unsub.push(unsub);
 }}
 onAuthStateChanged(auth,setup);
 getRedirectResult(auth).catch(e=>statusText('Sign-in error: '+e.message));
-if(login)login.onclick=async()=>{try{await signInWithPopup(auth,provider)}catch(e){if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')await signInWithRedirect(auth,provider);else statusText('Sign-in failed: '+e.message)}};
+requestLogin=async()=>{try{await signInWithPopup(auth,provider)}catch(e){
+  if(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment'){
+    show('Popup blocked. Trying Google redirect…');await signInWithRedirect(auth,provider);
+  }else if(e.code==='auth/unauthorized-domain'){
+    show('Sign-in blocked: add chamanthi000.github.io in Firebase Authentication → Settings → Authorized domains.');
+  }else{show('Sign-in failed ('+(e.code||'error')+'): '+e.message)}
+}};initialized=true;show('Saved on this device · Sign in to sync all devices');
 if(logout)logout.onclick=()=>signOut(auth);
 window.addEventListener('recall-cloud-local',e=>{const {kind,items}=e.detail||{};if(!kinds.includes(kind))return;if(!state.user){statusText('Saved on this device · Sign in for cloud sync');return}putLocal(kind,items)});
 window.RecallCloud={get user(){return state.user},sync(kind,items){if(state.user)putLocal(kind,items)}};
+
+}catch(e){console.error('Firebase initialization failed:',e);show('⚠ Firebase could not load: '+e.message+'. Try refreshing or disabling blockers.');if(login)login.disabled=false}
+}
+boot();
