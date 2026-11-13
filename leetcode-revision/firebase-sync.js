@@ -47,7 +47,7 @@ async function boot(){
 try{
 show('Loading Firebase…');
 const base='https://www.gstatic.com/firebasejs/13.2.0/';
-const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,signOut,onAuthStateChanged},{getFirestore,collection,doc,setDoc,onSnapshot,getDocs}]=await Promise.all([
+const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,signOut,onAuthStateChanged},{getFirestore,collection,doc,setDoc,onSnapshot,getDocs,runTransaction}]=await Promise.all([
   import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-firestore.js')
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
@@ -59,10 +59,76 @@ const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new Cus
 function idOf(kind,item){return String(item.id||(kind==='coding'?item.number:'')||(kind==='sql'?item.title?.trim().toLowerCase():''));}
 // Structure notebooks share the authorized coding collection; typed records stay separate.
 function list(kind){return collection(db,'users',state.user.uid,kind==='structures'||kind==='concepts'?'coding':kind)}
-function isMember(kind,item){return kind==='structures'?item.recordType==='structure':kind==='concepts'?item.recordType==='conceptReview':kind==='coding'?item.recordType!=='structure'&&item.recordType!=='conceptReview':true}
+function isMember(kind,item){return kind==='structures'?item.recordType==='structure':kind==='concepts'?item.recordType==='conceptReview':kind==='coding'?item.recordType!=='structure'&&item.recordType!=='conceptReview'&&item.recordType!=='syncBackup':item.recordType!=='syncBackup'}
 function prepare(kind,item){return kind==='structures'?{...item,recordType:'structure'}:kind==='concepts'?{...item,recordType:'conceptReview'}:item}
 function cloudDocId(kind,item){return kind==='structures'?'structure-'+idOf(kind,item):kind==='concepts'?'concept-'+idOf(kind,item):idOf(kind,item)}
 function send(kind){window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind,items:state.snapshots[kind]}}))}
+
+const HISTORY_PREFIX='recall-history-',HISTORY_LIMIT=12,HISTORY_INTERVAL_MS=30*60*1000,HISTORY_BYTES_LIMIT=450000;
+const withoutRecordType=item=>{const out={...item};delete out.recordType;return out};
+function sameRecord(a,b){
+ const normalize=value=>{
+  if(Array.isArray(value))return value.map(normalize);
+  if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).filter(key=>key!=='recordType').sort().map(key=>[key,normalize(value[key])]));
+  return value;
+ };
+ return JSON.stringify(normalize(a))===JSON.stringify(normalize(b));
+}
+function historyId(kind,item){return HISTORY_PREFIX+kind+'-'+encodeURIComponent(idOf(kind,item)).slice(0,900)}
+function cappedHistory(entries){
+ const out=entries.slice(-HISTORY_LIMIT);
+ while(out.length&&JSON.stringify(out).length>HISTORY_BYTES_LIMIT)out.shift();
+ return out;
+}
+async function writeWithHistory(kind,value){
+ const ref=doc(list(kind),cloudDocId(kind,value));
+ const backupRef=doc(list(kind),historyId(kind,value));
+ return runTransaction(db,async tx=>{
+  // All reads precede every write; concurrent tabs retry against fresh server state.
+  const current=await tx.get(ref);
+  const old=current.exists()?current.data():null;
+  const oldClean=old?withoutRecordType(old):null;
+  if(old&&sameRecord(oldClean,value))return {result:'unchanged'};
+  const oldStamp=String(old?.updatedAt||old?.createdAt||'');
+  const incomingStamp=String(value.updatedAt||value.createdAt||'');
+  if(old&&(oldStamp>incomingStamp||(oldStamp===incomingStamp&&!sameRecord(oldClean,value)))){
+   return {result:'remote-newer',previous:oldClean};
+  }
+  const history=old?await tx.get(backupRef):null;
+  let archived=false;
+  if(old){
+   const previousHistory=Array.isArray(history?.data()?.versions)?history.data().versions:[];
+   const last=previousHistory[previousHistory.length-1];
+   const now=Date.now();
+   if(!last||now-Date.parse(last.archivedAt)>=HISTORY_INTERVAL_MS){
+    const versions=cappedHistory([...previousHistory,{archivedAt:new Date(now).toISOString(),value:oldClean}]);
+    if(versions.length&&versions[versions.length-1].value&&sameRecord(versions[versions.length-1].value,oldClean)){
+     tx.set(backupRef,{recordType:'syncBackup',originKind:kind,originId:idOf(kind,value),updatedAt:new Date(now).toISOString(),versions});
+     archived=true;
+    }
+   }
+  }
+  tx.set(ref,prepare(kind,value));
+  return {result:'saved',archived};
+ });
+}
+async function downloadCloudHistory(){
+ if(!state.user){statusText('Sign in with Google to download private cloud version history');return}
+ try{
+  statusText('Preparing private cloud version-history download…');
+  const snapshot=await getDocs(collection(db,'users',state.user.uid,'coding'));
+  const versions=snapshot.docs.map(x=>x.data()).filter(x=>x.recordType==='syncBackup');
+  const file={format:'recall-cloud-version-history',version:1,exportedAt:new Date().toISOString(),versions};
+  const blob=new Blob([JSON.stringify(file,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='recall-private-cloud-history-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  statusText('✓ Cloud history export prepared · '+versions.length+' record histories · Current notes remain safely stored');
+ }catch(e){statusText('⚠ Could not download cloud history: '+(e.message||e));}
+}
+const historyButton=document.getElementById('downloadCloudHistory');
+if(historyButton)historyButton.addEventListener('click',downloadCloudHistory);
+
 
 const CONFLICT_KEY='recall-sync-conflicts-v1';
 function archiveConflict(kind,device,cloud){
@@ -103,10 +169,21 @@ function arm(key,delay){
   if(remote&&String(remote.updatedAt||'')>String(value.updatedAt||'')){archiveConflict(kindName,value,remote);state.pending.delete(key);return}
   const sep=key.indexOf(':'),kind=key.slice(0,sep);
   try{
-   await setDoc(doc(list(kind),cloudDocId(kind,value)),prepare(kind,value));
+   const outcome=await writeWithHistory(kind,value);
+   if(outcome.result==='remote-newer'){
+     archiveConflict(kind,value,outcome.previous);
+     const snapshot=(state.snapshots[kind]||[]).filter(item=>idOf(kind,item)!==idOf(kind,value));
+     snapshot.push(outcome.previous);
+     state.snapshots[kind]=snapshot;
+     if(state.pending.get(key)===value)state.pending.delete(key);
+     state.retries.delete(key);
+     send(kind);
+     statusText('⚠ Another device has a newer version · Both copies archived locally; review conflict copies before editing');
+     return;
+   }
    if(state.pending.get(key)===value)state.pending.delete(key);
    state.retries.delete(key);
-   statusText(state.pending.size?'✓ Saved on device · Cloud syncing…':'✓ All changes saved to cloud');
+   statusText(state.pending.size?'✓ Saved on device · Cloud syncing…':'✓ Synced to private cloud · Version history protected');
   }catch(e){
    const count=(state.retries.get(key)||0)+1;state.retries.set(key,count);
    if(state.pending.get(key)===value)arm(key,Math.min(60000,1000*2**Math.min(count,6)));
@@ -162,6 +239,8 @@ window.RecallCloud={
   get user(){return state.user},
   sync(kind,items){if(state.user)putLocal(kind,items)},
   get ready(){return initialized},
+  get pendingCount(){return state.pending.size},
+  downloadCloudHistory,
   // Full cloud read across all record types (concepts share the coding collection).
   async readAll(){
     if(!state.user)throw new Error('Sign in with Google before exporting your cloud data.');
