@@ -69,7 +69,7 @@ test('Strings guide supplies collapsible interview reference while preserving pr
  assert.equal(guide.stats.operations,53);
  assert.equal(guide.stats.fundamentals,18);
  assert.equal(guide.stats.patterns,33);
- assert.equal(guide.stats.templates,32);
+ assert.equal(guide.stats.templates,39);
  const data=JSON.parse(source.match(/^const d=(.*);\n\nconst escape=/m)[1]);
  assert.equal(data.practice.length,44);
  for(const id of ['sg-operations','sg-fundamentals','sg-patterns','sg-recognize','sg-edges','sg-interview','sg-memorize','sg-practice'])assert.ok(guide.html.includes('id="'+id+'"'),id);
