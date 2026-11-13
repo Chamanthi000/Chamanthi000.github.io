@@ -15,21 +15,24 @@ panel.addEventListener('click',async e=>{
  const navigation=e.target.closest('[data-ag-open]');
  if(navigation){
    const id=navigation.dataset.agOpen;
-   const section=[...panel.querySelectorAll('.ag > .ag-section[data-ag-section]')].find(x=>x.dataset.agSection===id);
-   if(section){section.open=true;arrayOpenSections.add(id);storeArrayOpen();section.querySelector('summary')?.scrollIntoView({behavior:'smooth',block:'start'});}
+   const guide=navigation.closest('.ag'),section=[...guide.querySelectorAll('.ag-section[data-ag-section]')].find(x=>x.dataset.agSection===id);
+   if(section){section.open=true;(id.startsWith('sg-')?stringOpenSections:arrayOpenSections).add(id);id.startsWith('sg-')?storeStringOpen():storeArrayOpen();section.querySelector('summary')?.scrollIntoView({behavior:'smooth',block:'start'});}
    return;
  }
  if(e.target.closest('[data-ag-expand-all]')){
-   for(const section of panel.querySelectorAll('.ag > .ag-section[data-ag-section]')){section.open=true;arrayOpenSections.add(section.dataset.agSection);}
-   storeArrayOpen();return;
+   for(const section of e.target.closest('.ag').querySelectorAll('.ag-section[data-ag-section]')){section.open=true;(section.dataset.agSection.startsWith('sg-')?stringOpenSections:arrayOpenSections).add(section.dataset.agSection);}
+   storeArrayOpen();storeStringOpen();return;
  }
  if(e.target.closest('[data-ag-collapse-all]')){
-   for(const section of panel.querySelectorAll('.ag > .ag-section[data-ag-section]')){section.open=false;arrayOpenSections.delete(section.dataset.agSection);}
-   storeArrayOpen();return;
+   for(const section of e.target.closest('.ag').querySelectorAll('.ag-section[data-ag-section]')){section.open=false;(section.dataset.agSection.startsWith('sg-')?stringOpenSections:arrayOpenSections).delete(section.dataset.agSection);}
+   storeArrayOpen();storeStringOpen();return;
  }
  if(e.target.closest('[data-ag-download]')){downloadArrayBackup();return;}
  if(e.target.closest('[data-ag-consolidate]')){await consolidateArrayNotes();return;}
  if(e.target.closest('[data-ag-restore]')){restoreArrayNotes();return;}
+ if(e.target.closest('[data-sg-download]')){downloadStringBackup();return;}
+ if(e.target.closest('[data-sg-consolidate]')){await consolidateStringNotes();return;}
+ if(e.target.closest('[data-sg-restore]')){restoreStringNotes();return;}
  const btn=e.target.closest('[data-ds-copy]');
  if(!btn)return;
  const code=btn.closest('.ds-code-card')?.querySelector('code')?.textContent||'';
