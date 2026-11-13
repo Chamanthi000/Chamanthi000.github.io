@@ -145,7 +145,7 @@ try{
  if(!await notesPage.locator('[data-ag-section="ag-private"]').evaluate(el=>el.open)){
   await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
  }
- assert.ok((await notesPage.locator('.ag-private-notes').innerText()).includes('MY UNIQUE ARRAY TECHNIQUE'));
+ assert.ok((await notesPage.locator('.ag-private-notes').textContent()).includes('MY UNIQUE ARRAY TECHNIQUE'));
  await notesPage.locator('[data-ag-consolidate]').click();
  const consolidated=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-structures-v1')).find(x=>x.id==='arrays'));
  assert.equal(consolidated.notes,'');
@@ -160,7 +160,7 @@ try{
  if(!await notesPage.locator('[data-ag-section="ag-private"]').evaluate(el=>el.open)){
   await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
  }
- assert.ok((await notesPage.locator('.ag-private-notes').innerText()).includes('MY UNIQUE ARRAY TECHNIQUE'));
+ assert.ok((await notesPage.locator('.ag-private-notes').textContent()).includes('MY UNIQUE ARRAY TECHNIQUE'));
  capture('Saved Arrays notes preserved verbatim through reversible migration and refresh','PASS');
  await notesPage.locator('[data-ag-restore]').click();
  const restored=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-structures-v1')).find(x=>x.id==='arrays'));
