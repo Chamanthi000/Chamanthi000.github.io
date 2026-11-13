@@ -2,7 +2,7 @@
   "id": "heaps",
   "title": "Heaps & Priority Queues",
   "subtitle": "A heap exposes the best current candidate without sorting every candidate, so the invariant is about the root rather than the whole array.",
-  "variables": "n = input items, k = selection size/rank, u = distinct keys, r = input streams/lists, N = total merged items, V/E = vertices/edges, H = physical heap entries including stale records, a = live tasks, T = produced schedule length, B = payload/key size when relevant. Standard-library heapq is a min-heap on a list; max-heaps here use negative numeric keys for Python 3.10 compatibility. Comparisons/arithmetic use a fixed-word model; Python big integers cost by bit length. Hash operations are expected O(1), with O(B) initial hashing/comparison costs for long keys. Heap push/pop comparison work is logarithmic; Python list capacity growth/shrink makes allocation bounds amortized across operations (a resize may copy O(n) references). Auxiliary space excludes output unless stated; stale heap entries and sorted copies are included. Keys must be consistently ordered, with no NaN. Ties require explicit counters when payloads are unorderable.",
+  "variables": "n = input items, k = selection size/rank, u = distinct keys, r = input streams/lists, N = total merged items, V/E = vertices/edges, H = physical heap entries including stale records, a = live tasks, T = produced schedule length, B = payload/key size when relevant. Standard-library heapq is a min-heap on a list; max-heaps here use negative numeric keys for Python 3.10 compatibility. Comparisons/arithmetic use a fixed-word model; Python big integers cost by bit length. Hash operations are expected O(1), with O(B) initial hashing/comparison costs for long keys. Heap push/pop comparison work is logarithmic; Python list capacity growth/shrink makes allocation bounds amortized across operations (a resize may copy O(n) references). Auxiliary space excludes output unless stated; stale heap entries and sorted copies are included. Keys must be consistently ordered, with no NaN. Ties require explicit counters when payloads are unorderable. For offline query sweeps m = queries. Current Python documentation also has max-heap APIs (added in Python 3.14); negated numeric priorities intentionally support Python 3.10+.",
   "operations": [
     [
       "Construction",
@@ -56,9 +56,9 @@
       "Update",
       "heapq.heappop(h)",
       "Remove smallest",
-      "O(log n)",
+      "O(log(n+1)) amortized; O(n) resize worst case",
       "O(1) auxiliary",
-      "IndexError when empty; remaining list is still a heap."
+      "IndexError when empty; remaining list is still a heap. Python list shrinking may resize; logarithmic comparison work does not imply an individual logarithmic allocation bound."
     ],
     [
       "Update",
@@ -80,17 +80,17 @@
       "Selection",
       "heapq.nlargest(k, items)",
       "Select k largest in descending order",
-      "O(n log(k+1)) typical when k<=n",
+      "O(n log(k+1)) typical for1<=k<=n; k=0 O(1)",
       "O(k)",
-      "Implementation may sort when k>=known input size; costs include comparisons."
+      "Implementation may sort when k>=known input size; costs include comparisons. If k>=n on a sized input, sorting can use O(n) workspace/output; negative k returns []."
     ],
     [
       "Selection",
       "heapq.nsmallest(k, items)",
       "Select k smallest in ascending order",
-      "O(n log(k+1)) typical when k<=n",
+      "O(n log(k+1)) typical for1<=k<=n; k=0 O(1)",
       "O(k)",
-      "k=1 can use a scan; materialized output."
+      "k=1 can use a scan; materialized output. If k>=n on a sized input, sorting can use O(n) workspace/output; negative k returns []."
     ],
     [
       "Streaming",
@@ -260,12 +260,15 @@
       "Most nodes are leaves or nearly leaves. Sum of sift distances over internal nodes is linear, unlike repeated insertion.",
       [
         "n = 16",
-        "# At most n/2^(height+1) nodes can have a given positive height.",
-        "bound = sum((n / (2 ** (height + 1))) * height for height in range(1, 6))",
-        "assert bound < n"
+        "# Complete-tree node heights sum to a linear quantity.",
+        "heights = [0] * n",
+        "for i in range(n - 1, -1, -1):",
+        "    children = [heights[j] for j in (2*i+1, 2*i+2) if j < n]",
+        "    heights[i] = 1 + max(children) if children else 0",
+        "assert sum(heights) == 15 < n"
       ],
-      "O(n) heapify",
-      "O(1) heapify auxiliary",
+      "O(n) heapify and O(n) illustration",
+      "O(1) heapify auxiliary; O(n) illustration heights",
       "Do not infer O(n log n) just from a logarithmic worst-case sift."
     ],
     [
@@ -392,7 +395,7 @@
       "CORE",
       "Running middle value",
       "Max-heap lower half, min-heap upper half, rebalance",
-      "O(log n) add; O(1) query",
+      "O(log n) amortized add; O(1) median under fixed-word arithmetic",
       "O(n)",
       "Find Median from Data Stream",
       "No arbitrary removal in the basic design.",
@@ -500,8 +503,8 @@
       "IMPORTANT",
       "Choose best interval/item among those currently eligible",
       "Sort arrivals and heap active candidates; discard expired roots",
-      "O(n log n)",
-      "O(n)",
+      "O(n log(n+1)+m log(m+1)+m log(n+1)), n intervals, m queries",
+      "O(n+m), including sorted interval/query copies and returned answers",
       "Minimum Interval to Include Each Query",
       "Expired interior records may remain until they reach the root.",
       "Root after pruning is best eligible active candidate.",
@@ -558,7 +561,7 @@
     ],
     [
       "Shortest distance with 0/1 costs",
-      "0–1 BFS",
+      "0\u20131 BFS",
       "Heap is not required."
     ],
     [
@@ -600,6 +603,11 @@
       "Best currently affordable project",
       "Eligibility sweep + max profit",
       "Heap does not prove greedy by itself."
+    ],
+    [
+      "Many interval coverage queries",
+      "Sweep-line selected candidates",
+      "Sort queries to make candidate arrivals monotone; heap root after expiry gives shortest eligible interval. Closed integer intervals use inclusive length, unlike half-open room reuse."
     ]
   ],
   "contrasts": [
@@ -628,8 +636,8 @@
       "FIFO respects arrival sequence; priority selection needs explicit fairness/tie order."
     ],
     [
-      "Dijkstra vs BFS vs Bellman–Ford",
-      "BFS is for equal costs, Dijkstra for nonnegative costs, Bellman–Ford supports negative edges and can detect reachable negative cycles."
+      "Dijkstra vs BFS vs Bellman\u2013Ford",
+      "BFS is for equal costs, Dijkstra for nonnegative costs, Bellman\u2013Ford supports negative edges and can detect reachable negative cycles."
     ],
     [
       "Logical deletion vs physical deletion",
@@ -642,94 +650,104 @@
   ],
   "edges": [
     [
+      "Universal: mutation contract",
+      "Snapshot caller list/graph before and after read-only query; compare tree link identities for rewiring.",
+      "Read-only queries preserve input; mutation templates document changed links. Exposes accidental sorting or pointer loss."
+    ],
+    [
+      "Universal: output versus working memory",
+      "Broad tree or large requested output.",
+      "Count materialized answers separately from frontier/heap. Exposes claiming constant space while retaining all answers."
+    ],
+    [
       "Empty selection",
       "a=[], k=0",
-      "Return []; k=1 raises ValueError."
+      "Return []; k=1 raises ValueError. Incorrect implementation exposed: Unguarded root access on empty selection."
     ],
     [
       "Invalid k",
       "k<0 or k>len(a)",
-      "Reject in exact-k static template."
+      "Reject in exact-k static template. Incorrect implementation exposed: Silently returning fewer than exact k."
     ],
     [
       "All equal values",
       "[4,4,4], k=2",
-      "Return two copies, not one distinct value."
+      "Return two copies, not one distinct value. Incorrect implementation exposed: Deduplicating values before rank selection."
     ],
     [
       "Top-K tie frequency",
       "a and b have equal counts",
-      "String-frequency template chooses lexicographically earlier key."
+      "String-frequency template chooses lexicographically earlier key. Incorrect implementation exposed: Reversed lexical eviction tie order."
     ],
     [
       "Unorderable payload ties",
       "Two Node(1) heads",
-      "Unique counters prevent TypeError."
+      "Unique counters prevent TypeError. Incorrect implementation exposed: Tuple(priority,Node) compares unorderable payloads on ties."
     ],
     [
       "Empty input streams",
       "[[],[1],[]]",
-      "Merge returns [1]; no streams -> []."
+      "Merge returns [1]; no streams -> []. Incorrect implementation exposed: Indexing empty stream head."
     ],
     [
       "Median before input",
       "MedianStream().median()",
-      "Raise ValueError."
+      "Raise ValueError. Incorrect implementation exposed: Reading median roots before any insertion."
     ],
     [
       "Even median with large ints",
       "[10**30,10**30+1]",
-      "Exact Fraction avoids float rounding."
+      "Exact Fraction avoids float rounding. Incorrect implementation exposed: Lossy float midpoint conversion."
     ],
     [
       "Stale shorter path",
       "s->a=5,s->b=1,b->a=1",
-      "Return a=2 and ignore old distance 5."
+      "Return a=2 and ignore old distance 5. Incorrect implementation exposed: Finalizing first enqueue rather than fresh minimum."
     ],
     [
       "Zero-weight cycle",
       "0->1=0,1->0=0",
-      "Strict improvements prevent infinite reinsertion."
+      "Strict improvements prevent infinite reinsertion. Incorrect implementation exposed: Relaxing <= rather than strict improvement."
     ],
     [
       "Negative edge anywhere",
       "Unreachable component has weight -1",
-      "Dijkstra template validates and rejects entire supplied graph."
+      "Dijkstra template validates and rejects entire supplied graph. Incorrect implementation exposed: Validating only reachable popped edges."
     ],
     [
       "Touching intervals",
       "[0,1),[1,2)",
-      "Reuse one room."
+      "Reuse one room. Incorrect implementation exposed: Expiring <start instead of <=start for half-open intervals."
     ],
     [
       "Zero-length interval",
       "[2,2)",
-      "Empty half-open interval needs no room."
+      "Empty half-open interval needs no room. Incorrect implementation exposed: Counting empty half-open intervals as active."
     ],
     [
       "Cooldown no variety",
       "AAA, cooldown=2",
-      "Seven schedule slots: A,None,None,A,None,None,A."
+      "Seven schedule slots: A,None,None,A,None,None,A. Incorrect implementation exposed: release=t+cooldown instead of +cooldown+1."
     ],
     [
       "Impossible rearrangement",
       "aaab",
-      "Return empty string."
+      "Return empty string. Incorrect implementation exposed: Returning partial rearrangement with leftover symbols."
     ],
     [
       "Covering range empty list",
       "[[1],[]]",
-      "Return None."
+      "Return None. Incorrect implementation exposed: Accepting partial coverage after omitting an empty list."
     ],
     [
       "Pair count exceeds product",
       "a=[1],b=[2],k=10",
-      "Return only [[1,2]]."
+      "Return only [[1,2]]. Incorrect implementation exposed: Assuming k pair outputs always exist."
     ],
     [
       "Repeated priority replacement",
       "Same task updated thousands of times",
-      "Only latest entry executes; compaction bounds stale memory."
+      "Only latest entry executes; compaction bounds stale memory. Incorrect implementation exposed: Executing stale versions or retaining O(updates) stale memory."
     ]
   ],
   "mistakes": [
@@ -838,6 +856,10 @@
     [
       "Verify invariants",
       "Check root order, two-heap partition and freshness after operations."
+    ],
+    [
+      "Practice mastery rubric",
+      "Recognize from a fresh clue, reconstruct without reference, explain root meaning and tie policy, prove greedy/relaxation invariant, include sorting/output/stale memory, pass boundary and adversarial tests, and adapt insertion-only to expiration constraints. Revisit failures later."
     ]
   ],
   "memory": [
@@ -1260,6 +1282,73 @@
         "        return len(self.live)"
       ],
       "Hashable stable keys; consistently comparable finite numeric priorities; arbitrary unorderable payloads. set inserts/replaces key, ties execute in most-recent set serial order; remove returns bool; pop returns (key,priority,payload), raises IndexError when no live items. New versions invalidate old entries by identity. With compaction H <= 2a+16 after edits, a single pop can drain O(a+1) stale entries at O(log(a+2)) each: O((a+1) log(a+2)) worst case. A threshold rebuild costs O(a+1), while set can cost O(a+1) on a rebuild and remove likewise. Amortized O(log(a+2)) bounds charge each stale extraction to the edit that created it and each rebuild to the many invalidations since the preceding rebuild; use the maximum live size across a sequence for a uniform sequence bound."
+    ],
+    [
+      "Optimal nonnegative merge cost",
+      "O(n log(n+1))",
+      "O(n) copied heap",
+      [
+        "import heapq",
+        "def merge_cost(weights):",
+        "    heap = list(weights)",
+        "    if any(x < 0 or x != x or x == float('inf') for x in heap):",
+        "        raise ValueError('finite nonnegative weights required')",
+        "    heapq.heapify(heap)",
+        "    total = 0",
+        "    while len(heap) > 1:",
+        "        cost = heapq.heappop(heap) + heapq.heappop(heap)",
+        "        total += cost",
+        "        heapq.heappush(heap, cost)",
+        "    return total"
+      ],
+      "Finite nonnegative int/float weights, representable accumulated sums. Returns minimum sum of pair-combine costs; zero or one input -> 0. Copies input, consumes iterables; float rounding applies. Huffman construction additionally stores child references."
+    ],
+    [
+      "Offline minimum covering intervals",
+      "O(n log(n+1)+m log(m+1)+m log(n+1))",
+      "O(n+m) including sorted copies/output",
+      [
+        "import heapq",
+        "def minimum_intervals(intervals, queries):",
+        "    ordered = sorted(intervals)",
+        "    if any(left > right for left, right in ordered):",
+        "        raise ValueError('reversed interval')",
+        "    answers = [-1] * len(queries)",
+        "    heap, i = [], 0",
+        "    for query, index in sorted((q, j) for j, q in enumerate(queries)):",
+        "        while i < len(ordered) and ordered[i][0] <= query:",
+        "            left, right = ordered[i]",
+        "            heapq.heappush(heap, (right - left + 1, right))",
+        "            i += 1",
+        "        while heap and heap[0][1] < query:",
+        "            heapq.heappop(heap)",
+        "        if heap:",
+        "            answers[index] = heap[0][0]",
+        "    return answers"
+      ],
+      "Closed integer intervals [left,right], integer query sequence. Returns shortest inclusive length per original query position, -1 if uncovered. No mutation; duplicates allowed. Expired non-root records can stay until they affect minimum; n intervals, m queries."
+    ],
+    [
+      "Maximum capital from eligible projects",
+      "O(n log(n+1)+min(k,n) log(n+1))",
+      "O(n)",
+      [
+        "import heapq",
+        "def maximize_capital(k, capital, requirements, profits):",
+        "    if type(k) is not int or k < 0 or len(requirements) != len(profits):",
+        "        raise ValueError('nonnegative integer k and equal lengths required')",
+        "    projects = sorted(zip(requirements, profits))",
+        "    available, i = [], 0",
+        "    for _ in range(min(k, len(projects))):",
+        "        while i < len(projects) and projects[i][0] <= capital:",
+        "            heapq.heappush(available, -projects[i][1])",
+        "            i += 1",
+        "        if not available or available[0] >= 0:",
+        "            break",
+        "        capital -= heapq.heappop(available)",
+        "    return capital"
+      ],
+      "Finite integer capital/requirements/profits; projects independent, requirement is a threshold not a spent cost. Choose at most k distinct projects; negative profits can be skipped. Returns greatest final capital; no mutation. Greedy fails with hidden dependencies or spending capital."
     ]
   ],
   "practice": [
@@ -1379,7 +1468,7 @@
       "1851. Minimum Interval to Include Each Query",
       "Offline sweep + lazy expiry",
       "Hard",
-      "O(n log n+q log q+q log n); O(n+q) space",
+      "O(n log(n+1)+m log(m+1)+m log(n+1)); O(n+m) space",
       "Preserve original query positions."
     ],
     [
@@ -1403,5 +1492,720 @@
       "O(log(a+2)) amortized updates/pops with compaction; O(a) space",
       "LC tie policy is larger taskId first, unlike generic FIFO ties."
     ]
+  ],
+  "operationExamples": [
+    {
+      "code": [
+        "import heapq",
+        "h = []",
+        "print(h)"
+      ],
+      "result": "[]",
+      "use": "Initialize priority frontier.",
+      "mutation": "Allocates list; no payload copy."
+    },
+    {
+      "code": [
+        "import heapq",
+        "h = [3, 1, 2]",
+        "print(heapq.heapify(h), h[0])"
+      ],
+      "result": "None 1",
+      "use": "Linear-time bulk construction.",
+      "mutation": "Mutates list order; returns None."
+    },
+    {
+      "code": [
+        "import heapq",
+        "items = [3, 1, 2]",
+        "h = list(items)",
+        "heapq.heapify(h)",
+        "print(h[0], items)"
+      ],
+      "result": "1 [3, 1, 2]",
+      "use": "Heapify without changing caller order.",
+      "mutation": "New shallow list, original unchanged."
+    },
+    {
+      "code": [
+        "h = [1, 3, 2]",
+        "print(h[0], h)"
+      ],
+      "result": "1 [1, 3, 2]",
+      "use": "Inspect best candidate without removing it.",
+      "mutation": "Read-only root access."
+    },
+    {
+      "code": [
+        "h = [1, 3]",
+        "print(len(h), bool(h))"
+      ],
+      "result": "2 True",
+      "use": "Check physical heap emptiness, not lazy live count.",
+      "mutation": "Read-only."
+    },
+    {
+      "code": [
+        "import heapq",
+        "h = [2, 4]",
+        "heapq.heappush(h, 1)",
+        "print(h[0], len(h))"
+      ],
+      "result": "1 3",
+      "use": "Push improved shortest-path candidate.",
+      "mutation": "Mutates list; may resize backing storage."
+    },
+    {
+      "code": [
+        "import heapq",
+        "h = [1, 3, 2]",
+        "print(heapq.heappop(h), h[0])"
+      ],
+      "result": "1 2",
+      "use": "Process minimum tentative distance.",
+      "mutation": "Removes root, repairs heap, may shrink list."
+    },
+    {
+      "code": [
+        "import heapq",
+        "h = [3, 5]",
+        "print(heapq.heappushpop(h, 1), h[0])",
+        "print(heapq.heappushpop([], 8))"
+      ],
+      "result": "1 3\n8",
+      "use": "Reject weaker Top-K candidate without growing heap.",
+      "mutation": "Mutates only if replacement needed; empty stays empty."
+    },
+    {
+      "code": [
+        "import heapq",
+        "h = [3, 5]",
+        "print(heapq.heapreplace(h, 1), h[0])"
+      ],
+      "result": "3 1",
+      "use": "Replace accepted Top-K boundary only after quality check.",
+      "mutation": "Always removes old minimum and inserts new value."
+    },
+    {
+      "code": [
+        "import heapq",
+        "a = [2, 7, 1, 7]",
+        "print(heapq.nlargest(2, a), a)"
+      ],
+      "result": "[7, 7] [2, 7, 1, 7]",
+      "use": "Select sorted largest values, preserving duplicates.",
+      "mutation": "Allocates output/working selection, input list unchanged."
+    },
+    {
+      "code": [
+        "import heapq",
+        "print(heapq.nsmallest(2, [4, 1, 2]))"
+      ],
+      "result": "[1, 2]",
+      "use": "Select smallest candidates when full sort unnecessary.",
+      "mutation": "Allocates output; consumes iterable."
+    },
+    {
+      "code": [
+        "import heapq",
+        "merged = heapq.merge([1, 4], [2, 3])",
+        "print(next(merged), list(merged))"
+      ],
+      "result": "1 [2, 3, 4]",
+      "use": "Stream sorted heads instead of all items.",
+      "mutation": "Allocates lazy frontier; consumes iterators, no source list mutation."
+    },
+    {
+      "code": [
+        "import heapq",
+        "h = []",
+        "heapq.heappush(h, (-8, 0, {'id': 'a'}))",
+        "heapq.heappush(h, (-8, 1, {'id': 'b'}))",
+        "score, serial, item = heapq.heappop(h)",
+        "print(-score, item['id'])"
+      ],
+      "result": "8 a",
+      "use": "Choose highest numeric priority with FIFO ties.",
+      "mutation": "Mutates heap; payload dictionaries untouched."
+    },
+    {
+      "code": [
+        "from itertools import count",
+        "counter = count()",
+        "entry = (2, next(counter), {'task': 'a'})",
+        "print(entry[:2])"
+      ],
+      "result": "(2, 0)",
+      "use": "Prevent comparison of unorderable equal-priority payloads.",
+      "mutation": "Allocates tuple; advances counter, payload shared."
+    },
+    {
+      "code": [
+        "i = 4",
+        "print((i - 1) // 2)"
+      ],
+      "result": "1",
+      "use": "Reason about sift-up parent relation.",
+      "mutation": "Arithmetic only, no heap mutation."
+    },
+    {
+      "code": [
+        "i, h = 1, [0, 2, 1, 4, 3]",
+        "left, right = 2*i+1, 2*i+2",
+        "print(left, right, h[left], h[right])"
+      ],
+      "result": "3 4 4 3",
+      "use": "Check child bounds before sift-down.",
+      "mutation": "Read-only list access."
+    },
+    {
+      "code": [
+        "h = [1, 4, 2]",
+        "print(4 in h, 9 in h)"
+      ],
+      "result": "True False",
+      "use": "Expose why arbitrary membership is linear.",
+      "mutation": "Read-only equality scan."
+    },
+    {
+      "code": [
+        "h = [1, 4, 2]",
+        "copy = list(h)",
+        "copy.append(9)",
+        "print(h, copy)"
+      ],
+      "result": "[1, 4, 2] [1, 4, 2, 9]",
+      "use": "Snapshot array layout without claiming sorted order.",
+      "mutation": "Allocates shallow list; source unchanged."
+    },
+    {
+      "code": [
+        "h = [1, 4, 2]",
+        "print(sorted(h), h)"
+      ],
+      "result": "[1, 2, 4] [1, 4, 2]",
+      "use": "Return ordered Top-K output and count its sort cost.",
+      "mutation": "Allocates sorted copy with sort workspace."
+    },
+    {
+      "code": [
+        "import heapq",
+        "from itertools import count",
+        "class MutablePriorityQueue:",
+        "    def __init__(self):",
+        "        self.heap, self.live = [], {}",
+        "        self.serial = count()",
+        "    def _compact(self):",
+        "        if len(self.heap) > 2 * len(self.live) + 16:",
+        "            self.heap = list(self.live.values())",
+        "            heapq.heapify(self.heap)",
+        "    def set(self, key, priority, payload):",
+        "        entry = (priority, next(self.serial), key, payload)",
+        "        self.live[key] = entry",
+        "        heapq.heappush(self.heap, entry)",
+        "        self._compact()",
+        "    def remove(self, key):",
+        "        if key not in self.live:",
+        "            return False",
+        "        del self.live[key]",
+        "        self._compact()",
+        "        return True",
+        "    def pop(self):",
+        "        while self.heap:",
+        "            entry = heapq.heappop(self.heap)",
+        "            priority, _, key, payload = entry",
+        "            if self.live.get(key) is entry:",
+        "                del self.live[key]",
+        "                self._compact()",
+        "                return key, priority, payload",
+        "        raise IndexError('empty priority queue')",
+        "    def __len__(self):",
+        "        return len(self.live)",
+        "q = MutablePriorityQueue()",
+        "q.set('a', 5, {})",
+        "q.set('a', 1, {'new': True})",
+        "key, priority, payload = q.pop()",
+        "print(key, priority, payload['new'])"
+      ],
+      "result": "a 1 True",
+      "use": "Version priority updates instead of corrupting in-heap keys.",
+      "mutation": "Mutates live map and heap; stale entries retained until pruning/compaction."
+    },
+    {
+      "code": [
+        "import heapq",
+        "h = [(1, 'old'), (2, 'new')]",
+        "active = {'new'}",
+        "h = [entry for entry in h if entry[1] in active]",
+        "heapq.heapify(h)",
+        "print(h)"
+      ],
+      "result": "[(2, 'new')]",
+      "use": "Bound lazy-deletion physical memory.",
+      "mutation": "Allocates replacement list; old list released when unreferenced."
+    },
+    {
+      "code": [
+        "from queue import PriorityQueue",
+        "q = PriorityQueue()",
+        "q.put_nowait((2, 'b'))",
+        "q.put_nowait((1, 'a'))",
+        "print(q.get_nowait())",
+        "q.task_done()"
+      ],
+      "result": "(1, 'a')",
+      "use": "Separate thread coordination from priority-order algorithm.",
+      "mutation": "Mutates synchronized heap and task accounting; no join while unfinished b remains."
+    }
+  ],
+  "fundamentalDetails": [
+    {
+      "why": "Partial order is enough to expose the minimum without fully sorting.",
+      "use": "Priority frontier.",
+      "result": "heapify [7,2,9,1] exposes1 and every parent<=children.",
+      "edge": "Second array position is not necessarily second-smallest.",
+      "takeaway": "Root best; rest only partially ordered."
+    },
+    {
+      "why": "Replacement order decides which value survives.",
+      "use": "Bounded Top-K.",
+      "result": "pushpop([3,5],1) returns1 and keeps3; replace returns3 and keeps1.",
+      "edge": "pushpop empty returns candidate; replace empty raises IndexError.",
+      "takeaway": "pushpop may reject new item; replace always accepts."
+    },
+    {
+      "why": "Negation reverses numeric priority order.",
+      "use": "Python3.10-compatible max-priority.",
+      "result": "Negated [2,8,-1] pops score8 after un-negating.",
+      "edge": "Current Python has max-heap APIs since3.14; negation still supports3.10+.",
+      "takeaway": "Negate key, not arbitrary payload."
+    },
+    {
+      "why": "Tuple comparison falls through tied priorities.",
+      "use": "Queues of dictionaries or nodes.",
+      "result": "Equal priority4 entries with serial0/1 pop a first.",
+      "edge": "Without serial, equal-priority dict payloads raise TypeError.",
+      "takeaway": "Unique serial before unorderable payload."
+    },
+    {
+      "why": "The worst retained candidate is the replacement boundary.",
+      "use": "Largest-k selection.",
+      "result": "[5,1,7,3], k2 retains [5,7].",
+      "edge": "k0 needs separate handling; duplicate values count by multiplicity.",
+      "takeaway": "Largest-k uses min-heap of retained winners."
+    },
+    {
+      "why": "Most complete-tree nodes have very small sift distance.",
+      "use": "Bulk construction proof.",
+      "result": "For n16 the exact sum of node heights is15 <16.",
+      "edge": "Repeated pushes are O(n log n) worst even though heapify is linear.",
+      "takeaway": "Sum heights, not worst height times nodes."
+    },
+    {
+      "why": "Only each stream head can be its next contribution.",
+      "use": "Merge sorted lists/feeds.",
+      "result": "[[1,4],[],[1,3]] merges [1,1,3,4].",
+      "edge": "Unsorted streams invalidate head dominance.",
+      "takeaway": "One live frontier per stream."
+    },
+    {
+      "why": "Only middle boundary values are needed for median.",
+      "use": "Streaming order statistic.",
+      "result": "Lower [1,2] and upper [5,9] yield median3.5.",
+      "edge": "Size balance alone does not imply partition ordering.",
+      "takeaway": "Ordered halves plus size invariant."
+    },
+    {
+      "why": "Authoritative state distinguishes current candidates from obsolete entries.",
+      "use": "Dijkstra and keyed queue updates.",
+      "result": "best[a]=2 rejects old record5 and retains2.",
+      "edge": "Stale checks cheap; stale extractions still O(log H) each.",
+      "takeaway": "Physical heap size is not live count."
+    },
+    {
+      "why": "Fast choice is not a proof of optimality.",
+      "use": "Optimal merge and project selection.",
+      "result": "Smallest lengths2 and3 combine to5 before length7.",
+      "edge": "Extra constraints or negative combine costs change proof.",
+      "takeaway": "Heap implements greedy; exchange argument justifies greedy."
+    },
+    {
+      "why": "Ordering requires consistent comparable keys.",
+      "use": "Validate priority domain.",
+      "result": "NaN is neither <1 nor >=1.",
+      "edge": "Mixed int/str or NaN can break ordering assumptions.",
+      "takeaway": "State key domain before heap operations."
+    }
+  ],
+  "patternDetails": [
+    {
+      "steps": [
+        "Fill heap to k.",
+        "Replace root only when new value is better.",
+        "Sort retained values only if output requires order."
+      ],
+      "templates": [
+        "Exact top k largest values"
+      ],
+      "related": "Compare Frequency Top-K by what the heap root certifies and what makes entries eligible.",
+      "variations": "Quickselect can suit static rank-only expected linear time; sorting is better for complete order."
+    },
+    {
+      "steps": [
+        "Count distinct keys.",
+        "Rank by frequency and explicit tie policy.",
+        "Retain best k and sort only final result."
+      ],
+      "templates": [
+        "Top frequent words with lexical ties"
+      ],
+      "related": "Compare K-way merge by what the heap root certifies and what makes entries eligible.",
+      "variations": "Count buckets give O(n) expected time when bounded frequency domain matters; lexical string ties add comparison costs."
+    },
+    {
+      "steps": [
+        "Heapify one head per nonempty sorted input.",
+        "Pop next global item.",
+        "Advance only that input and reinsert its next head."
+      ],
+      "templates": [
+        "Merge sorted iterables",
+        "Merge k disjoint linked lists"
+      ],
+      "related": "Compare Online kth largest by what the heap root certifies and what makes entries eligible.",
+      "variations": "List-node merge mutates links and requires disjoint acyclic inputs; iterator merge consumes sources."
+    },
+    {
+      "steps": [
+        "Retain at most k largest stream values.",
+        "Push or replace boundary for each arrival.",
+        "Return root only once at least k values have arrived."
+      ],
+      "templates": [
+        "Streaming kth largest"
+      ],
+      "related": "Compare Two-heap median by what the heap root certifies and what makes entries eligible.",
+      "variations": "Sliding expiry is not supported by basic online kth; it needs deletion bookkeeping."
+    },
+    {
+      "steps": [
+        "Insert into lower/upper ordered halves.",
+        "Rebalance sizes so lower has equal size or one extra.",
+        "Read max lower/min upper; use exact integer midpoint when required."
+      ],
+      "templates": [
+        "Exact integer streaming median"
+      ],
+      "related": "Compare Dijkstra lazy frontier by what the heap root certifies and what makes entries eligible.",
+      "variations": "Sliding median additionally requires delayed deletion, logical sizes and pruning; the current template is insertion-only."
+    },
+    {
+      "steps": [
+        "Validate nonnegative weights.",
+        "Pop fresh minimum distance and skip stale versions.",
+        "Relax each outgoing edge and enqueue strict improvements."
+      ],
+      "templates": [
+        "Dijkstra with tie-safe stale records"
+      ],
+      "related": "Compare Meeting-room reuse by what the heap root certifies and what makes entries eligible.",
+      "variations": "Unit weights use BFS, binary weights deque0\u20131 BFS; negative edges invalidate Dijkstra."
+    },
+    {
+      "steps": [
+        "Sort half-open intervals by start.",
+        "Remove endpoints <= current start.",
+        "Push new end and record peak active count."
+      ],
+      "templates": [
+        "Minimum rooms for half-open intervals"
+      ],
+      "related": "Compare Cooldown scheduling by what the heap root certifies and what makes entries eligible.",
+      "variations": "Closed intervals need a different touching-endpoint rule; zero-length half-open intervals are empty."
+    },
+    {
+      "steps": [
+        "Count tasks and build max remaining-count heap.",
+        "Release ready tasks from FIFO cooldown queue.",
+        "Schedule available maximum, or emit idle gap until next release."
+      ],
+      "templates": [
+        "Construct a uniform-cooldown schedule"
+      ],
+      "related": "Compare Greedy rearrangement by what the heap root certifies and what makes entries eligible.",
+      "variations": "Count-only answer is max(n,(fmax-1)*(cooldown+1)+number_of_max_tasks), avoiding huge idle output."
+    },
+    {
+      "steps": [
+        "Pop most frequent available symbol.",
+        "Withhold previous symbol until successor chosen.",
+        "Reinsert remaining previous count; fail if leftover cannot be placed."
+      ],
+      "templates": [
+        "Reorganize string without equal neighbors"
+      ],
+      "related": "Compare Smallest covering range by what the heap root certifies and what makes entries eligible.",
+      "variations": "Distance>1 becomes cooldown scheduling; arbitrary unequal spacing needs new reasoning."
+    },
+    {
+      "steps": [
+        "Seed one item from every list and track maximum.",
+        "Evaluate [heap minimum,maximum].",
+        "Advance minimum list; stop when any list is exhausted."
+      ],
+      "templates": [
+        "Smallest range covering sorted lists"
+      ],
+      "related": "Compare Best-first Cartesian pairs by what the heap root certifies and what makes entries eligible.",
+      "variations": "One empty list makes coverage impossible; tie-break equal widths by smaller lower endpoint."
+    },
+    {
+      "steps": [
+        "Seed one frontier for each relevant sorted row.",
+        "Pop globally smallest pair sum.",
+        "Advance only that row column and stop after k outputs/exhaustion."
+      ],
+      "templates": [
+        "K smallest pair sums from sorted arrays"
+      ],
+      "related": "Compare Lazy keyed priority updates by what the heap root certifies and what makes entries eligible.",
+      "variations": "Unsorted arrays must be sorted first with original-index tracking if requested."
+    },
+    {
+      "steps": [
+        "Create unique version per set and map live key to it.",
+        "Skip popped records not identical to live version.",
+        "Compact when physical entries exceed threshold relative to live size."
+      ],
+      "templates": [
+        "Versioned mutable priority queue with compaction"
+      ],
+      "related": "Compare Optimal merge / Huffman by what the heap root certifies and what makes entries eligible.",
+      "variations": "Indexed heaps can offer different latency bounds; threshold rebuilds and stale drains make this implementation amortized."
+    },
+    {
+      "steps": [
+        "Validate nonnegative weights and heapify a copy.",
+        "Pop two minimum weights and charge their sum.",
+        "Reinsert combined weight until at most one remains."
+      ],
+      "templates": [
+        "Optimal nonnegative merge cost"
+      ],
+      "related": "Compare Sweep-line selected candidates by what the heap root certifies and what makes entries eligible.",
+      "variations": "Huffman coding stores children at each merge, while cost-only template returns the weight sum."
+    },
+    {
+      "steps": [
+        "Sort intervals by start and queries with original indices.",
+        "Add candidates whose starts <= query.",
+        "Pop expired roots and answer shortest live root; restore original query order."
+      ],
+      "templates": [
+        "Offline minimum covering intervals"
+      ],
+      "related": "Compare Max-capital eligibility by what the heap root certifies and what makes entries eligible.",
+      "variations": "Expired interior entries can remain safely until they reach root; total pushes/pops bounded by n."
+    },
+    {
+      "steps": [
+        "Sort projects by capital threshold.",
+        "Push profits of every newly affordable project.",
+        "Choose largest positive profit, increase capital, repeat at most k times."
+      ],
+      "templates": [
+        "Maximum capital from eligible projects"
+      ],
+      "related": "Compare Bounded Top-K by what the heap root certifies and what makes entries eligible.",
+      "variations": "Negative profits are skipped for at-most-k; exactly-k or dependencies invalidate that stopping rule."
+    }
+  ],
+  "decisionProcess": [
+    "0\u201330s: identify requested extremum/rank, static versus online, comparable key/tie policy, updates/deletions and whether full sorting is needed.",
+    "30\u201360s: retain largest k -> min-heap of winners; online median -> two heaps; merge sorted sources -> one head per source. Heap direction exposes worst winner or best available as required.",
+    "60\u201390s: nonnegative weighted shortest paths -> Dijkstra; unit weights -> BFS;0/1 -> deque. Validate weights and stale-state rule.",
+    "90\u2013120s: intervals/projects -> sort eligibility then heap the choice key; cooldown -> available heap plus release queue; optimal merge -> two smallest with exchange proof.",
+    "120\u2013180s: write invariant and prove greedy choice where applicable. Account for sorting copies, output length, stale H, compaction latency, key comparisons and Python list resizing. Test ties, empty, k bounds and stale root."
+  ],
+  "templateDetails": [
+    {
+      "pattern": "Bounded Top-K",
+      "preconditions": "Finite comparable numbers, integer k. Returns exactly k values in descending order including duplicates; no mutation. Invalid k raises ValueError.",
+      "observation": "Sorted output adds O(k log k), included in total."
+    },
+    {
+      "pattern": "Online kth largest",
+      "preconditions": "Positive integer k, comparable numeric stream without NaN. add returns kth largest including duplicates, or None until k arrivals; does not retain the whole stream. Initialization O(m log(k+1)).",
+      "observation": "Smallest retained winner is kth largest."
+    },
+    {
+      "pattern": "Frequency Top-K",
+      "preconditions": "Sequence/iterable of strings; output k distinct words by descending frequency then ascending lexicographic order. k=0 returns []; invalid k raises ValueError. No mutation; long-string hashing/comparison adds cost.",
+      "observation": "Equal-count lexical worst must be root for eviction."
+    },
+    {
+      "pattern": "K-way merge",
+      "preconditions": "Each finite stream is sorted nondecreasing with mutually comparable values. Returns merged value list. Consumes iterators, does not mutate source lists. Equal-value interstream order is insertion-serial order, not guaranteed source-index stability.",
+      "observation": "Only next item per sorted stream is eligible."
+    },
+    {
+      "pattern": "K-way merge",
+      "preconditions": "Sorted nondecreasing acyclic singly linked lists whose nodes are pairwise disjoint. Returns merged head, None if all empty. Mutates/reuses next links; original separate list topology is consumed. Unique serial avoids Node comparison on ties.",
+      "observation": "Counter avoids Node comparisons; disjointness prevents shared-link corruption."
+    },
+    {
+      "pattern": "Two-heap median",
+      "preconditions": "Accepts Python ints, bool rejected. Returns int for odd count and exact Fraction for even count, avoiding float precision/overflow. Convert with float only when approximate judge/API output is desired. Big-integer/Fraction arithmetic is not unit-cost.",
+      "observation": "Order and size balance are both necessary."
+    },
+    {
+      "pattern": "Dijkstra lazy frontier",
+      "preconditions": "Directed mapping to reusable lists of (hashable neighbor, finite nonnegative int/float weight). Missing vertex key is a sink. Returns reachable distances only; absent source gives {source:0}; no mutation. Counter supports unorderable vertices. For floats, accumulated distances must remain representable and comparisons are subject to rounding.",
+      "observation": "Authoritative distance rejects stale entries."
+    },
+    {
+      "pattern": "Meeting-room reuse",
+      "preconditions": "Finite numeric (start,end) intervals interpreted as [start,end). Zero-length intervals ignored; invalid reversed endpoints raise ValueError. Returns peak active count; [] -> 0. Sorts a copy, no input mutation.",
+      "observation": "Touching half-open intervals can reuse a room."
+    },
+    {
+      "pattern": "Cooldown scheduling",
+      "preconditions": "Hashable unit-duration tasks except None; nonnegative integer uniform cooldown. Returns a minimum-length schedule with None idle slots, each input task occurrence used once. Does not mutate input; may allocate a large output when cooldown is huge.",
+      "observation": "Uniform cooldown release times are FIFO."
+    },
+    {
+      "pattern": "Greedy rearrangement",
+      "preconditions": "String input, character identity uses Python code points (not grapheme clusters). Returns any anagram with no adjacent equal chars, or empty string if impossible/empty. Does not mutate input.",
+      "observation": "Withhold previous symbol to forbid adjacent repetition."
+    },
+    {
+      "pattern": "Smallest covering range",
+      "preconditions": "Nonempty sorted nondecreasing integer lists. Returns inclusive (low,high) covering at least one element per list; minimizes width then low. No lists or any empty list -> None. No mutation; sortedness is a caller precondition.",
+      "observation": "Advance only minimum head while tracking maximum."
+    },
+    {
+      "pattern": "Best-first Cartesian pairs",
+      "preconditions": "Sorted nondecreasing integer sequences; nonnegative integer k. Returns up to k value pairs in nondecreasing sum order, ties by source indices. Equal values at distinct indices remain distinct choices. No mutation.",
+      "observation": "Sorted rows need one candidate each."
+    },
+    {
+      "pattern": "Lazy keyed priority updates",
+      "preconditions": "Hashable stable keys; consistently comparable finite numeric priorities; arbitrary unorderable payloads. set inserts/replaces key, ties execute in most-recent set serial order; remove returns bool; pop returns (key,priority,payload), raises IndexError when no live items. New versions invalidate old entries by identity. With compaction H <= 2a+16 after edits, a single pop can drain O(a+1) stale entries at O(log(a+2)) each: O((a+1) log(a+2)) worst case. A threshold rebuild costs O(a+1), while set can cost O(a+1) on a rebuild and remove likewise. Amortized O(log(a+2)) bounds charge each stale extraction to the edit that created it and each rebuild to the many invalidations since the preceding rebuild; use the maximum live size across a sequence for a uniform sequence bound.",
+      "observation": "Current entry identity is authoritative; stale entries still use memory."
+    },
+    {
+      "pattern": "Optimal merge / Huffman",
+      "preconditions": "Finite nonnegative int/float weights, representable accumulated sums. Returns minimum sum of pair-combine costs; zero or one input -> 0. Copies input, consumes iterables; float rounding applies. Huffman construction additionally stores child references.",
+      "observation": "Two smallest can be deepest siblings in an optimal merge."
+    },
+    {
+      "pattern": "Sweep-line selected candidates",
+      "preconditions": "Closed integer intervals [left,right], integer query sequence. Returns shortest inclusive length per original query position, -1 if uncovered. No mutation; duplicates allowed. Expired non-root records can stay until they affect minimum; n intervals, m queries.",
+      "observation": "Only roots require pruning before a minimum query."
+    },
+    {
+      "pattern": "Max-capital eligibility",
+      "preconditions": "Finite integer capital/requirements/profits; projects independent, requirement is a threshold not a spent cost. Choose at most k distinct projects; negative profits can be skipped. Returns greatest final capital; no mutation. Greedy fails with hidden dependencies or spending capital.",
+      "observation": "Best affordable positive profit leaves no less capital."
+    }
+  ],
+  "practiceDetails": [
+    {
+      "insight": "Negate largest priority, reinsert positive difference.",
+      "secondary": "Numeric max-priority"
+    },
+    {
+      "insight": "Retain k largest; root after k arrivals is kth.",
+      "secondary": "Streaming selection"
+    },
+    {
+      "insight": "Boundary selection avoids full sort; quickselect offers expected linear alternative.",
+      "secondary": "Quickselect alternative"
+    },
+    {
+      "insight": "Count before selecting among unique keys.",
+      "secondary": "Counting/buckets"
+    },
+    {
+      "insight": "Squared distance avoids sqrt; evict worst retained distance.",
+      "secondary": "Geometric ranking"
+    },
+    {
+      "insight": "Equal frequencies need lexical output and reversed eviction tie.",
+      "secondary": "Custom comparator"
+    },
+    {
+      "insight": "One head per sorted disjoint input.",
+      "secondary": "Pointer rewiring"
+    },
+    {
+      "insight": "Partition ordering plus logical sizes defines median.",
+      "secondary": "Exact arithmetic"
+    },
+    {
+      "insight": "End<=start frees half-open room.",
+      "secondary": "Interval sweep"
+    },
+    {
+      "insight": "Construct with heap+release queue or use length-only formula.",
+      "secondary": "Counting lower bound"
+    },
+    {
+      "insight": "Withhold previous symbol until successor chosen.",
+      "secondary": "Greedy feasibility"
+    },
+    {
+      "insight": "Each first-array index defines a sorted sum row.",
+      "secondary": "K-way merge"
+    },
+    {
+      "insight": "Advance only min-list while tracking current maximum.",
+      "secondary": "Covering window"
+    },
+    {
+      "insight": "Fresh minimum finalizes only with nonnegative weights.",
+      "secondary": "Graph relaxation"
+    },
+    {
+      "insight": "Two smallest can be optimal deepest siblings.",
+      "secondary": "Exchange argument"
+    },
+    {
+      "insight": "Threshold is eligibility, not spent cost; choose best positive profit.",
+      "secondary": "Eligibility sweep"
+    },
+    {
+      "insight": "Sorted queries make candidate arrivals monotone.",
+      "secondary": "Offline queries"
+    },
+    {
+      "insight": "Insertion-only median needs delayed deletes, valid sizes and stale-root pruning for windows.",
+      "secondary": "Lazy deletion adaptation"
+    },
+    {
+      "insight": "One recent cursor per user yields k-way descending merge.",
+      "secondary": "Feed cursors"
+    },
+    {
+      "insight": "Authoritative task version invalidates old heap entries.",
+      "secondary": "Versioned task state"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Python official heapq",
+      "url": "https://docs.python.org/3/library/heapq.html",
+      "note": "Official public API page fetched successfully 2026-11-13. Original Python3.10+ templates. Current max-heap APIs added3.14 exist; negated keys intentionally remain compatible."
+    },
+    {
+      "title": "Python data structures tutorial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "note": "Official public page fetched successfully 2026-11-13. Algorithm explanations and correctness proofs are original synthesis."
+    },
+    {
+      "title": "AlgoMonster public decision flowchart",
+      "url": "https://algo.monster/flowchart",
+      "note": "Public page fetched successfully 2026-11-13 for selection context only. Foundation course URLs404 per project research; no course completeness claim. Paid Grokking and rendered exact NeetCode list coverage unverified."
+    }
   ]
 }

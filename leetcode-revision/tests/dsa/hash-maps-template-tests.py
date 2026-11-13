@@ -101,6 +101,49 @@ class HashMapTests(unittest.TestCase):
         for x in list(expected): self.assertTrue(obj.remove(x))
         self.assertFalse(obj.remove(99))
         with self.assertRaises(ValueError): obj.get_random()
+        duplicate=template(12)['contains_duplicate']
+        for a,expected in [([],False),([1],False),([1,2,1],True),([0,False],True)]:
+            self.assertEqual(duplicate(a),expected)
+        with self.assertRaises(TypeError): duplicate([[1]])
+        ns=template(13); unique_overlap=ns['unique_intersection']; overlap=ns['multiset_intersection']
+        self.assertEqual(unique_overlap([2,1,2,3],[2,2,3]),[2,3])
+        self.assertEqual(overlap([2,1,2,2,3],[2,2,3]),[2,2,3])
+        self.assertEqual(overlap([],[]),[])
+        self.assertEqual(unique_overlap(iter([2,1,2]),iter([1,2])),[2,1])
+        join=template(14)['four_sum_count']
+        self.assertEqual(join([0,0],[0],[0,0],[0]),4)
+        self.assertEqual(join([], [0],[0],[0]),0)
+        atmost=template(15)['longest_at_most_k']
+        self.assertEqual(atmost([],0),0)
+        self.assertEqual(atmost([1,2,2],1),2)
+        self.assertEqual(atmost([1,2],0),0)
+        with self.assertRaises(ValueError): atmost([], -1)
+        window=template(16)['minimum_window']
+        for text,target,expected in [('ADOBECODEBANC','ABC','BANC'),('aa','aa','aa'),('ab','aa',''),('','a',''),('a','',''),('abxba','ab','ab')]:
+            self.assertEqual(window(text,target),expected)
+        for size in range(8):
+            for _ in range(30):
+                a=[rng.randrange(4) for _ in range(size)]; original=a[:]
+                b=[rng.randrange(4) for _ in range(size+1)]
+                self.assertEqual(duplicate(a),len(a)!=len(set(a)))
+                self.assertEqual(unique_overlap(a,b),list(dict.fromkeys(x for x in a if x in b)))
+                self.assertEqual(Counter(overlap(a,b)),Counter(a)&Counter(b))
+                k=rng.randrange(4)
+                spans=[a[i:j] for i in range(size) for j in range(i+1,size+1)]
+                self.assertEqual(atmost(a,k),max([len(x) for x in spans if len(set(x))<=k] or [0]))
+                text=''.join(map(str,a)); target=''.join(str(rng.randrange(4)) for _ in range(3))
+                need=Counter(target); best=''
+                for i in range(len(text)):
+                    for j in range(i+1,len(text)+1):
+                        candidate=text[i:j]
+                        if not (need-Counter(candidate)) and (not best or len(candidate)<len(best)):
+                            best=candidate
+                self.assertEqual(window(text,target),best)
+                self.assertEqual(a,original)
+        for _ in range(100):
+            populations=[[rng.randrange(-2,3) for _ in range(rng.randrange(5))] for _ in range(4)]
+            a,b,c,d=populations
+            self.assertEqual(join(a,b,c,d),sum(w+x+y+z==0 for w in a for x in b for y in c for z in d))
         self.assertEqual(COVERED,set(range(len(GUIDE['templates']))))
 
     def test_schema_and_all_code(self):
@@ -113,5 +156,41 @@ class HashMapTests(unittest.TestCase):
             exec(compile(ast.parse(chr(10).join(row[2])),row[0],'exec'),ns)
         for row in GUIDE['templates']:
             compile(ast.parse(chr(10).join(row[3])),row[0],'exec')
+
+
+    def test_aligned_details_and_executable_examples(self):
+        pairs={'operations':('operationExamples',['code','result','use','mutation']),
+               'fundamentals':('fundamentalDetails',['why','use','result','edge','takeaway']),
+               'patterns':('patternDetails',['steps','templates','related','variations']),
+               'templates':('templateDetails',['pattern','preconditions','observation']),
+               'practice':('practiceDetails',['insight','secondary'])}
+        names={row[0] for row in GUIDE['templates']}
+        self.assertEqual(len(names),len(GUIDE['templates']))
+        patterns={row[0] for row in GUIDE['patterns']}
+        referenced=set()
+        for base,(supplement,fields) in pairs.items():
+            self.assertEqual(len(GUIDE[base]),len(GUIDE[supplement]))
+            for i,detail in enumerate(GUIDE[supplement]):
+                for field in fields:
+                    self.assertIn(field,detail,(supplement,i))
+                    self.assertTrue(detail[field],(supplement,i,field))
+                if supplement=='patternDetails':
+                    self.assertTrue(set(detail['templates'])<=names)
+                    referenced.update(detail['templates'])
+                if supplement=='templateDetails':
+                    self.assertIn(detail['pattern'],patterns)
+        self.assertEqual(referenced,names)
+        for i,entry in enumerate(GUIDE['operationExamples']):
+            ns={}
+            exec(compile(ast.parse(chr(10).join(entry['code'])),'operation '+str(i),'exec'),ns)
+            self.assertEqual(repr(ns['result']),entry['result'],i)
+        for i,row in enumerate(GUIDE['fundamentals']):
+            ns={}
+            exec(compile(ast.parse(chr(10).join(row[2])),row[0],'exec'),ns)
+            self.assertEqual(repr(ns['result']),GUIDE['fundamentalDetails'][i]['result'],row[0])
+        self.assertTrue(GUIDE['decisionProcess'])
+        for source in GUIDE['sources']:
+            self.assertTrue(source['title']); self.assertTrue(source['note'])
+            self.assertTrue(source['url'].startswith('https://'))
 
 if __name__=='__main__': unittest.main(verbosity=2)

@@ -1,0 +1,2655 @@
+{
+  "id": "linked-lists",
+  "title": "Linked Lists",
+  "subtitle": "Treat a list as a graph of node identities: preserve reachability while you rewire one boundary at a time.",
+  "variables": "n,m = reachable node counts; k = group size or number of lists; h = heap size <= k; N = total nodes across lists. Unless stated otherwise lists are finite, acyclic, singly linked, values compare in O(1), and nodes use identity equality/hash. Auxiliary space excludes existing nodes and returned newly allocated nodes; recursion frames count. Pointer access/rewiring is O(1), locating a node is O(n). Python arbitrary-size arithmetic and comparison can add bit-length costs; hash bounds are expected. Mutation may affect every alias to a node; no concurrent mutation. Operation table costs describe the named operation on preexisting state; executable examples also construct small fixtures and verify results, whose setup/assertion cost is not the operation cost.",
+  "operations": [
+    [
+      "Read",
+      "head.val; head.next",
+      "Read value or successor",
+      "O(1)",
+      "O(1)",
+      "Requires head is not None."
+    ],
+    [
+      "Read",
+      "node is other",
+      "Compare node identity",
+      "O(1)",
+      "O(1)",
+      "Equal values need not be the same node."
+    ],
+    [
+      "Read",
+      "while node is not None: node = node.next",
+      "Traverse n nodes",
+      "O(n)",
+      "O(1)",
+      "Requires acyclic chain or a visited/cycle guard."
+    ],
+    [
+      "Read",
+      "advance(head, i)",
+      "Locate zero-based position i",
+      "O(i), O(n) worst",
+      "O(1)",
+      "No random access; helper must handle missing positions."
+    ],
+    [
+      "Read",
+      "find(head, target)",
+      "Find first matching value",
+      "O(n)",
+      "O(1)",
+      "Duplicates may exist."
+    ],
+    [
+      "Insert",
+      "node = Node(x, head); head = node",
+      "Prepend",
+      "O(1)",
+      "O(1) new node",
+      "Caller must retain new head."
+    ],
+    [
+      "Insert",
+      "tail.next = Node(x); tail = tail.next",
+      "Append with known tail",
+      "O(1)",
+      "O(1) new node",
+      "Empty list needs both head and tail initialized."
+    ],
+    [
+      "Insert",
+      "scan_to_tail_then_append(head, x)",
+      "Append without known tail",
+      "O(n)",
+      "O(1) new node",
+      "Repeated tail scans make construction quadratic."
+    ],
+    [
+      "Insert",
+      "new.next = prev.next; prev.next = new",
+      "Insert after known predecessor",
+      "O(1)",
+      "O(1) new node",
+      "Set new.next before replacing prev.next."
+    ],
+    [
+      "Delete",
+      "head = head.next",
+      "Remove head",
+      "O(1)",
+      "O(1)",
+      "Guard empty; aliases still refer to old node."
+    ],
+    [
+      "Delete",
+      "prev.next = prev.next.next",
+      "Bypass known successor",
+      "O(1)",
+      "O(1)",
+      "Requires prev.next exists; detached node may remain aliased."
+    ],
+    [
+      "Delete",
+      "find_predecessor_then_unlink(head, target)",
+      "Delete by value/identity",
+      "O(n)",
+      "O(1)",
+      "A node reference alone does not supply its predecessor."
+    ],
+    [
+      "Delete",
+      "node.val = node.next.val; node.next = node.next.next",
+      "Simulate deleting non-tail known node",
+      "O(1)",
+      "O(1)",
+      "Changes identity/value semantics; impossible for tail with only this reference."
+    ],
+    [
+      "Transform",
+      "reverse(head)",
+      "Reverse links",
+      "O(n)",
+      "O(1) iterative",
+      "Returns new head and mutates all successor relationships."
+    ],
+    [
+      "Transform",
+      "merge(a, b)",
+      "Merge disjoint sorted chains",
+      "O(n+m)",
+      "O(1) auxiliary if reusing nodes",
+      "Shared tails can cause self-links in naive merge."
+    ],
+    [
+      "Inspect",
+      "cycle_entry(head)",
+      "Find cycle entrance",
+      "O(n)",
+      "O(1)",
+      "Floyd uses identity, not equal values."
+    ],
+    [
+      "Doubly linked",
+      "node.prev.next = node.next; node.next.prev = node.prev",
+      "Unlink interior doubly linked node",
+      "O(1)",
+      "O(1)",
+      "Sentinels avoid endpoint special cases; singly linked lists lack prev."
+    ],
+    [
+      "Doubly linked",
+      "move_to_front(node)",
+      "Detach then splice using stored neighbors",
+      "O(1)",
+      "O(1)",
+      "Map + doubly linked list supports LRU; map + singly list does not give O(1) predecessor."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "A minimal identity node",
+      "Each node owns a payload and one successor reference. No value-based __eq__ is defined, so is compares nodes and the default hash is identity based.",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "a = Node(7)",
+        "b = Node(7)",
+        "assert a is not b",
+        "result = (a.val,b.val,a is b)",
+        "assert repr(result) == \"(7, 7, False)\""
+      ],
+      "O(1) construction",
+      "O(1) per node",
+      "Dataclass value equality can recurse through cycles and make nodes unhashable."
+    ],
+    [
+      "Empty is a missing node",
+      "None is the empty chain; a node holding zero or None is not empty. Test the link, not its value.",
+      [
+        "class Node:",
+        "    def __init__(self, val, next=None): self.val, self.next = val, next",
+        "head = Node(0)",
+        "assert head is not None and head.next is None",
+        "result = (head.val,head.next)",
+        "assert repr(result) == \"(0, None)\""
+      ],
+      "O(1)",
+      "O(1)",
+      "Do not write while node.val to traverse."
+    ],
+    [
+      "Reachability and aliasing",
+      "Assignment copies references, not chains. Rewiring a shared node changes what every alias can reach.",
+      [
+        "class Node:",
+        "    def __init__(self, val, next=None): self.val, self.next = val, next",
+        "head = Node(1, Node(2))",
+        "alias = head",
+        "head.next = None",
+        "assert alias.next is None",
+        "result = (alias is head,alias.next)",
+        "assert repr(result) == \"(True, None)\""
+      ],
+      "O(1)",
+      "O(1)",
+      "Copying head is not copying a list."
+    ],
+    [
+      "Save the successor before overwriting",
+      "A reversal loses the rest of the chain unless the old next is saved first. The processed prefix is disjoint from the untouched suffix.",
+      [
+        "class Node:",
+        "    def __init__(self, val, next=None): self.val, self.next = val, next",
+        "head = Node(1, Node(2))",
+        "prev, cur = None, head",
+        "while cur is not None:",
+        "    nxt = cur.next",
+        "    cur.next = prev",
+        "    prev, cur = cur, nxt",
+        "head = prev",
+        "result = (head.val,head.next.val,head.next.next)",
+        "assert repr(result) == \"(2, 1, None)\""
+      ],
+      "O(n)",
+      "O(1)",
+      "Updating cur.next before saving it can lose nodes."
+    ],
+    [
+      "Dummy predecessor",
+      "A temporary node before the real head makes deletion/splicing at position one look like an interior operation.",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None): self.val, self.next = val, next",
+        "head = Node(1, Node(2))",
+        "dummy = Node(0, head)",
+        "prev = dummy",
+        "prev.next = prev.next.next",
+        "head = dummy.next",
+        "result = (head.val,head.next)",
+        "assert repr(result) == \"(2, None)\""
+      ],
+      "O(1) shown operation",
+      "O(1)",
+      "Return dummy.next rather than the original head."
+    ],
+    [
+      "Fast and slow have a chosen middle convention",
+      "Starting slow=fast=head yields the second middle on even-length lists. For a first-half tail, stop when fast.next.next is missing.",
+      [
+        "class Node:",
+        "    def __init__(self, val, next=None): self.val, self.next = val, next",
+        "head = Node(1, Node(2, Node(3, Node(4))))",
+        "slow = fast = head",
+        "while fast is not None and fast.next is not None:",
+        "    slow, fast = slow.next, fast.next.next",
+        "assert slow.val == 3",
+        "result = slow.val",
+        "assert repr(result) == \"3\""
+      ],
+      "O(n)",
+      "O(1)",
+      "Middle selection changes split, palindrome and reorder logic."
+    ],
+    [
+      "Fixed pointer gaps",
+      "To remove the nth node from the end, move a fast pointer n nodes ahead of a dummy, then advance both until fast is at the tail.",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None): self.val, self.next = val, next",
+        "head = Node(1, Node(2))",
+        "dummy = Node(0, head)",
+        "fast = slow = dummy",
+        "for _ in range(2): fast = fast.next",
+        "while fast.next is not None:",
+        "    fast, slow = fast.next, slow.next",
+        "slow.next = slow.next.next",
+        "head = dummy.next",
+        "result = (head.val,head.next)",
+        "assert repr(result) == \"(2, None)\""
+      ],
+      "O(n)",
+      "O(1)",
+      "Validate gap before mutation; off-by-one decides whether slow is target or predecessor."
+    ],
+    [
+      "Cycles invalidate ordinary termination",
+      "A cycle makes tail-seeking loops infinite. Floyd detects a meeting; reset one pointer to head to find entry.",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None): self.val, self.next = val, next",
+        "a = Node(1)",
+        "a.next = a",
+        "assert a.next is a",
+        "result = a.next is a",
+        "assert repr(result) == \"True\""
+      ],
+      "O(1) shown construction",
+      "O(1)",
+      "Use identity rather than val equality for a meeting."
+    ],
+    [
+      "Stable sorted merge reuses nodes",
+      "Take the smaller front node and advance only that input. Using <= chooses the left input first for equal keys.",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None): self.val, self.next = val, next",
+        "a, b = Node(1), Node(1)",
+        "dummy = tail = Node()",
+        "if a.val <= b.val:",
+        "    tail.next = a",
+        "    a = a.next",
+        "    tail = tail.next",
+        "tail.next = b",
+        "result = (dummy.next.val,dummy.next.next.val,dummy.next is tail)",
+        "assert repr(result) == \"(1, 1, True)\""
+      ],
+      "O(n+m) full merge",
+      "O(1) auxiliary",
+      "Inputs must be disjoint; shared tails require a different contract."
+    ],
+    [
+      "Recursion is not free space",
+      "Recursive reversal/merge use one Python frame per node. Iterative templates avoid recursion-depth failure on long lists.",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None): self.val, self.next = val, next",
+        "head = None",
+        "for i in range(2000): head = Node(i, head)",
+        "count = 0",
+        "while head is not None:",
+        "    count += 1",
+        "    head = head.next",
+        "assert count == 2000",
+        "result = count",
+        "assert repr(result) == \"2000\""
+      ],
+      "O(n)",
+      "O(1) traversal auxiliary",
+      "Do not globally raise recursion limits as the default solution."
+    ],
+    [
+      "Doubly linked sentinels",
+      "Head/tail sentinels provide valid neighbors for every real node and support O(1) detach when a node reference is available.",
+      [
+        "class DNode:",
+        "    def __init__(self, val=None):",
+        "        self.val, self.prev, self.next = val, None, None",
+        "left, right, x = DNode(), DNode(), DNode(7)",
+        "left.next, right.prev = right, left",
+        "x.prev, x.next = left, right",
+        "left.next, right.prev = x, x",
+        "result = (left.next is x,x.prev is left,x.next is right,right.prev is x)",
+        "assert repr(result) == \"(True, True, True, True)\""
+      ],
+      "O(1) splice",
+      "O(1) auxiliary",
+      "Maintain both directions; singly linked algorithms cannot assume prev."
+    ]
+  ],
+  "patterns": [
+    [
+      "Iterative pointer reversal",
+      "CORE",
+      "Reverse chain without extra nodes",
+      "Keep prev/cur, save nxt, redirect one link, advance.",
+      "O(n)",
+      "O(1)",
+      "206 Reverse Linked List",
+      "Save old next first.",
+      "prev is reversed processed prefix; cur begins untouched suffix.",
+      "When caller requires input unchanged; clone first with O(n) space."
+    ],
+    [
+      "Dummy + predecessor deletion",
+      "CORE",
+      "Head may be inserted/deleted",
+      "Anchor dummy.next=head and make edits through predecessor.",
+      "O(n)",
+      "O(1)",
+      "203 Remove Linked List Elements; 19 Remove Nth Node From End of List",
+      "Return updated dummy.next.",
+      "prev.next is next candidate and all retained nodes before prev are valid.",
+      "When node identity of a permanent sentinel must be preserved differently."
+    ],
+    [
+      "Fast/slow midpoint split",
+      "CORE",
+      "Halves, palindrome, reorder",
+      "Locate first-half tail, detach second half, process independently.",
+      "O(n)",
+      "O(1)",
+      "234 Palindrome Linked List; 143 Reorder List",
+      "Even-length convention and detach boundary matter.",
+      "Fast advances twice as far; chosen stop leaves balanced disjoint halves.",
+      "On cyclic input without prior cycle handling."
+    ],
+    [
+      "Floyd cycle entry",
+      "CORE",
+      "Detect loop and its first node",
+      "Meet at 1x/2x speed, reset one pointer, advance both one step.",
+      "O(n)",
+      "O(1)",
+      "141 Linked List Cycle; 142 Linked List Cycle II",
+      "Meeting node need not be entry.",
+      "At meeting the distance relation makes head-to-entry equal a whole-cycle-adjusted meeting-to-entry.",
+      "For enumerating every visited node or general branching graphs."
+    ],
+    [
+      "Gap pointers",
+      "CORE",
+      "Nth from end, kth relative node",
+      "Move fast n positions from dummy; advance together to locate predecessor.",
+      "O(n)",
+      "O(1)",
+      "19 Remove Nth Node From End of List",
+      "Reject n<=0 and n>length before modifying links.",
+      "Gap stays n edges while fast and slow advance together.",
+      "If repeated indexed queries justify a stored index array."
+    ],
+    [
+      "Stable two-chain merge",
+      "CORE",
+      "Two sorted lists",
+      "Dummy/tail selects smaller front and appends remainder once one input empties.",
+      "O(n+m)",
+      "O(1) auxiliary",
+      "21 Merge Two Sorted Lists",
+      "Require sorted, acyclic, disjoint chains.",
+      "Output prefix is sorted and contains exactly consumed input nodes.",
+      "If nodes may overlap or mutation is forbidden."
+    ],
+    [
+      "Intersection by pointer switching",
+      "IMPORTANT",
+      "Find first shared node, not equal value",
+      "Walk a then b and b then a; identity pointers align after total path lengths.",
+      "O(n+m)",
+      "O(1)",
+      "160 Intersection of Two Linked Lists",
+      "Requires acyclic lists.",
+      "Both pointers traverse equal total combined lengths before meeting or None.",
+      "With cycles unless cases are analyzed separately."
+    ],
+    [
+      "Bounded segment reversal",
+      "IMPORTANT",
+      "Reverse between 1-based left/right",
+      "Find predecessor then repeatedly extract next node to front of segment.",
+      "O(n)",
+      "O(1)",
+      "92 Reverse Linked List II",
+      "Check right bound before mutation for atomic invalid-argument behavior.",
+      "Reversed segment prefix is attached to predecessor; segment tail retains untouched suffix.",
+      "If positions are invalid or copies rather than rewiring are required."
+    ],
+    [
+      "Complete k-group reversal",
+      "IMPORTANT",
+      "Reverse fixed-size blocks leaving short suffix",
+      "Look ahead k nodes; reverse exactly that block toward group_next; reconnect.",
+      "O(n)",
+      "O(1)",
+      "25 Reverse Nodes in k-Group",
+      "Do not reverse incomplete final block.",
+      "Finished prefix is grouped correctly and connects to untouched remaining suffix.",
+      "When k is nonpositive or payload swapping is forbidden but code swaps values instead of links."
+    ],
+    [
+      "Stable multi-chain partition",
+      "IMPORTANT",
+      "Group nodes by predicate preserving within-group order",
+      "Detach each node; append to one of two dummy/tail chains; concatenate.",
+      "O(n)",
+      "O(1)",
+      "86 Partition List; 328 Odd Even Linked List",
+      "Terminate tails to avoid old-link cycles.",
+      "Each processed node appears exactly once in its proper stable chain.",
+      "When classification depends on neighbors invalidated by detaching."
+    ],
+    [
+      "Reverse second half and restore",
+      "IMPORTANT",
+      "Palindrome with O(1) auxiliary space",
+      "Split at first-half tail, reverse second, compare, reverse back even on mismatch.",
+      "O(n)",
+      "O(1)",
+      "234 Palindrome Linked List",
+      "Do not early-return before restoration.",
+      "Paired traversals compare mirrored positions; stored split reconnects original chain.",
+      "Read-only or concurrently observed list cannot tolerate temporary rewiring."
+    ],
+    [
+      "Split, reverse, weave",
+      "IMPORTANT",
+      "L0,Ln,L1,Ln-1 reorder",
+      "Detach halves, reverse second, alternate nodes using saved successors.",
+      "O(n)",
+      "O(1)",
+      "143 Reorder List",
+      "Failing to split can create a cycle.",
+      "Woven prefix matches target sequence and both remaining suffixes are disjoint.",
+      "When input must remain unmodified."
+    ],
+    [
+      "Copy with random-pointer interleaving",
+      "ADVANCED",
+      "Clone next/random structure without a map",
+      "Insert clones after originals, set clone.random via original.random.next, separate chains restoring originals.",
+      "O(n)",
+      "O(1) auxiliary plus O(n) cloned output",
+      "138 Copy List with Random Pointer",
+      "Every random must be None or point inside the acyclic next chain.",
+      "After interleaving each original is immediately followed by its clone.",
+      "External random targets or read-only/concurrent lists; use a map with explicit graph contract."
+    ],
+    [
+      "Heap merge of k chains",
+      "ADVANCED",
+      "Many sorted disjoint lists",
+      "Maintain one front node per list; use (value,counter,node) entries to break ties.",
+      "O(N log(k+1)+k)",
+      "O(k) auxiliary",
+      "23 Merge k Sorted Lists",
+      "Nodes are not orderable; use a serial counter.",
+      "Heap contains exactly each nonempty remainder minimum.",
+      "If lists share nodes or a single list already suffices."
+    ],
+    [
+      "Carry propagation",
+      "CORE",
+      "Digits in reverse order represent numbers",
+      "Advance input cursors plus carry until both empty and carry zero; allocate result nodes.",
+      "O(max(n,m))",
+      "O(1) auxiliary plus O(max(n,m)) output",
+      "2 Add Two Numbers",
+      "Emit final carry; define digit and empty representation contracts.",
+      "Processed output digits equal low-order sum digits with remaining carry.",
+      "For forward-order digits without adapting to stacks or reversal."
+    ],
+    [
+      "Adjacent equal-run handling",
+      "IMPORTANT",
+      "Sorted duplicates: keep one or remove every repeated value",
+      "Scan one maximal equal run, then either keep first or bypass whole run using a predecessor.",
+      "O(n)",
+      "O(1)",
+      "83 Remove Duplicates from Sorted List; 82 Remove Duplicates from Sorted List II",
+      "Do not confuse the two output contracts.",
+      "All completed runs satisfy the chosen multiplicity rule and prev precedes unprocessed data.",
+      "Unsorted duplicate removal needs a set/count pass or sorting."
+    ],
+    [
+      "Rotation by modular cut",
+      "IMPORTANT",
+      "Move final k nodes to front",
+      "Find length/tail, normalize k, locate new tail at n-k-1, connect old tail then sever new tail.",
+      "O(n)",
+      "O(1)",
+      "61 Rotate List",
+      "A forgotten sever leaves an infinite cycle.",
+      "The final cut leaves each old node reachable exactly once in rotated order.",
+      "For negative k without explicitly defining a left-rotation contract."
+    ],
+    [
+      "Bottom-up linked merge sort",
+      "IMPORTANT",
+      "Sort a linked chain without array conversion",
+      "Double run width; detach pairs of sorted runs, stably merge with tail cursor, reconnect untouched remainder.",
+      "O(n log n)",
+      "O(1) auxiliary, no recursion",
+      "148 Sort List",
+      "Top-down recursion is O(log n) space, not O(1).",
+      "Before each pass all width-sized runs are sorted; after it all 2*width runs are sorted.",
+      "If input must be preserved, allocate a copy first and include O(n) space."
+    ],
+    [
+      "Hash-indexed doubly linked recency",
+      "ADVANCED",
+      "O(1) cache lookup plus recency eviction",
+      "Map key to node; detach/reinsert hits at recent end; evict node next to least-recent sentinel.",
+      "O(1) expected amortized get/put",
+      "O(capacity)",
+      "146 LRU Cache",
+      "Repair both neighbor directions; zero capacity must evict immediately.",
+      "Map and list contain the same real nodes exactly once, ordered least-to-most recent.",
+      "LFU or TTL eviction needs additional frequency/time indexes."
+    ]
+  ],
+  "recognize": [
+    [
+      "Reverse whole list",
+      "Iterative pointer reversal",
+      "Why: prev is reversed processed prefix; cur begins untouched suffix. Boundary/exception: Save next before reassigning. Limit: When caller requires input unchanged; clone first with O(n) space."
+    ],
+    [
+      "Head deletion complicates code",
+      "Dummy + predecessor deletion",
+      "Why: prev.next is next candidate and all retained nodes before prev are valid. Boundary/exception: Return dummy.next. Limit: When node identity of a permanent sentinel must be preserved differently."
+    ],
+    [
+      "Node relative to tail",
+      "Gap pointers",
+      "Why: Gap stays n edges while fast and slow advance together. Boundary/exception: Validate n and distinguish target/predecessor. Limit: If repeated indexed queries justify a stored index array."
+    ],
+    [
+      "Loop in next chain",
+      "Floyd cycle entry",
+      "Why: At meeting the distance relation makes head-to-entry equal a whole-cycle-adjusted meeting-to-entry. Boundary/exception: Identity only; equal values do not imply a cycle. Limit: For enumerating every visited node or general branching graphs."
+    ],
+    [
+      "Find loop start",
+      "Floyd cycle entry",
+      "Why: At meeting the distance relation makes head-to-entry equal a whole-cycle-adjusted meeting-to-entry. Boundary/exception: First collision is not generally the entry. Limit: For enumerating every visited node or general branching graphs."
+    ],
+    [
+      "Split into two halves",
+      "Fast/slow midpoint split",
+      "Why: Fast advances twice as far; chosen stop leaves balanced disjoint halves. Boundary/exception: Choose first vs second middle explicitly. Limit: On cyclic input without prior cycle handling."
+    ],
+    [
+      "Merge sorted chains",
+      "Stable two-chain merge",
+      "Why: Output prefix is sorted and contains exactly consumed input nodes. Boundary/exception: Sorted, disjoint and mutable are preconditions. Limit: If nodes may overlap or mutation is forbidden."
+    ],
+    [
+      "Shared suffix",
+      "Intersection by pointer switching",
+      "Why: Both pointers traverse equal total combined lengths before meeting or None. Boundary/exception: No cycles; compare nodes with is. Limit: With cycles unless cases are analyzed separately."
+    ],
+    [
+      "Reverse positions left..right",
+      "Bounded segment reversal",
+      "Why: Reversed segment prefix is attached to predecessor; segment tail retains untouched suffix. Boundary/exception: Specify 1-based inclusive bounds. Limit: If positions are invalid or copies rather than rewiring are required."
+    ],
+    [
+      "Every complete block reversed",
+      "Complete k-group reversal",
+      "Why: Finished prefix is grouped correctly and connects to untouched remaining suffix. Boundary/exception: Incomplete suffix remains unchanged. Limit: When k is nonpositive or payload swapping is forbidden but code swaps values instead of links."
+    ],
+    [
+      "Stable less-than / greater-or-equal order",
+      "Stable multi-chain partition",
+      "Why: Each processed node appears exactly once in its proper stable chain. Boundary/exception: Detach nodes and concatenate. Limit: When classification depends on neighbors invalidated by detaching."
+    ],
+    [
+      "Mirrored values with O(1) memory",
+      "Reverse second half and restore",
+      "Why: Paired traversals compare mirrored positions; stored split reconnects original chain. Boundary/exception: Restore even if mismatch occurs. Limit: Read-only or concurrently observed list cannot tolerate temporary rewiring."
+    ],
+    [
+      "Alternating outside-in order",
+      "Split, reverse, weave",
+      "Why: Woven prefix matches target sequence and both remaining suffixes are disjoint. Boundary/exception: Break original middle link. Limit: When input must remain unmodified."
+    ],
+    [
+      "Deep clone with random links",
+      "Copy with random-pointer interleaving",
+      "Why: After interleaving each original is immediately followed by its clone. Boundary/exception: Random targets must be within next chain for supplied interleave template. Limit: External random targets or read-only/concurrent lists; use a map with explicit graph contract."
+    ],
+    [
+      "Many sorted lists",
+      "Heap merge of k chains",
+      "Why: Heap contains exactly each nonempty remainder minimum. Boundary/exception: Tie-break unorderable nodes; O(k) heap memory. Limit: If lists share nodes or a single list already suffices."
+    ],
+    [
+      "Reverse-order number digits",
+      "Carry propagation",
+      "Why: Processed output digits equal low-order sum digits with remaining carry. Boundary/exception: Do not convert the entire list to an integer for huge inputs. Limit: For forward-order digits without adapting to stacks or reversal."
+    ],
+    [
+      "Sorted duplicate values; remove whole repeated groups",
+      "Adjacent equal-run handling",
+      "Why: All completed runs satisfy the chosen multiplicity rule and prev precedes unprocessed data. Boundary/exception: Requires sorted input; keep-one is a different output. Limit: Unsorted duplicate removal needs a set/count pass or sorting."
+    ],
+    [
+      "Rotate right by huge k",
+      "Rotation by modular cut",
+      "Why: The final cut leaves each old node reachable exactly once in rotated order. Boundary/exception: Reduce k modulo length before linking temporary cycle. Limit: For negative k without explicitly defining a left-rotation contract."
+    ],
+    [
+      "Sort list with strict auxiliary-space constraint",
+      "Bottom-up linked merge sort",
+      "Why: Before each pass all width-sized runs are sorted; after it all 2*width runs are sorted. Boundary/exception: Top-down needs O(log n) recursion; do not label it O(1). Limit: If input must be preserved, allocate a copy first and include O(n) space."
+    ],
+    [
+      "Lookup plus recency eviction",
+      "Hash-indexed doubly linked recency",
+      "Why: Map and list contain the same real nodes exactly once, ordered least-to-most recent. Boundary/exception: LFU/TTL require different indexes. Limit: LFU or TTL eviction needs additional frequency/time indexes."
+    ]
+  ],
+  "contrasts": [
+    [
+      "Node identity vs equal values",
+      "Intersection and cycles concern the same object; palindrome and sorting concern payload equality/order."
+    ],
+    [
+      "Array vs linked list",
+      "Arrays give O(1) indexing, contiguous storage; links give O(1) splice only after locating a predecessor."
+    ],
+    [
+      "Singly vs doubly linked",
+      "A singly node cannot reach its predecessor; doubly links enable O(1) unlink from a known node but require two-way maintenance."
+    ],
+    [
+      "Dummy vs extra output",
+      "A single temporary dummy is O(1) auxiliary; cloning n nodes is O(n) output allocation."
+    ],
+    [
+      "Recursive vs iterative reverse",
+      "Both linear time, but recursive is O(n) call space and can exceed Python recursion depth."
+    ],
+    [
+      "Cycle meeting vs cycle entry",
+      "A speed collision proves a cycle, resetting one pointer locates entry."
+    ],
+    [
+      "Merge vs intersection",
+      "Merge reuses sorted disjoint nodes; intersection locates shared identity and should not rewire."
+    ],
+    [
+      "Reversing links vs swapping values",
+      "Link reversal changes topology while preserving node payloads; value swaps may violate identity-sensitive contracts."
+    ]
+  ],
+  "edges": [
+    [
+      "Empty",
+      "head=None",
+      "Universal: Traversal/reverse return None; palindrome True; remove nth invalid. Reveals missing empty guard."
+    ],
+    [
+      "Singleton",
+      "Node(7)",
+      "Universal: Reverse same identity, palindrome True, remove n=1 -> None. Reveals lost new head."
+    ],
+    [
+      "Two nodes",
+      "1->2",
+      "Universal: Even split terminates; reverse 2->1. Reveals wrong midpoint stop."
+    ],
+    [
+      "Equal payloads",
+      "separate Node(1) objects",
+      "Universal: Not intersection and not a cycle. Reveals value comparison instead of identity."
+    ],
+    [
+      "Self-loop",
+      "a.next=a",
+      "Algorithm-specific: cycle_entry returns a; ordinary reversal not applicable. Reveals missing cycle termination."
+    ],
+    [
+      "Cycle after prefix",
+      "1->2->3->2",
+      "Algorithm-specific: Return node 2 identity. Reveals meeting mistaken for entrance."
+    ],
+    [
+      "Shared tail",
+      "a->c and b->c",
+      "Universal: Intersection is c; do not pass to disjoint merge. Reveals destructive merge on overlapping chains."
+    ],
+    [
+      "Head/tail bounds",
+      "reverse_between left=1 or right=n",
+      "Algorithm-specific: Update head and retain termination. Reveals off-by-one reconnect."
+    ],
+    [
+      "Invalid ranges",
+      "left=0; right>length; k=0; n>length",
+      "Algorithm-specific: Raise ValueError before mutation in templates. Reveals partially mutating invalid inputs."
+    ],
+    [
+      "Incomplete block",
+      "[1,2,3,4,5], k=3",
+      "Algorithm-specific: [3,2,1,4,5]. Reveals reversing short suffix."
+    ],
+    [
+      "Stable duplicates",
+      "merge [1a,1b] and [1c]",
+      "Algorithm-specific: Left ties precede right ties. Reveals unstable ties."
+    ],
+    [
+      "Partition extremes",
+      "all values < x or all >= x",
+      "Algorithm-specific: Preserve identities/order; final tail None. Reveals old tail link creating cycle."
+    ],
+    [
+      "Mismatch restoration",
+      "[1,2,3,1] palindrome test",
+      "Algorithm-specific: False and original exact links restored. Reveals early return before restore."
+    ],
+    [
+      "Random back/self references",
+      "a.random=a; b.random=a",
+      "Algorithm-specific: Clone links reference clones, originals restored. Reveals random links into originals."
+    ],
+    [
+      "Long chain",
+      "5000 nodes",
+      "Universal: Iterative templates avoid recursion overflow. Reveals recursive overflow."
+    ],
+    [
+      "Final carry",
+      "[9,9] + [1]",
+      "Algorithm-specific: [0,0,1] newly allocated. Reveals missing carry."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Losing suffix",
+      "Save nxt before redirecting next."
+    ],
+    [
+      "Stale head",
+      "Return new head after any head-changing mutation."
+    ],
+    [
+      "Value-based cycle test",
+      "Compare pointers with is, not .val or overloaded ==."
+    ],
+    [
+      "Missing guards",
+      "Check fast and fast.next before advancing two steps."
+    ],
+    [
+      "Wrong even middle",
+      "Specify first-half tail versus second middle before using a loop."
+    ],
+    [
+      "Discarding predecessor",
+      "For unlinking in singly lists keep prev; target alone is insufficient at the tail."
+    ],
+    [
+      "Sentinel returned",
+      "Return dummy.next, never include dummy in output."
+    ],
+    [
+      "Failure to detach",
+      "Set half/partition tail boundaries deliberately to prevent cycles."
+    ],
+    [
+      "Overclaiming insertion",
+      "O(1) insertion assumes known predecessor; locating it is O(n)."
+    ],
+    [
+      "Ignoring call frames",
+      "Recursive routines consume O(n) stack on a chain."
+    ],
+    [
+      "Early palindrome return",
+      "Restore second-half links before returning mismatch."
+    ],
+    [
+      "Short k-block reversal",
+      "Look ahead k nodes before rewiring."
+    ],
+    [
+      "Shared-input merge",
+      "Require disjoint lists or implement an explicit overlap-safe alternative."
+    ],
+    [
+      "Random clone assumptions",
+      "Interleaving needs each random target inside the next chain and permission to mutate temporarily."
+    ],
+    [
+      "Unorderable heap ties",
+      "Add a monotonically increasing serial number before Node."
+    ],
+    [
+      "Payload-only deletion",
+      "Copy-next deletion is not true identity deletion and cannot remove a tail."
+    ]
+  ],
+  "impress": [
+    [
+      "Draw node identities",
+      "Label duplicates 1a/1b so value equality never hides shared topology."
+    ],
+    [
+      "State ownership",
+      "Say whether links mutate, new nodes allocate, and aliases observe changes."
+    ],
+    [
+      "State the invariant",
+      "Identify processed prefix, untouched suffix, and bridge links."
+    ],
+    [
+      "Walk a two-node example",
+      "Exposes most missing guards and midpoint convention errors."
+    ],
+    [
+      "Validate before mutation",
+      "Keep invalid ranges from partially corrupting the input."
+    ],
+    [
+      "Account for space",
+      "Count recursion, heaps, map copies and output separately."
+    ],
+    [
+      "Explain cycle arithmetic",
+      "Use slow distance t, fast 2t and cycle length lambda."
+    ],
+    [
+      "Check node conservation",
+      "Every original identity appears once, no unexpected cycle, final tail None."
+    ],
+    [
+      "Offer restore or copy",
+      "Restore temporary palindrome changes or choose a read-only O(n)-space alternative."
+    ],
+    [
+      "Defend heap bound",
+      "At most one current candidate per list means O(k), not O(N), heap auxiliary storage."
+    ]
+  ],
+  "memory": [
+    [
+      "Reverse step",
+      "nxt=cur.next; cur.next=prev; prev,cur=cur,nxt",
+      "Keep suffix reachable."
+    ],
+    [
+      "Dummy return",
+      "return dummy.next",
+      "Original head may no longer be first."
+    ],
+    [
+      "First-half tail",
+      "while fast.next and fast.next.next",
+      "For nonempty head with slow=fast=head."
+    ],
+    [
+      "Cycle meeting",
+      "slow=slow.next; fast=fast.next.next",
+      "Guard both fast and its successor."
+    ],
+    [
+      "Cycle entrance",
+      "reset one to head, both step 1",
+      "At collision, cycle congruence aligns entry."
+    ],
+    [
+      "Tail gap",
+      "fast n edges ahead of slow from dummy",
+      "Stop fast at tail so slow precedes target."
+    ],
+    [
+      "Stable merge",
+      "if a.val <= b.val: choose a",
+      "Equal left items retain priority."
+    ],
+    [
+      "Intersection",
+      "a=a.next if a else headB",
+      "Both paths cover total length n+m."
+    ],
+    [
+      "k-group",
+      "look ahead k before reverse",
+      "Leave short suffix unchanged."
+    ],
+    [
+      "Partition",
+      "detach, append to chain, concatenate",
+      "Avoid preserving unintended cross-links."
+    ],
+    [
+      "Clone random",
+      "clone.random=original.random.next",
+      "Valid only during interleaving."
+    ],
+    [
+      "Heap tuple",
+      "(node.val, serial, node)",
+      "Counter prevents comparing Node objects."
+    ],
+    [
+      "Digit sum",
+      "digit=total%10; carry=total//10",
+      "Continue while carry remains."
+    ],
+    [
+      "Bottom-up sort",
+      "width = 1,2,4,...",
+      "Detach runs, stably merge, double width; O(n log n) time without frames."
+    ],
+    [
+      "Rotation cut",
+      "new_tail index = n-(k%n)-1",
+      "Return unchanged for k%n==0; always sever temporary cycle."
+    ],
+    [
+      "LRU consistency",
+      "map nodes == real DLL nodes",
+      "Order least-to-most recent; update both neighbor directions."
+    ]
+  ],
+  "templates": [
+    [
+      "Iterative full reversal",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def reverse(head):",
+        "    prev, cur = None, head",
+        "    while cur is not None:",
+        "        nxt = cur.next",
+        "        cur.next = prev",
+        "        prev, cur = cur, nxt",
+        "    return prev"
+      ],
+      "Finite acyclic singly linked list; rewires existing nodes, returns new head or None. Node identities and payloads preserved."
+    ],
+    [
+      "Remove nth node from end",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def remove_nth(head, n):",
+        "    if n <= 0:",
+        "        raise ValueError('n must be positive')",
+        "    dummy = Node(0, head)",
+        "    fast = dummy",
+        "    for _ in range(n):",
+        "        fast = fast.next",
+        "        if fast is None:",
+        "            raise ValueError('n exceeds length')",
+        "    slow = dummy",
+        "    while fast.next is not None:",
+        "        slow, fast = slow.next, fast.next",
+        "    slow.next = slow.next.next",
+        "    return dummy.next"
+      ],
+      "Acyclic chain, integer n; 1-based from end. Returns retained head, bypasses target, does not clear its next. Invalid n raises before mutation."
+    ],
+    [
+      "Stable merge two sorted disjoint lists",
+      "O(n+m)",
+      "O(1) auxiliary",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def merge_sorted(a, b):",
+        "    dummy = tail = Node()",
+        "    while a is not None and b is not None:",
+        "        if a.val <= b.val:",
+        "            tail.next, a = a, a.next",
+        "        else:",
+        "            tail.next, b = b, b.next",
+        "        tail = tail.next",
+        "    tail.next = a if a is not None else b",
+        "    return dummy.next"
+      ],
+      "Disjoint finite sorted nondecreasing chains with comparable values; consumes/rewires inputs, left-before-right ties, reuses nodes. Both empty -> None."
+    ],
+    [
+      "Floyd cycle entrance by identity",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def cycle_entry(head):",
+        "    slow = fast = head",
+        "    while fast is not None and fast.next is not None:",
+        "        slow, fast = slow.next, fast.next.next",
+        "        if slow is fast:",
+        "            entry = head",
+        "            while entry is not slow:",
+        "                entry, slow = entry.next, slow.next",
+        "            return entry",
+        "    return None"
+      ],
+      "Singly linked successor graph; returns entry object or None, no mutation, arbitrary repeated values allowed. n counts distinct reachable nodes."
+    ],
+    [
+      "Acyclic intersection by pointer switching",
+      "O(n+m)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def intersection(head_a, head_b):",
+        "    a, b = head_a, head_b",
+        "    while a is not b:",
+        "        a = a.next if a is not None else head_b",
+        "        b = b.next if b is not None else head_a",
+        "    return a"
+      ],
+      "Finite acyclic chains, possibly shared suffix; returns first shared identity or None; never mutates. Not valid for cyclic lists."
+    ],
+    [
+      "Reverse a validated inclusive segment",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def reverse_between(head, left, right):",
+        "    if left < 1 or right < left:",
+        "        raise ValueError('invalid inclusive bounds')",
+        "    scan = head",
+        "    for _ in range(right):",
+        "        if scan is None:",
+        "            raise ValueError('right exceeds length')",
+        "        scan = scan.next",
+        "    dummy = Node(0, head)",
+        "    before = dummy",
+        "    for _ in range(left-1):",
+        "        before = before.next",
+        "    tail = before.next",
+        "    for _ in range(right-left):",
+        "        moved = tail.next",
+        "        tail.next = moved.next",
+        "        moved.next = before.next",
+        "        before.next = moved",
+        "    return dummy.next"
+      ],
+      "Acyclic chain, 1-based integer inclusive bounds, 1<=left<=right<=length. Rewires nodes and returns head; invalid bounds raise before mutation; empty input has no valid nonempty range."
+    ],
+    [
+      "Reverse complete k-groups",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def reverse_k_group(head, k):",
+        "    if k <= 0:",
+        "        raise ValueError('k must be positive')",
+        "    dummy = Node(0, head)",
+        "    group_prev = dummy",
+        "    while True:",
+        "        kth = group_prev",
+        "        for _ in range(k):",
+        "            kth = kth.next",
+        "            if kth is None:",
+        "                return dummy.next",
+        "        group_next = kth.next",
+        "        prev, cur = group_next, group_prev.next",
+        "        while cur is not group_next:",
+        "            nxt = cur.next",
+        "            cur.next = prev",
+        "            prev, cur = cur, nxt",
+        "        old_first = group_prev.next",
+        "        group_prev.next = kth",
+        "        group_prev = old_first"
+      ],
+      "Acyclic list, integer k>0; reuses/relinks nodes, leaves incomplete final group unchanged, empty returns None."
+    ],
+    [
+      "Stable partition around a value",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def partition(head, pivot):",
+        "    low_dummy, high_dummy = Node(), Node()",
+        "    low, high = low_dummy, high_dummy",
+        "    cur = head",
+        "    while cur is not None:",
+        "        nxt = cur.next",
+        "        cur.next = None",
+        "        if cur.val < pivot:",
+        "            low.next = cur",
+        "            low = cur",
+        "        else:",
+        "            high.next = cur",
+        "            high = cur",
+        "        cur = nxt",
+        "    low.next = high_dummy.next",
+        "    return low_dummy.next"
+      ],
+      "Finite acyclic list, payloads comparable with pivot; rewires stable <pivot then >=pivot partitions, conserves all node identities, empty None."
+    ],
+    [
+      "Palindrome with exact link restoration",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def is_palindrome(head):",
+        "    def reverse(start):",
+        "        prev = None",
+        "        while start is not None:",
+        "            nxt = start.next",
+        "            start.next = prev",
+        "            prev, start = start, nxt",
+        "        return prev",
+        "    if head is None or head.next is None:",
+        "        return True",
+        "    slow = fast = head",
+        "    while fast.next is not None and fast.next.next is not None:",
+        "        slow, fast = slow.next, fast.next.next",
+        "    second = reverse(slow.next)",
+        "    slow.next = second",
+        "    a, b, same = head, second, True",
+        "    while b is not None:",
+        "        if a.val != b.val:",
+        "            same = False",
+        "        a, b = a.next, b.next",
+        "    slow.next = reverse(second)",
+        "    return same"
+      ],
+      "Acyclic chain with non-throwing value equality; temporarily rewires second half but restores exact original links on normal return, even mismatch. Empty True. Not concurrently observable/read-only safe."
+    ],
+    [
+      "Reorder outside-in by weaving",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def reorder(head):",
+        "    if head is None or head.next is None:",
+        "        return head",
+        "    slow = fast = head",
+        "    while fast.next is not None and fast.next.next is not None:",
+        "        slow, fast = slow.next, fast.next.next",
+        "    cur = slow.next",
+        "    slow.next = None",
+        "    second = None",
+        "    while cur is not None:",
+        "        nxt = cur.next",
+        "        cur.next = second",
+        "        second, cur = cur, nxt",
+        "    first = head",
+        "    while second is not None:",
+        "        nxt_first, nxt_second = first.next, second.next",
+        "        first.next = second",
+        "        second.next = nxt_first",
+        "        first, second = nxt_first, nxt_second",
+        "    return head"
+      ],
+      "Acyclic chain; mutates links to L0,Ln,L1,Ln-1,... preserving payloads/identities; returns original head, empty None."
+    ],
+    [
+      "Interleaved deep copy with random pointers",
+      "O(n)",
+      "O(1) auxiliary plus O(n) cloned output",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "class RandomNode:",
+        "    def __init__(self, val=0, next=None, random=None):",
+        "        self.val, self.next, self.random = val, next, random",
+        "def copy_random(head):",
+        "    cur = head",
+        "    while cur is not None:",
+        "        clone = RandomNode(cur.val, cur.next)",
+        "        cur.next = clone",
+        "        cur = clone.next",
+        "    cur = head",
+        "    while cur is not None:",
+        "        clone = cur.next",
+        "        clone.random = cur.random.next if cur.random is not None else None",
+        "        cur = clone.next",
+        "    dummy = tail = RandomNode()",
+        "    cur = head",
+        "    while cur is not None:",
+        "        clone = cur.next",
+        "        cur.next = clone.next",
+        "        tail.next = clone",
+        "        tail = clone",
+        "        cur = cur.next",
+        "    tail.next = None",
+        "    return dummy.next"
+      ],
+      "Finite acyclic next chain, random is None or references a node in that chain; RandomNode payloads are scalar/immutable (payload copied by reference). Temporarily mutates next links, restores originals, output nodes/links disjoint; empty None. Assumes allocation succeeds and no concurrent observation."
+    ],
+    [
+      "Heap merge k sorted disjoint lists",
+      "O(k+N log(k+1))",
+      "O(k) auxiliary",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "from heapq import heapify, heappush, heappop",
+        "from itertools import count",
+        "def merge_k(heads):",
+        "    serial = count()",
+        "    heap = [(node.val, next(serial), node) for node in heads if node is not None]",
+        "    heapify(heap)",
+        "    dummy = tail = Node()",
+        "    while heap:",
+        "        _, _, node = heappop(heap)",
+        "        nxt = node.next",
+        "        tail.next = node",
+        "        tail = node",
+        "        tail.next = None",
+        "        if nxt is not None:",
+        "            heappush(heap, (nxt.val, next(serial), nxt))",
+        "    return dummy.next"
+      ],
+      "Reusable collection/iterable of pairwise disjoint acyclic nondecreasing chains; comparable values, identity nodes not orderable. Consumes links, returns reused sorted chain, stable within each input but cross-list tie order is insertion-to-heap order. Empty heads -> None."
+    ],
+    [
+      "Add reversed base-10 digit chains",
+      "O(max(n,m))",
+      "O(1) auxiliary plus O(max(n,m)) output",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def add_numbers(a, b):",
+        "    for head in (a, b):",
+        "        cur = head",
+        "        while cur is not None:",
+        "            if not isinstance(cur.val, int) or not 0 <= cur.val <= 9:",
+        "                raise ValueError('digits must be integers 0..9')",
+        "            cur = cur.next",
+        "    dummy = tail = Node()",
+        "    carry = 0",
+        "    while a is not None or b is not None or carry:",
+        "        total = carry",
+        "        if a is not None:",
+        "            total += a.val",
+        "            a = a.next",
+        "        if b is not None:",
+        "            total += b.val",
+        "            b = b.next",
+        "        carry, digit = divmod(total, 10)",
+        "        tail.next = Node(digit)",
+        "        tail = tail.next",
+        "    return dummy.next if dummy.next is not None else Node(0)"
+      ],
+      "Finite acyclic digit chains, least significant digit first; None represents zero, both None returns a fresh Node(0). Validates integer digits 0..9 before allocation; no input mutation, allocates output. Bool follows Python int semantics."
+    ],
+    [
+      "Second middle by fast and slow",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def second_middle(head):",
+        "    slow = fast = head",
+        "    while fast is not None and fast.next is not None:",
+        "        slow, fast = slow.next, fast.next.next",
+        "    return slow"
+      ],
+      "Finite acyclic chain; returns original second-middle identity for even length, None empty, no mutation. For first-half tail guard fast.next and fast.next.next instead after checking head."
+    ],
+    [
+      "Predecessor filtering and sorted duplicate runs",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def remove_values(head, target):",
+        "    dummy = Node(0, head)",
+        "    prev = dummy",
+        "    while prev.next is not None:",
+        "        if prev.next.val == target:",
+        "            prev.next = prev.next.next",
+        "        else:",
+        "            prev = prev.next",
+        "    return dummy.next",
+        "def keep_one_per_run(head):",
+        "    cur = head",
+        "    while cur is not None and cur.next is not None:",
+        "        if cur.val == cur.next.val:",
+        "            cur.next = cur.next.next",
+        "        else:",
+        "            cur = cur.next",
+        "    return head",
+        "def remove_duplicate_runs(head):",
+        "    dummy = Node(0, head)",
+        "    prev = dummy",
+        "    while prev.next is not None:",
+        "        first = prev.next",
+        "        end = first.next",
+        "        while end is not None and end.val == first.val:",
+        "            end = end.next",
+        "        if first.next is end:",
+        "            prev = first",
+        "        else:",
+        "            prev.next = end",
+        "    return dummy.next"
+      ],
+      "Finite acyclic chain. remove_values accepts equality-comparable payloads; other functions require sorted nondecreasing input so equal values form one run. Reuses retained node identities, bypasses removed nodes, returns new head; detached aliases may retain old links. Keep-one and remove-entire-run are different contracts."
+    ],
+    [
+      "Rotate right by a temporary cycle",
+      "O(n)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def rotate_right(head, k):",
+        "    if k < 0:",
+        "        raise ValueError('k must be nonnegative')",
+        "    if head is None or head.next is None:",
+        "        return head",
+        "    tail, n = head, 1",
+        "    while tail.next is not None:",
+        "        tail, n = tail.next, n+1",
+        "    k %= n",
+        "    if k == 0:",
+        "        return head",
+        "    new_tail = head",
+        "    for _ in range(n-k-1):",
+        "        new_tail = new_tail.next",
+        "    new_head = new_tail.next",
+        "    tail.next = head",
+        "    new_tail.next = None",
+        "    return new_head"
+      ],
+      "Finite acyclic chain, integer k>=0; rewires identities, returns new head. Normalize before cycle creation; temporary cycle is always broken on normal return. No concurrent observation."
+    ],
+    [
+      "Bottom-up stable linked merge sort",
+      "O(n log n)",
+      "O(1) auxiliary; no recursion",
+      [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def sort_list(head):",
+        "    def split(start, width):",
+        "        if start is None:",
+        "            return None",
+        "        for _ in range(width-1):",
+        "            if start.next is None:",
+        "                break",
+        "            start = start.next",
+        "        rest = start.next",
+        "        start.next = None",
+        "        return rest",
+        "    dummy = Node(0, head)",
+        "    n, cur = 0, head",
+        "    while cur is not None:",
+        "        n, cur = n+1, cur.next",
+        "    width = 1",
+        "    while width < n:",
+        "        prev, cur = dummy, dummy.next",
+        "        while cur is not None:",
+        "            a = cur",
+        "            b = split(a, width)",
+        "            cur = split(b, width)",
+        "            while a is not None or b is not None:",
+        "                if b is None or (a is not None and a.val <= b.val):",
+        "                    prev.next, a = a, a.next",
+        "                else:",
+        "                    prev.next, b = b, b.next",
+        "                prev = prev.next",
+        "            prev.next = cur",
+        "        width *= 2",
+        "    return dummy.next"
+      ],
+      "Finite acyclic singly linked list with nonthrowing comparable values; stable ascending sort by relinking, no payload swap or node allocation except one dummy. Empty None. Each pass detaches disjoint runs; width doubles. Inputs consumed/mutated; top-down alternative has O(log n) frames."
+    ],
+    [
+      "Read-only random-pointer clone with identity map",
+      "O(n) expected",
+      "O(n) map auxiliary plus O(n) cloned output",
+      [
+        "class RandomNode:",
+        "    def __init__(self, val=0, next=None, random=None):",
+        "        self.val, self.next, self.random = val, next, random",
+        "def copy_random_map(head):",
+        "    copies = {}",
+        "    cur = head",
+        "    while cur is not None:",
+        "        copies[cur] = RandomNode(cur.val)",
+        "        cur = cur.next",
+        "    cur = head",
+        "    while cur is not None:",
+        "        if cur.random is not None and cur.random not in copies:",
+        "            raise ValueError('random target outside next chain')",
+        "        copies[cur].next = copies.get(cur.next)",
+        "        copies[cur].random = copies.get(cur.random)",
+        "        cur = cur.next",
+        "    return copies.get(head)"
+      ],
+      "Finite acyclic next chain of identity-hashable nodes; random targets inside chain or None, external target raises ValueError without mutating input. Payload references reused, not recursively deep-copied; all structural output nodes new. Use graph traversal map for cyclic next or arbitrary graph cloning instead."
+    ],
+    [
+      "LRU cache with sentinel doubly linked order",
+      "O(1) expected amortized get/put",
+      "O(capacity)",
+      [
+        "class DNode:",
+        "    def __init__(self, key=None, value=None):",
+        "        self.key, self.value = key, value",
+        "        self.prev = self.next = None",
+        "class LRUCache:",
+        "    def __init__(self, capacity):",
+        "        if capacity < 0:",
+        "            raise ValueError('capacity must be nonnegative')",
+        "        self.capacity, self.nodes = capacity, {}",
+        "        self.left, self.right = DNode(), DNode()",
+        "        self.left.next, self.right.prev = self.right, self.left",
+        "    def _detach(self, node):",
+        "        node.prev.next, node.next.prev = node.next, node.prev",
+        "    def _recent(self, node):",
+        "        last = self.right.prev",
+        "        last.next, node.prev = node, last",
+        "        node.next, self.right.prev = self.right, node",
+        "    def get(self, key, default=None):",
+        "        if key not in self.nodes:",
+        "            return default",
+        "        node = self.nodes[key]",
+        "        self._detach(node)",
+        "        self._recent(node)",
+        "        return node.value",
+        "    def put(self, key, value):",
+        "        if key in self.nodes:",
+        "            node = self.nodes[key]",
+        "            node.value = value",
+        "            self._detach(node)",
+        "        else:",
+        "            node = DNode(key, value)",
+        "            self.nodes[key] = node",
+        "        self._recent(node)",
+        "        if len(self.nodes) > self.capacity:",
+        "            victim = self.left.next",
+        "            self._detach(victim)",
+        "            del self.nodes[victim.key]"
+      ],
+      "Integer capacity>=0; stable hashable keys, arbitrary values. get changes recency and returns supplied default on miss (not LC-specific -1). put inserts/overwrites and evicts oldest; capacity zero stores none. Owned storage mutates, sentinels never evicted; not thread-safe. Hash collisions may degrade operations to O(capacity), allocation/list edits are O(1)."
+    ]
+  ],
+  "practice": [
+    [
+      "206 Reverse Linked List",
+      "Iterative reversal",
+      "Easy",
+      "O(n) time; O(1) auxiliary",
+      "Save successor before rewiring."
+    ],
+    [
+      "203 Remove Linked List Elements",
+      "Dummy deletion",
+      "Easy",
+      "O(n); O(1)",
+      "Consecutive matching heads."
+    ],
+    [
+      "83 Remove Duplicates from Sorted List",
+      "Adjacent bypass",
+      "Easy",
+      "O(n); O(1)",
+      "Sorted precondition."
+    ],
+    [
+      "21 Merge Two Sorted Lists",
+      "Stable splice merge",
+      "Easy",
+      "O(n+m); O(1) auxiliary",
+      "Disjoint inputs; tie stability."
+    ],
+    [
+      "141 Linked List Cycle",
+      "Fast/slow",
+      "Easy",
+      "O(n); O(1)",
+      "Identity, not value equality."
+    ],
+    [
+      "876 Middle of the Linked List",
+      "Midpoint",
+      "Easy",
+      "O(n); O(1)",
+      "Return second middle in even length."
+    ],
+    [
+      "160 Intersection of Two Linked Lists",
+      "Pointer switching",
+      "Easy",
+      "O(n+m); O(1)",
+      "Shared identities, not equal payloads."
+    ],
+    [
+      "19 Remove Nth Node From End of List",
+      "Fixed gap + dummy",
+      "Medium",
+      "O(n); O(1)",
+      "Head removal and invalid gap."
+    ],
+    [
+      "2 Add Two Numbers",
+      "Carry propagation",
+      "Medium",
+      "O(max(n,m)); O(max(n,m)) output",
+      "Final carry and reverse digits."
+    ],
+    [
+      "142 Linked List Cycle II",
+      "Cycle entrance",
+      "Medium",
+      "O(n); O(1)",
+      "Collision differs from entry."
+    ],
+    [
+      "92 Reverse Linked List II",
+      "Bounded reversal",
+      "Medium",
+      "O(n); O(1)",
+      "Inclusive positions and new head."
+    ],
+    [
+      "86 Partition List",
+      "Stable two-chain partition",
+      "Medium",
+      "O(n); O(1)",
+      "Terminate tails to avoid cycles."
+    ],
+    [
+      "328 Odd Even Linked List",
+      "Index-parity chains",
+      "Medium",
+      "O(n); O(1)",
+      "Odd/even position, not value."
+    ],
+    [
+      "234 Palindrome Linked List",
+      "Reverse half + restore",
+      "Easy",
+      "O(n); O(1)",
+      "Restore even on mismatch."
+    ],
+    [
+      "143 Reorder List",
+      "Split/reverse/weave",
+      "Medium",
+      "O(n); O(1)",
+      "Detach halves first."
+    ],
+    [
+      "61 Rotate List",
+      "Length and temporary cycle",
+      "Medium",
+      "O(n); O(1)",
+      "k%=n; always break temporary cycle."
+    ],
+    [
+      "82 Remove Duplicates from Sorted List II",
+      "Dummy run skipping",
+      "Medium",
+      "O(n); O(1)",
+      "Remove all repeated values, not only extra copies."
+    ],
+    [
+      "138 Copy List with Random Pointer",
+      "Interleave or identity map",
+      "Medium",
+      "O(n); O(1) auxiliary + O(n) output interleaved",
+      "Restore original and clone random references."
+    ],
+    [
+      "148 Sort List",
+      "Bottom-up merge sort",
+      "Medium",
+      "O(n log n); O(1) auxiliary bottom-up",
+      "Top-down recursion costs O(log n) stack."
+    ],
+    [
+      "23 Merge k Sorted Lists",
+      "Heap of fronts",
+      "Hard",
+      "O(k+N log(k+1)); O(k)",
+      "Tie-break nodes with a counter."
+    ],
+    [
+      "25 Reverse Nodes in k-Group",
+      "Block lookahead + reversal",
+      "Hard",
+      "O(n); O(1)",
+      "Leave incomplete final group intact."
+    ],
+    [
+      "146 LRU Cache",
+      "Hash-indexed doubly linked recency",
+      "Medium",
+      "O(1) expected amortized get/put; O(capacity)",
+      "Zero capacity, updates, and accesses change recency."
+    ]
+  ],
+  "operationExamples": [
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "head=chain(4,5); result=(head.val,head.next.val)",
+        "assert repr(result) == \"(4, 5)\""
+      ],
+      "result": "(4, 5)",
+      "use": "Read payload/successor.",
+      "mutation": "Read only."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "a,b=Node(1),Node(1); result=(a is b,a.val==b.val)",
+        "assert repr(result) == \"(False, True)\""
+      ],
+      "result": "(False, True)",
+      "use": "Intersection/cycle identity checks.",
+      "mutation": "Read only."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "head=chain(1,2,3); node=head; count=0",
+        "while node is not None:",
+        "    count+=1",
+        "    node=node.next",
+        "result=count",
+        "assert repr(result) == \"3\""
+      ],
+      "result": "3",
+      "use": "Linear traversal.",
+      "mutation": "Cursor rebinding does not rewire."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "def advance(head,i):",
+        "    if i<0: raise ValueError('negative position')",
+        "    for _ in range(i):",
+        "        if head is None: return None",
+        "        head=head.next",
+        "    return head",
+        "head=chain(5,6); result=(advance(head,1).val,advance(head,2))",
+        "assert repr(result) == \"(6, None)\""
+      ],
+      "result": "(6, None)",
+      "use": "Locate boundary before splice.",
+      "mutation": "No mutation; out-of-range None."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "def find(head,target):",
+        "    while head is not None and head.val!=target:",
+        "        head=head.next",
+        "    return head",
+        "head=chain(2,1,2); result=(find(head,2) is head,find(head,9))",
+        "assert repr(result) == \"(True, None)\""
+      ],
+      "result": "(True, None)",
+      "use": "Find first value, not all matches.",
+      "mutation": "Read only."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "head=chain(2,3); old=head; head=Node(1,head); result=(values(head),head.next is old)",
+        "assert repr(result) == \"([1, 2, 3], True)\""
+      ],
+      "result": "([1, 2, 3], True)",
+      "use": "Prepend in O(1).",
+      "mutation": "New node, old links unchanged; retain new head."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "head=tail=Node(1); tail.next=Node(2); tail=tail.next; result=(values(head),tail.next)",
+        "assert repr(result) == \"([1, 2], None)\""
+      ],
+      "result": "([1, 2], None)",
+      "use": "Linear-time construction with tail.",
+      "mutation": "Allocates node and changes tail link."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "def scan_to_tail_then_append(head,x):",
+        "    if head is None: return Node(x)",
+        "    tail=head",
+        "    while tail.next is not None: tail=tail.next",
+        "    tail.next=Node(x)",
+        "    return head",
+        "result=values(scan_to_tail_then_append(chain(1,2),3))",
+        "assert repr(result) == \"[1, 2, 3]\""
+      ],
+      "result": "[1, 2, 3]",
+      "use": "Recognize O(n) append without tail.",
+      "mutation": "Rewires final link and allocates."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "head=chain(1,3); prev=head; new=Node(2); new.next=prev.next; prev.next=new; result=values(head)",
+        "assert repr(result) == \"[1, 2, 3]\""
+      ],
+      "result": "[1, 2, 3]",
+      "use": "Insert after located predecessor.",
+      "mutation": "Allocates/splices; save old successor first."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "head=chain(1,2); old=head; head=head.next; result=(values(head),old.next is head)",
+        "assert repr(result) == \"([2], True)\""
+      ],
+      "result": "([2], True)",
+      "use": "Delete head from caller path.",
+      "mutation": "Rebinds head; old alias still has next."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "head=chain(1,2,3); prev=head; removed=prev.next; prev.next=prev.next.next; result=(values(head),removed.next.val)",
+        "assert repr(result) == \"([1, 3], 3)\""
+      ],
+      "result": "([1, 3], 3)",
+      "use": "Bypass known successor.",
+      "mutation": "Changes prev.next; removed alias retains link."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "def find_predecessor_then_unlink(head,target):",
+        "    dummy=Node(0,head); prev=dummy",
+        "    while prev.next is not None and prev.next.val!=target: prev=prev.next",
+        "    if prev.next is not None: prev.next=prev.next.next",
+        "    return dummy.next",
+        "result=values(find_predecessor_then_unlink(chain(1,2,2),2))",
+        "assert repr(result) == \"[1, 2]\""
+      ],
+      "result": "[1, 2]",
+      "use": "Delete first matching value.",
+      "mutation": "Rewires only predecessor; may change head."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val, self.next = val, next",
+        "def chain(*values):",
+        "    head = None",
+        "    for value in reversed(values):",
+        "        head = Node(value, head)",
+        "    return head",
+        "def values(head):",
+        "    out = []",
+        "    while head is not None:",
+        "        out.append(head.val)",
+        "        head = head.next",
+        "    return out",
+        "head=chain(1,2,3); node=head.next; original=node; node.val=node.next.val; node.next=node.next.next; result=(values(head),node is original)",
+        "assert repr(result) == \"([1, 3], True)\""
+      ],
+      "result": "([1, 3], True)",
+      "use": "Explain LC237 non-tail trick limitation.",
+      "mutation": "Changes payload and successor, not target identity."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def reverse(head):",
+        "    prev, cur = None, head",
+        "    while cur is not None:",
+        "        nxt = cur.next",
+        "        cur.next = prev",
+        "        prev, cur = cur, nxt",
+        "    return prev",
+        "head=Node(1,Node(2)); old=head; head=reverse(head); result=(head.val,head.next is old,old.next)",
+        "assert repr(result) == \"(2, True, None)\""
+      ],
+      "result": "(2, True, None)",
+      "use": "Reversal primitive.",
+      "mutation": "Rewires all links, no new real nodes."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def merge_sorted(a, b):",
+        "    dummy = tail = Node()",
+        "    while a is not None and b is not None:",
+        "        if a.val <= b.val:",
+        "            tail.next, a = a, a.next",
+        "        else:",
+        "            tail.next, b = b, b.next",
+        "        tail = tail.next",
+        "    tail.next = a if a is not None else b",
+        "    return dummy.next",
+        "a,b=Node(1,Node(3)),Node(2); head=merge_sorted(a,b); result=(head.val,head.next.val,head.next.next.val)",
+        "assert repr(result) == \"(1, 2, 3)\""
+      ],
+      "result": "(1, 2, 3)",
+      "use": "Merge sorted disjoint chains.",
+      "mutation": "Consumes input links, reuses nodes."
+    },
+    {
+      "code": [
+        "class Node:",
+        "    def __init__(self, val=0, next=None):",
+        "        self.val = val",
+        "        self.next = next",
+        "def cycle_entry(head):",
+        "    slow = fast = head",
+        "    while fast is not None and fast.next is not None:",
+        "        slow, fast = slow.next, fast.next.next",
+        "        if slow is fast:",
+        "            entry = head",
+        "            while entry is not slow:",
+        "                entry, slow = entry.next, slow.next",
+        "            return entry",
+        "    return None",
+        "a,b=Node(1),Node(1); a.next=b; b.next=b; result=(cycle_entry(a) is b,cycle_entry(None))",
+        "assert repr(result) == \"(True, None)\""
+      ],
+      "result": "(True, None)",
+      "use": "Cycle entrance by identity.",
+      "mutation": "Read only, supports loops."
+    },
+    {
+      "code": [
+        "class DNode:",
+        "    def __init__(self,val=None):",
+        "        self.val,self.prev,self.next=val,None,None",
+        "left,x,right=DNode(),DNode(7),DNode()",
+        "left.next,x.prev,x.next,right.prev=x,left,right,x",
+        "node=x; node.prev.next=node.next; node.next.prev=node.prev",
+        "result=(left.next is right,right.prev is left)",
+        "assert repr(result) == \"(True, True)\""
+      ],
+      "result": "(True, True)",
+      "use": "O(1) interior DLL unlink.",
+      "mutation": "Repairs both neighbors; detached links remain until cleared."
+    },
+    {
+      "code": [
+        "class DNode:",
+        "    def __init__(self,val=None):",
+        "        self.val,self.prev,self.next=val,None,None",
+        "left,a,b,right=DNode(),DNode(1),DNode(2),DNode()",
+        "for x,y in zip([left,a,b],[a,b,right]): x.next,y.prev=y,x",
+        "def move_to_front(node):",
+        "    node.prev.next,node.next.prev=node.next,node.prev",
+        "    first=left.next",
+        "    left.next,node.prev,node.next,first.prev=node,left,first,node",
+        "move_to_front(b)",
+        "result=(left.next.val,left.next.next.val,right.prev.val)",
+        "assert repr(result) == \"(2, 1, 1)\""
+      ],
+      "result": "(2, 1, 1)",
+      "use": "Recency update with node reference.",
+      "mutation": "Detach then splice same identity; caller owns sentinels."
+    }
+  ],
+  "fundamentalDetails": [
+    {
+      "why": "Identity separates equal payloads.",
+      "use": "Intersections/cycles.",
+      "result": "(7, 7, False)",
+      "edge": "Value-equality dataclasses can recurse on cycles.",
+      "takeaway": "Nodes are identities with links, not just numbers."
+    },
+    {
+      "why": "None denotes missing structure; zero is real data.",
+      "use": "Traversal guards.",
+      "result": "(0, None)",
+      "edge": "Node(None) is still nonempty.",
+      "takeaway": "Test node is not None."
+    },
+    {
+      "why": "Assignment aliases the same graph.",
+      "use": "Mutation contracts.",
+      "result": "(True, None)",
+      "edge": "Copying head never clones nodes.",
+      "takeaway": "Audit all aliases before rewiring."
+    },
+    {
+      "why": "Old next is the only route to untouched suffix.",
+      "use": "In-place reversal.",
+      "result": "(2, 1, None)",
+      "edge": "Two nodes expose lost-successor bugs.",
+      "takeaway": "Save, redirect, advance."
+    },
+    {
+      "why": "Head edits need a predecessor too.",
+      "use": "Filtering and insertion.",
+      "result": "(2, None)",
+      "edge": "Multiple matching heads require staying on dummy.",
+      "takeaway": "Return dummy.next."
+    },
+    {
+      "why": "Even lengths have two different middle conventions.",
+      "use": "Split versus LC876.",
+      "result": "3",
+      "edge": "Four nodes distinguish first from second middle.",
+      "takeaway": "Choose stop condition before coding."
+    },
+    {
+      "why": "Fixed distance aligns end-relative positions.",
+      "use": "Remove nth from end.",
+      "result": "(2, None)",
+      "edge": "Validate oversized n before any link changes.",
+      "takeaway": "Decide whether slow is target or predecessor."
+    },
+    {
+      "why": "A cycle destroys tail-based termination.",
+      "use": "Floyd detection.",
+      "result": "True",
+      "edge": "Self-loop must be recognized by identity.",
+      "takeaway": "State acyclic preconditions explicitly."
+    },
+    {
+      "why": "Ordered fronts expose next smallest node.",
+      "use": "Stable merge.",
+      "result": "(1, 1, True)",
+      "edge": "Shared tails can create cycles under destructive merge.",
+      "takeaway": "Use <= for left-before-right ties."
+    },
+    {
+      "why": "Python recursion consumes frames and has depth limits.",
+      "use": "Long list algorithms.",
+      "result": "2000",
+      "edge": "Long chains need iterative alternatives.",
+      "takeaway": "Pointer iteration is genuinely constant auxiliary space."
+    },
+    {
+      "why": "Sentinels give every real node two valid neighbors.",
+      "use": "LRU and O(1) detach.",
+      "result": "(True, True, True, True)",
+      "edge": "Update both forward and backward links.",
+      "takeaway": "A map finds the node; DLL gives its predecessor."
+    }
+  ],
+  "patternDetails": [
+    {
+      "steps": [
+        "Save successor.",
+        "Reverse one edge toward prev.",
+        "Advance and return prev."
+      ],
+      "templates": [
+        "Iterative full reversal"
+      ],
+      "related": "Segment/k-group reversal reuse this primitive.",
+      "variations": "Read-only callers need a cloned chain first."
+    },
+    {
+      "steps": [
+        "Anchor dummy before head.",
+        "Edit only through predecessor.",
+        "Advance predecessor only when retaining candidate; return dummy.next."
+      ],
+      "templates": [
+        "Remove nth node from end",
+        "Predecessor filtering and sorted duplicate runs"
+      ],
+      "related": "Gap pointers locate a particular predecessor.",
+      "variations": "Filter all targets; sorted run removal may bypass a whole run."
+    },
+    {
+      "steps": [
+        "Choose first-half versus second-middle convention.",
+        "Advance fast twice per slow step.",
+        "Detach halves before independent mutation."
+      ],
+      "templates": [
+        "Second middle by fast and slow",
+        "Palindrome with exact link restoration",
+        "Reorder outside-in by weaving"
+      ],
+      "related": "Palindrome/reorder consume the split.",
+      "variations": "Second middle for LC876; first-half tail for palindrome/weave."
+    },
+    {
+      "steps": [
+        "Find identity meeting at 1x/2x speed.",
+        "Reset one cursor to head.",
+        "Advance together until identical entry."
+      ],
+      "templates": [
+        "Floyd cycle entrance by identity"
+      ],
+      "related": "Set tracking costs O(n) but records visits.",
+      "variations": "Detection only stops at meeting; entry requires second phase."
+    },
+    {
+      "steps": [
+        "Validate positive n.",
+        "Advance fast n edges from dummy.",
+        "Move together to tail; bypass slow.next."
+      ],
+      "templates": [
+        "Remove nth node from end"
+      ],
+      "related": "Midpoint uses speed difference instead of fixed gap.",
+      "variations": "Use a second pass for length if simpler; reject out-of-range before mutation."
+    },
+    {
+      "steps": [
+        "Require sorted disjoint acyclic inputs.",
+        "Choose smaller front with left tie priority.",
+        "Append remainder after one empties."
+      ],
+      "templates": [
+        "Stable merge two sorted disjoint lists"
+      ],
+      "related": "Bottom-up sort repeatedly merges detached runs.",
+      "variations": "Nonmutating merge allocates new output nodes."
+    },
+    {
+      "steps": [
+        "Traverse own chain.",
+        "On None switch to other head.",
+        "Stop on same identity or joint None."
+      ],
+      "templates": [
+        "Acyclic intersection by pointer switching"
+      ],
+      "related": "Length alignment is another O(n+m) proof.",
+      "variations": "Cyclic intersections need case analysis; this template is acyclic only."
+    },
+    {
+      "steps": [
+        "Validate entire requested range.",
+        "Find predecessor and segment tail.",
+        "Extract successors into front of bounded segment."
+      ],
+      "templates": [
+        "Reverse a validated inclusive segment"
+      ],
+      "related": "Full reversal and k-groups change boundaries.",
+      "variations": "Validate first to guarantee no partial mutation on bad bounds."
+    },
+    {
+      "steps": [
+        "Look ahead k nodes.",
+        "Reverse complete block toward saved group_next.",
+        "Reconnect and repeat; keep short suffix unchanged."
+      ],
+      "templates": [
+        "Reverse complete k-groups"
+      ],
+      "related": "Bounded reversal handles a single interval.",
+      "variations": "k=1 leaves order; reject nonpositive k."
+    },
+    {
+      "steps": [
+        "Save next and detach current node.",
+        "Append to matching stable chain.",
+        "Concatenate chains with final tail terminated."
+      ],
+      "templates": [
+        "Stable partition around a value"
+      ],
+      "related": "Odd/even positions use different classification.",
+      "variations": "More than two predicates use a bounded set of dummy/tail pairs."
+    },
+    {
+      "steps": [
+        "Locate first-half tail.",
+        "Reverse second half and compare mirrors.",
+        "Reverse back and reconnect even on mismatch."
+      ],
+      "templates": [
+        "Palindrome with exact link restoration"
+      ],
+      "related": "Reorder shares split/reverse but does not restore.",
+      "variations": "Read-only alternative stores values; throwing equality needs try/finally restoration design."
+    },
+    {
+      "steps": [
+        "Split into disjoint halves.",
+        "Reverse second half.",
+        "Alternate using saved successors."
+      ],
+      "templates": [
+        "Reorder outside-in by weaving"
+      ],
+      "related": "Palindrome also reverses half.",
+      "variations": "Never weave overlapping halves; preserve node identities."
+    },
+    {
+      "steps": [
+        "Choose mutation-permitted interleaving or read-only identity map.",
+        "Create all clones before random references.",
+        "Assign next/random and restore originals if interleaved."
+      ],
+      "templates": [
+        "Interleaved deep copy with random pointers",
+        "Read-only random-pointer clone with identity map"
+      ],
+      "related": "General graph clone requires visited traversal.",
+      "variations": "External random targets rejected by map version; arbitrary graph policy must be specified."
+    },
+    {
+      "steps": [
+        "Heapify nonempty list fronts with serial tie breakers.",
+        "Pop minimum and save its successor.",
+        "Append node; push its successor."
+      ],
+      "templates": [
+        "Heap merge k sorted disjoint lists"
+      ],
+      "related": "Two-list merge avoids heap overhead.",
+      "variations": "Divide-and-conquer merges also cost O(N log k); require disjoint input nodes."
+    },
+    {
+      "steps": [
+        "Validate digits.",
+        "Add aligned digits plus carry with divmod.",
+        "Emit until inputs and carry exhausted."
+      ],
+      "templates": [
+        "Add reversed base-10 digit chains"
+      ],
+      "related": "Forward digits need stacks or adapted reversal.",
+      "variations": "None represents zero; emit fresh zero node for both empty."
+    },
+    {
+      "steps": [
+        "Find maximal sorted equal run.",
+        "Choose keep-one or remove-entire-run contract.",
+        "Reconnect predecessor to first permitted node."
+      ],
+      "templates": [
+        "Predecessor filtering and sorted duplicate runs"
+      ],
+      "related": "Unsorted duplicates require extra memory or sorting.",
+      "variations": "Remove-all duplicates needs dummy for repeated head runs."
+    },
+    {
+      "steps": [
+        "Find length/tail and reduce k modulo n.",
+        "Find new tail at n-k-1.",
+        "Connect old tail to head; sever new tail."
+      ],
+      "templates": [
+        "Rotate right by a temporary cycle"
+      ],
+      "related": "Gap pointers also locate end-relative cuts.",
+      "variations": "k multiple of n is no-op; reject negatives before mutation."
+    },
+    {
+      "steps": [
+        "Count length; start width=1.",
+        "Detach pairs of width-sized runs and stably merge.",
+        "Double width until covering full chain."
+      ],
+      "templates": [
+        "Bottom-up stable linked merge sort"
+      ],
+      "related": "Top-down sort costs recursion frames.",
+      "variations": "No array conversion or recursion needed for O(1) auxiliary linked sort."
+    },
+    {
+      "steps": [
+        "Map keys to DLL identities.",
+        "Detach/reappend hits at most-recent end.",
+        "Evict least-recent real node if capacity exceeded."
+      ],
+      "templates": [
+        "LRU cache with sentinel doubly linked order"
+      ],
+      "related": "RandomizedSet uses dense positions, not recency.",
+      "variations": "LFU/TTL are different eviction contracts; zero capacity is valid."
+    }
+  ],
+  "templateDetails": [
+    {
+      "pattern": "Iterative pointer reversal",
+      "preconditions": "Finite acyclic singly linked list; rewires existing nodes, returns new head or None. Node identities and payloads preserved.",
+      "observation": "Reconstruct invariant: prev is reversed processed prefix; cur begins untouched suffix. Adaptation: Read-only callers need a cloned chain first."
+    },
+    {
+      "pattern": "Dummy + predecessor deletion",
+      "preconditions": "Acyclic chain, integer n; 1-based from end. Returns retained head, bypasses target, does not clear its next. Invalid n raises before mutation.",
+      "observation": "Reconstruct invariant: prev.next is next candidate and all retained nodes before prev are valid. Adaptation: Filter all targets; sorted run removal may bypass a whole run."
+    },
+    {
+      "pattern": "Stable two-chain merge",
+      "preconditions": "Disjoint finite sorted nondecreasing chains with comparable values; consumes/rewires inputs, left-before-right ties, reuses nodes. Both empty -> None.",
+      "observation": "Reconstruct invariant: Output prefix is sorted and contains exactly consumed input nodes. Adaptation: Nonmutating merge allocates new output nodes."
+    },
+    {
+      "pattern": "Floyd cycle entry",
+      "preconditions": "Singly linked successor graph; returns entry object or None, no mutation, arbitrary repeated values allowed. n counts distinct reachable nodes.",
+      "observation": "Reconstruct invariant: At meeting the distance relation makes head-to-entry equal a whole-cycle-adjusted meeting-to-entry. Adaptation: Detection only stops at meeting; entry requires second phase."
+    },
+    {
+      "pattern": "Intersection by pointer switching",
+      "preconditions": "Finite acyclic chains, possibly shared suffix; returns first shared identity or None; never mutates. Not valid for cyclic lists.",
+      "observation": "Reconstruct invariant: Both pointers traverse equal total combined lengths before meeting or None. Adaptation: Cyclic intersections need case analysis; this template is acyclic only."
+    },
+    {
+      "pattern": "Bounded segment reversal",
+      "preconditions": "Acyclic chain, 1-based integer inclusive bounds, 1<=left<=right<=length. Rewires nodes and returns head; invalid bounds raise before mutation; empty input has no valid nonempty range.",
+      "observation": "Reconstruct invariant: Reversed segment prefix is attached to predecessor; segment tail retains untouched suffix. Adaptation: Validate first to guarantee no partial mutation on bad bounds."
+    },
+    {
+      "pattern": "Complete k-group reversal",
+      "preconditions": "Acyclic list, integer k>0; reuses/relinks nodes, leaves incomplete final group unchanged, empty returns None.",
+      "observation": "Reconstruct invariant: Finished prefix is grouped correctly and connects to untouched remaining suffix. Adaptation: k=1 leaves order; reject nonpositive k."
+    },
+    {
+      "pattern": "Stable multi-chain partition",
+      "preconditions": "Finite acyclic list, payloads comparable with pivot; rewires stable <pivot then >=pivot partitions, conserves all node identities, empty None.",
+      "observation": "Reconstruct invariant: Each processed node appears exactly once in its proper stable chain. Adaptation: More than two predicates use a bounded set of dummy/tail pairs."
+    },
+    {
+      "pattern": "Fast/slow midpoint split",
+      "preconditions": "Acyclic chain with non-throwing value equality; temporarily rewires second half but restores exact original links on normal return, even mismatch. Empty True. Not concurrently observable/read-only safe.",
+      "observation": "Reconstruct invariant: Fast advances twice as far; chosen stop leaves balanced disjoint halves. Adaptation: Second middle for LC876; first-half tail for palindrome/weave."
+    },
+    {
+      "pattern": "Fast/slow midpoint split",
+      "preconditions": "Acyclic chain; mutates links to L0,Ln,L1,Ln-1,... preserving payloads/identities; returns original head, empty None.",
+      "observation": "Reconstruct invariant: Fast advances twice as far; chosen stop leaves balanced disjoint halves. Adaptation: Second middle for LC876; first-half tail for palindrome/weave."
+    },
+    {
+      "pattern": "Copy with random-pointer interleaving",
+      "preconditions": "Finite acyclic next chain, random is None or references a node in that chain; RandomNode payloads are scalar/immutable (payload copied by reference). Temporarily mutates next links, restores originals, output nodes/links disjoint; empty None. Assumes allocation succeeds and no concurrent observation.",
+      "observation": "Reconstruct invariant: After interleaving each original is immediately followed by its clone. Adaptation: External random targets rejected by map version; arbitrary graph policy must be specified."
+    },
+    {
+      "pattern": "Heap merge of k chains",
+      "preconditions": "Reusable collection/iterable of pairwise disjoint acyclic nondecreasing chains; comparable values, identity nodes not orderable. Consumes links, returns reused sorted chain, stable within each input but cross-list tie order is insertion-to-heap order. Empty heads -> None.",
+      "observation": "Reconstruct invariant: Heap contains exactly each nonempty remainder minimum. Adaptation: Divide-and-conquer merges also cost O(N log k); require disjoint input nodes."
+    },
+    {
+      "pattern": "Carry propagation",
+      "preconditions": "Finite acyclic digit chains, least significant digit first; None represents zero, both None returns a fresh Node(0). Validates integer digits 0..9 before allocation; no input mutation, allocates output. Bool follows Python int semantics.",
+      "observation": "Reconstruct invariant: Processed output digits equal low-order sum digits with remaining carry. Adaptation: None represents zero; emit fresh zero node for both empty."
+    },
+    {
+      "pattern": "Fast/slow midpoint split",
+      "preconditions": "Finite acyclic chain; returns original second-middle identity for even length, None empty, no mutation. For first-half tail guard fast.next and fast.next.next instead after checking head.",
+      "observation": "Reconstruct invariant: Fast advances twice as far; chosen stop leaves balanced disjoint halves. Adaptation: Second middle for LC876; first-half tail for palindrome/weave."
+    },
+    {
+      "pattern": "Dummy + predecessor deletion",
+      "preconditions": "Finite acyclic chain. remove_values accepts equality-comparable payloads; other functions require sorted nondecreasing input so equal values form one run. Reuses retained node identities, bypasses removed nodes, returns new head; detached aliases may retain old links. Keep-one and remove-entire-run are different contracts.",
+      "observation": "Reconstruct invariant: prev.next is next candidate and all retained nodes before prev are valid. Adaptation: Filter all targets; sorted run removal may bypass a whole run."
+    },
+    {
+      "pattern": "Rotation by modular cut",
+      "preconditions": "Finite acyclic chain, integer k>=0; rewires identities, returns new head. Normalize before cycle creation; temporary cycle is always broken on normal return. No concurrent observation.",
+      "observation": "Reconstruct invariant: The final cut leaves each old node reachable exactly once in rotated order. Adaptation: k multiple of n is no-op; reject negatives before mutation."
+    },
+    {
+      "pattern": "Bottom-up linked merge sort",
+      "preconditions": "Finite acyclic singly linked list with nonthrowing comparable values; stable ascending sort by relinking, no payload swap or node allocation except one dummy. Empty None. Each pass detaches disjoint runs; width doubles. Inputs consumed/mutated; top-down alternative has O(log n) frames.",
+      "observation": "Reconstruct invariant: Before each pass all width-sized runs are sorted; after it all 2*width runs are sorted. Adaptation: No array conversion or recursion needed for O(1) auxiliary linked sort."
+    },
+    {
+      "pattern": "Copy with random-pointer interleaving",
+      "preconditions": "Finite acyclic next chain of identity-hashable nodes; random targets inside chain or None, external target raises ValueError without mutating input. Payload references reused, not recursively deep-copied; all structural output nodes new. Use graph traversal map for cyclic next or arbitrary graph cloning instead.",
+      "observation": "Reconstruct invariant: After interleaving each original is immediately followed by its clone. Adaptation: External random targets rejected by map version; arbitrary graph policy must be specified."
+    },
+    {
+      "pattern": "Hash-indexed doubly linked recency",
+      "preconditions": "Integer capacity>=0; stable hashable keys, arbitrary values. get changes recency and returns supplied default on miss (not LC-specific -1). put inserts/overwrites and evicts oldest; capacity zero stores none. Owned storage mutates, sentinels never evicted; not thread-safe. Hash collisions may degrade operations to O(capacity), allocation/list edits are O(1).",
+      "observation": "Reconstruct invariant: Map and list contain the same real nodes exactly once, ordered least-to-most recent. Adaptation: LFU/TTL are different eviction contracts; zero capacity is valid."
+    }
+  ],
+  "decisionProcess": [
+    "0–20 seconds: Clarify singly/doubly, acyclic/cyclic, identity versus payload, shared nodes, mutation permission and required output head.",
+    "20–45 seconds: Draw empty, singleton and two-node cases. Identify predecessor, changed boundary links and successor that must be saved.",
+    "45–80 seconds: Choose dummy for head edits; gap for end-relative position; fast/slow for middle/cycle; reversal for mirrored order; merge for sorted fronts; DLL+map for recency.",
+    "80–120 seconds: State reachability/conservation invariant. Split before weave/merge, validate bounds before rewiring, preserve identities unless allocating a copy is part of the contract.",
+    "120–180 seconds: Trace repeated values, shared tail, incomplete k-group, final carry and restored links. Give locating versus splicing cost, recursion/output space, stability, and a read-only alternative."
+  ],
+  "practiceDetails": [
+    {
+      "insight": "Reversed prefix plus untouched suffix conserves reachability. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n) time; O(1) auxiliary, and expose: Save successor before rewiring.",
+      "secondary": "Saved successor"
+    },
+    {
+      "insight": "Stay on predecessor after deletion to remove adjacent targets. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Consecutive matching heads.",
+      "secondary": "Dummy node"
+    },
+    {
+      "insight": "Equal values are adjacent only under sorted precondition. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Sorted precondition.",
+      "secondary": "Run scanning"
+    },
+    {
+      "insight": "Select smaller front with explicit stable ties. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n+m); O(1) auxiliary, and expose: Disjoint inputs; tie stability.",
+      "secondary": "Tail construction"
+    },
+    {
+      "insight": "Meet by identity; repeated values do not imply a cycle. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Identity, not value equality.",
+      "secondary": "Floyd speeds"
+    },
+    {
+      "insight": "Even-length LC876 asks for second middle. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Return second middle in even length.",
+      "secondary": "Stop convention"
+    },
+    {
+      "insight": "Switching paths cancels different prefix lengths. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n+m); O(1), and expose: Shared identities, not equal payloads.",
+      "secondary": "Identity alignment"
+    },
+    {
+      "insight": "Fixed n-edge gap locates target predecessor. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Head removal and invalid gap.",
+      "secondary": "Dummy validation"
+    },
+    {
+      "insight": "Carry is the sole state between digit columns. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(max(n,m)); O(max(n,m)) output, and expose: Final carry and reverse digits.",
+      "secondary": "Output allocation"
+    },
+    {
+      "insight": "Meeting is not entry; reset phase solves entrance. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Collision differs from entry.",
+      "secondary": "Cycle-distance congruence"
+    },
+    {
+      "insight": "Extract nodes within a validated interval. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Inclusive positions and new head.",
+      "secondary": "Predecessor boundaries"
+    },
+    {
+      "insight": "Detach and append to stable partitions. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Terminate tails to avoid cycles.",
+      "secondary": "Conservation of identities"
+    },
+    {
+      "insight": "Position parity is not payload parity. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Odd/even position, not value.",
+      "secondary": "Two stable chains"
+    },
+    {
+      "insight": "Mirrors align after reversing second half; restore links. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Restore even on mismatch.",
+      "secondary": "Mutation audit"
+    },
+    {
+      "insight": "Weave disjoint halves after reversal. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Detach halves first.",
+      "secondary": "Saved successors"
+    },
+    {
+      "insight": "Normalize rotation before creating temporary cycle. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: k%=n; always break temporary cycle.",
+      "secondary": "Modular cut"
+    },
+    {
+      "insight": "A duplicated run must disappear completely. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Remove all repeated values, not only extra copies.",
+      "secondary": "Dummy run bypass"
+    },
+    {
+      "insight": "Clone references must point at clones, never originals. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1) auxiliary + O(n) output interleaved, and expose: Restore original and clone random references.",
+      "secondary": "Identity map/interleaving"
+    },
+    {
+      "insight": "Doubling sorted run width removes recursive frames. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n log n); O(1) auxiliary bottom-up, and expose: Top-down recursion costs O(log n) stack.",
+      "secondary": "Stable merging"
+    },
+    {
+      "insight": "One front per input suffices to expose global minimum. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(k+N log(k+1)); O(k), and expose: Tie-break nodes with a counter.",
+      "secondary": "Heap serial tie breaker"
+    },
+    {
+      "insight": "Lookahead preserves incomplete final groups. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(n); O(1), and expose: Leave incomplete final group intact.",
+      "secondary": "Bounded reversal"
+    },
+    {
+      "insight": "Map and DLL must contain exactly the same nodes. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(1) expected amortized get/put; O(capacity), and expose: Zero capacity, updates, and accesses change recency.",
+      "secondary": "Sentinels; hash lookup"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Python data model: identity, equality and hashing",
+      "url": "https://docs.python.org/3/reference/datamodel.html",
+      "note": "Fetched 2026-11-13, HTTP 200. Language reference for identity/equality/hash contracts. Linked algorithms, explanations and tests are original synthesis, not course reproductions."
+    },
+    {
+      "title": "Python built-in container reference",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "note": "Fetched 2026-11-13 HTTP 200. Supports dict identity-map semantics. No claim of course-specific AlgoMonster/Grokking/NeetCode list coverage; course coverage remains unverified. Templates target Python 3.10+ and standard library."
+    }
+  ]
+}

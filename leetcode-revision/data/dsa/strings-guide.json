@@ -1,0 +1,4252 @@
+{
+  "operations": [
+    [
+      "Create & inspect",
+      "s = 'text'; str(123)",
+      "Create text, including converting objects.",
+      "O(n) for conversion",
+      "O(n)",
+      "Literals are usually loaded as existing constants; conversion cost depends on object type and output size."
+    ],
+    [
+      "Create & inspect",
+      "len(s)",
+      "Count Unicode code points.",
+      "O(1)",
+      "O(1)",
+      "Not bytes or human-perceived grapheme clusters."
+    ],
+    [
+      "Create & inspect",
+      "s[i], s[-1]",
+      "Get character at index.",
+      "O(1)",
+      "O(1)",
+      "Raises IndexError if empty/out of range."
+    ],
+    [
+      "Create & inspect",
+      "s[a:b]",
+      "Get half-open substring.",
+      "O(k)",
+      "O(k)",
+      "Copies k characters in general; b is excluded."
+    ],
+    [
+      "Create & inspect",
+      "s[::2]",
+      "Take stride-two characters.",
+      "O(k)",
+      "O(k)",
+      "step=0 is invalid."
+    ],
+    [
+      "Create & inspect",
+      "s[::-1]",
+      "Reverse string.",
+      "O(n)",
+      "O(n)",
+      "New string; not in-place."
+    ],
+    [
+      "Create & inspect",
+      "for ch in s: process(ch)",
+      "Iterate over characters.",
+      "O(n)",
+      "O(1) auxiliary",
+      "No list conversion required."
+    ],
+    [
+      "Create & inspect",
+      "for i, ch in enumerate(s): process(i, ch)",
+      "Iterate with indices.",
+      "O(n)",
+      "O(1) auxiliary",
+      "Iterator not materialized."
+    ],
+    [
+      "Create & inspect",
+      "zip(a,b)",
+      "Walk paired characters.",
+      "O(1) setup; O(min(n,m)) to consume",
+      "O(1) iterator",
+      "Stops at shorter input; check lengths."
+    ],
+    [
+      "Create & inspect",
+      "reversed(s)",
+      "Iterate characters backward.",
+      "O(n) to consume",
+      "O(1) iterator",
+      "''.join(reversed(s)) allocates O(n) output."
+    ],
+    [
+      "Compare & search",
+      "s == t",
+      "Compare content.",
+      "O(min(n,m)) worst case",
+      "O(1)",
+      "Use ==, not is."
+    ],
+    [
+      "Compare & search",
+      "s < t",
+      "Unicode lexicographic comparison.",
+      "O(min(n,m)) worst case",
+      "O(1)",
+      "'10'<'2' is True."
+    ],
+    [
+      "Compare & search",
+      "sub in s",
+      "Check substring existence.",
+      "O(nm) conservative worst",
+      "O(1) auxiliary",
+      "CPython optimized; n=text, m=pattern."
+    ],
+    [
+      "Compare & search",
+      "s.find(sub)",
+      "First occurrence or -1.",
+      "O(nm) conservative worst",
+      "O(1)",
+      "Negative result is not a valid index."
+    ],
+    [
+      "Compare & search",
+      "s.rfind(sub)",
+      "Last occurrence or -1.",
+      "O(nm) conservative worst",
+      "O(1)",
+      "Searches from right."
+    ],
+    [
+      "Compare & search",
+      "s.index(sub)",
+      "First occurrence, raises if absent.",
+      "O(nm) conservative worst",
+      "O(1)",
+      "ValueError when missing."
+    ],
+    [
+      "Compare & search",
+      "s.count(sub)",
+      "Nonoverlapping substring occurrences.",
+      "O(nm) conservative worst",
+      "O(1)",
+      "'aaaa'.count('aa') == 2."
+    ],
+    [
+      "Compare & search",
+      "s.startswith(p)",
+      "Test prefix.",
+      "O(len(p))",
+      "O(1)",
+      "Also supports tuple of prefixes."
+    ],
+    [
+      "Compare & search",
+      "s.endswith(q)",
+      "Test suffix.",
+      "O(len(q))",
+      "O(1)",
+      "Case-sensitive by default."
+    ],
+    [
+      "Build & transform",
+      "s+t",
+      "Concatenate.",
+      "O(n+m)",
+      "O(n+m)",
+      "Repeated += in loops can be quadratic."
+    ],
+    [
+      "Build & transform",
+      "''.join(parts)",
+      "Efficiently build a string from fragments.",
+      "O(N)",
+      "O(N) output",
+      "N=total result length."
+    ],
+    [
+      "Build & transform",
+      "list(s); ''.join(chars)",
+      "Convert to mutable chars and back.",
+      "O(n)",
+      "O(n)",
+      "For reverse/mutation tasks."
+    ],
+    [
+      "Build & transform",
+      "s*k",
+      "Repeat k times.",
+      "O(nk)",
+      "O(nk)",
+      "Beware large outputs."
+    ],
+    [
+      "Build & transform",
+      "s.replace(old,new)",
+      "Replace nonoverlapping occurrences.",
+      "O(n+output) typical",
+      "O(output)",
+      "May change length."
+    ],
+    [
+      "Build & transform",
+      "s.lower(); s.upper()",
+      "Case conversion.",
+      "O(n) typical",
+      "O(n)",
+      "Unicode conversion may expand characters."
+    ],
+    [
+      "Build & transform",
+      "s.casefold()",
+      "Aggressive Unicode caseless conversion.",
+      "O(n) typical",
+      "O(n)",
+      "'ß'.casefold()=='ss'."
+    ],
+    [
+      "Build & transform",
+      "s.capitalize(); s.title()",
+      "Alter casing in returned copy.",
+      "O(n)",
+      "O(n)",
+      "Not linguistically perfect."
+    ],
+    [
+      "Build & transform",
+      "s.swapcase()",
+      "Swap case.",
+      "O(n)",
+      "O(n)",
+      "Not always an involution for Unicode."
+    ],
+    [
+      "Build & transform",
+      "s.strip(); s.lstrip(); s.rstrip()",
+      "Remove selected edge characters.",
+      "O(n) worst",
+      "O(n) output worst",
+      "strip('ab') strips chars a OR b, not substring."
+    ],
+    [
+      "Build & transform",
+      "s.removeprefix(p)",
+      "Remove exact prefix if present.",
+      "O(n) worst",
+      "O(n) output",
+      "Different from strip."
+    ],
+    [
+      "Build & transform",
+      "s.removesuffix(q)",
+      "Remove exact suffix if present.",
+      "O(n) worst",
+      "O(n) output",
+      "Works if suffix absent: unchanged."
+    ],
+    [
+      "Build & transform",
+      "s.translate(str.maketrans({'a':'x','b':None}))",
+      "Map or delete characters.",
+      "O(n) typical",
+      "O(n)+mapping",
+      "Useful for many replacements."
+    ],
+    [
+      "Build & transform",
+      "s.zfill(width); s.center(width)",
+      "Pad to width.",
+      "O(max(n,width))",
+      "O(max(n,width))",
+      "zfill handles sign."
+    ],
+    [
+      "Build & transform",
+      "f'{value}'; '{}'.format(value)",
+      "Format a new string.",
+      "O(output) usually",
+      "O(output)",
+      "Custom object formatting can cost more."
+    ],
+    [
+      "Split & parse",
+      "s.split()",
+      "Whitespace tokenization.",
+      "O(n)",
+      "O(n)",
+      "Collapses runs of whitespace."
+    ],
+    [
+      "Split & parse",
+      "s.split(' ')",
+      "Split on literal spaces.",
+      "O(n)",
+      "O(n)",
+      "Preserves empty fields."
+    ],
+    [
+      "Split & parse",
+      "s.rsplit(',',1)",
+      "Split from right.",
+      "O(n)",
+      "O(n)",
+      "Useful for suffix parsing."
+    ],
+    [
+      "Split & parse",
+      "s.partition(':')",
+      "Before, separator, after.",
+      "O(n)",
+      "O(n)",
+      "Always returns three parts."
+    ],
+    [
+      "Split & parse",
+      "s.splitlines()",
+      "Split into lines.",
+      "O(n)",
+      "O(n)",
+      "Recognizes multiple newline conventions."
+    ],
+    [
+      "Split & parse",
+      "int(s); str(number)",
+      "Parse/format numbers.",
+      "Type/base dependent; not universally O(n) for big integers",
+      "O(n) output",
+      "Decimal arbitrary-precision parsing/formatting can be superlinear; CPython may limit decimal digit counts. Small bounded integers use the interview scalar model."
+    ],
+    [
+      "Classify & encode",
+      "s.isalpha(); s.isalnum()",
+      "Unicode alpha/alphanumeric checks.",
+      "O(n)",
+      "O(1)",
+      "False on empty; includes non-ASCII."
+    ],
+    [
+      "Classify & encode",
+      "s.isdecimal(); s.isdigit()",
+      "Unicode decimal/digit checks.",
+      "O(n)",
+      "O(1)",
+      "For ASCII digits use '0' <= c <= '9'."
+    ],
+    [
+      "Classify & encode",
+      "s.isspace(); s.isascii()",
+      "Whitespace/ASCII checks.",
+      "O(n)",
+      "O(1)",
+      "Unicode whitespace differs from literal spaces."
+    ],
+    [
+      "Classify & encode",
+      "ord(ch); chr(code)",
+      "Code point to integer and back.",
+      "O(1)",
+      "O(1)",
+      "ord requires a single code point."
+    ],
+    [
+      "Classify & encode",
+      "s.encode('utf-8')",
+      "Encode to bytes.",
+      "O(n+bytes)",
+      "O(bytes)",
+      "UTF-8 length differs from code-point length."
+    ],
+    [
+      "Classify & encode",
+      "data.decode('utf-8')",
+      "Decode bytes to str.",
+      "O(bytes)",
+      "O(n)",
+      "Invalid bytes can raise."
+    ],
+    [
+      "Classify & encode",
+      "unicodedata.normalize('NFC',s)",
+      "Normalize canonical Unicode forms.",
+      "O(n) typical",
+      "O(n)",
+      "Useful for visually equivalent characters."
+    ],
+    [
+      "Count & utility",
+      "Counter(s)",
+      "Map characters to frequencies.",
+      "O(n) expected",
+      "O(k)",
+      "k is distinct characters."
+    ],
+    [
+      "Count & utility",
+      "set(s)",
+      "Unique characters.",
+      "O(n) expected",
+      "O(k)",
+      "Does not retain multiplicity."
+    ],
+    [
+      "Count & utility",
+      "tuple(counts)",
+      "Hashable count signature.",
+      "O(k)",
+      "O(k)",
+      "Use as group-anagram dictionary key."
+    ],
+    [
+      "Count & utility",
+      "itertools.groupby(s)",
+      "Adjacent runs iterator.",
+      "O(n) to consume",
+      "O(1) iterator",
+      "Not a global frequency grouping."
+    ],
+    [
+      "Mutation & limits",
+      "s[0]='x'  # TypeError",
+      "String mutation is unsupported.",
+      "Not applicable",
+      "Not applicable",
+      "Use a char list or create new str."
+    ],
+    [
+      "Mutation & limits",
+      "del s[0]  # TypeError",
+      "String elements cannot be deleted.",
+      "Not applicable",
+      "Not applicable",
+      "Return new string."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "Unicode code points ≠ bytes ≠ graphemes",
+      "Python string positions are code points. A rendered symbol can have combining marks; bytes vary by encoding.",
+      [
+        "s='é'; decomposed='é'",
+        "print(len(s), len(decomposed))  # 1 2",
+        "print(len(s.encode('utf-8')))  # 2"
+      ],
+      "O(n) encoding",
+      "O(n) bytes",
+      "Don't conflate len() with UTF-8 size or on-screen characters."
+    ],
+    [
+      "Immutable strings and builders",
+      "s += piece inside a large loop can become quadratic; append into a list then join once.",
+      [
+        "parts=[]",
+        "for ch in 'abc': parts.append(ch.upper())",
+        "print(''.join(parts))  # ABC"
+      ],
+      "O(n)",
+      "O(n) result",
+      "Don't promise += O(1) amortized across platforms."
+    ],
+    [
+      "Half-open slices and index costs",
+      "s[l:r] includes l through r-1; output copying costs r-l. Avoid repeated slicing in nested loops.",
+      [
+        "s='abcdef'",
+        "print(s[1:4], s[-2:])  # bcd ef"
+      ],
+      "O(k)",
+      "O(k)",
+      "A loop that copies increasing prefixes is O(n²)."
+    ],
+    [
+      "Case normalization / punctuation policy",
+      "The problem determines whether you ignore case, punctuation, or whitespace. Use casefold for robust caseless text when specified.",
+      [
+        "text='A man, a plan, a canal: Panama'",
+        "clean=''.join(c.casefold() for c in text if c.isalnum())",
+        "print(clean==clean[::-1])  # True"
+      ],
+      "O(n)",
+      "O(n)",
+      "Unicode casefold can expand a character."
+    ],
+    [
+      "Reversing: Python str versus char array",
+      "s[::-1] creates a copy. For mutable list, two-pointer swapping uses constant auxiliary memory.",
+      [
+        "a=list('hello'); l,r=0,len(a)-1",
+        "while l<r:",
+        "    a[l],a[r]=a[r],a[l]",
+        "    l+=1; r-=1",
+        "print(''.join(a))  # olleh"
+      ],
+      "O(n)",
+      "O(n) for conversion/output",
+      "Two-pointer palindrome comparison can be O(1) auxiliary."
+    ],
+    [
+      "Palindrome mirror and centers",
+      "Whole-string palindrome uses opposite endpoints; longest palindromic substring uses odd and even center expansion.",
+      [
+        "s='abba'",
+        "print(s==s[::-1])  # True",
+        "print(s[1:3])  # bb; even palindrome center"
+      ],
+      "O(n) comparison; O(n²) all centers",
+      "O(n) if reversing; O(1) center scan",
+      "Don't miss even-length centers."
+    ],
+    [
+      "Anagram as equal multiplicities",
+      "Sorting gives O(n log n), counting gives expected O(n) with a dict. A set alone is insufficient.",
+      [
+        "from collections import Counter",
+        "print(Counter('aab')==Counter('aba'))  # True",
+        "print(set('aab')==set('ab'))      # True but NOT anagrams"
+      ],
+      "O(n) expected",
+      "O(k)",
+      "With lowercase English only, a 26-slot frequency array is an option."
+    ],
+    [
+      "Run-length compression",
+      "Runs are groups of consecutive identical chars, not total frequencies; flush last run after loop.",
+      [
+        "s='aaabbc'; parts=[]; start=0",
+        "for i in range(1,len(s)+1):",
+        "    if i==len(s) or s[i]!=s[start]:",
+        "        parts.append(s[start]+str(i-start)); start=i",
+        "print(''.join(parts))  # a3b2c1"
+      ],
+      "O(n+output)",
+      "O(n) output",
+      "LeetCode 443 omits a count for runs of length 1."
+    ],
+    [
+      "Substring vs subsequence",
+      "Substring must be contiguous; subsequence may skip positions but preserve order.",
+      [
+        "text='axbyc'; it=iter(text)",
+        "print('abc' in text)  # False",
+        "print(all(ch in it for ch in 'abc'))  # True"
+      ],
+      "O(n) subsequence test",
+      "O(1)",
+      "Do not apply a contiguous sliding window to a general subsequence."
+    ],
+    [
+      "Fixed and variable windows",
+      "Fixed-window anagram matches require exact length; min-cover uses variable shrink-while-valid invariant.",
+      [
+        "s='abcd'; k=2",
+        "for start in range(len(s)-k+1): print(s[start:start+k])",
+        "# ab, bc, cd"
+      ],
+      "O(nk) if slicing all",
+      "O(k) per slice",
+      "Maintain counts to avoid copying every window."
+    ],
+    [
+      "Character integer mapping",
+      "ord(c)-ord('a') maps lowercase Latin letters to 0..25 only when constraints guarantee that alphabet.",
+      [
+        "count=[0]*26",
+        "for ch in 'banana': count[ord(ch)-97]+=1",
+        "print(count[0],count[1],count[13])  # 3 1 2"
+      ],
+      "O(n)",
+      "O(26)",
+      "General Unicode needs Counter/dict."
+    ],
+    [
+      "KMP prefix function / borders",
+      "Repeated prefix-suffix overlap allows linear matching without starting each candidate from scratch.",
+      [
+        "text='ababcabc'; pattern='abc'",
+        "print(text.find(pattern))  # 2",
+        "# KMP maintains matched-prefix length using lps."
+      ],
+      "Shown builtin search: implementation-dependent; KMP template O(n+m)",
+      "Shown snippet O(1); KMP table O(m)",
+      "On mismatch fallback through lps rather than restarting."
+    ],
+    [
+      "Parentheses with a stack",
+      "A stack captures unmatched opening delimiters in correct nesting order.",
+      [
+        "pairs={')':'(',']':'[','}':'{'}; stack=[]",
+        "for c in '([])':",
+        "    if c in '([{': stack.append(c)",
+        "    else: assert stack.pop()==pairs[c]",
+        "print(stack)  # []"
+      ],
+      "O(n)",
+      "O(n)",
+      "Equal counts cannot validate nesting order."
+    ],
+    [
+      "Prefix balances and repeated states",
+      "The same prefix balance/parity at two boundaries means their difference has balanced counts.",
+      [
+        "s='0101'; balance=0; first={0:-1}; best=0",
+        "for i,ch in enumerate(s):",
+        "    balance+=1 if ch=='1' else -1",
+        "    if balance in first: best=max(best,i-first[balance])",
+        "    else: first[balance]=i",
+        "print(best)  # 4"
+      ],
+      "O(n) expected",
+      "O(n)",
+      "Initialize state zero at boundary -1."
+    ],
+    [
+      "DP on string prefixes",
+      "dp[i][j] represents optimal solution on prefixes a[:i],b[:j]. Define base row and column before recurrence.",
+      [
+        "a='cat'; b='cut'; prev=list(range(len(b)+1))",
+        "for i,c in enumerate(a,1):",
+        "    curr=[i]+[0]*len(b)",
+        "    for j,d in enumerate(b,1):",
+        "        curr[j]=prev[j-1] if c==d else 1+min(prev[j],curr[j-1],prev[j-1])",
+        "    prev=curr",
+        "print(prev[-1])  # 1"
+      ],
+      "O(nm)",
+      "O(m)",
+      "Confusing previous/current rows breaks edit distance."
+    ],
+    [
+      "Unicode normalization",
+      "Visually identical code points can have different binary representation. Normalize only when equivalence is required.",
+      [
+        "import unicodedata",
+        "x='é'; y='é'",
+        "print(x==y)  # False",
+        "print(unicodedata.normalize('NFC',x)==unicodedata.normalize('NFC',y))  # True"
+      ],
+      "O(n) typical",
+      "O(n)",
+      "Blind normalization changes semantics if byte-exact comparison required."
+    ],
+    [
+      "split() versus split(' ')",
+      "Default whitespace splitting merges runs and trims edges; literal separator splitting preserves empty parts.",
+      [
+        "s=' a  b '",
+        "print(s.split())       # ['a','b']",
+        "print(s.split(' '))    # ['', 'a', '', 'b', '']"
+      ],
+      "O(n)",
+      "O(n)",
+      "strip('abc') removes any matching edge characters, not exact substring."
+    ],
+    [
+      "Hash matches do not prove equality",
+      "Rolling hashes help repeated-window comparisons; collisions mean verify original substring when correctness must be certain.",
+      [
+        "s='banana'; k=3",
+        "print([s[i:i+k] for i in range(len(s)-k+1)])",
+        "# A rolling implementation updates the hash without slicing."
+      ],
+      "O(nk) for slicing baseline",
+      "O(nk) stored output",
+      "A probabilistic hash alone is not a mathematical equality proof."
+    ]
+  ],
+  "patterns": [
+    [
+      "Opposite-end palindrome pointers",
+      "CORE",
+      "Compare mirrored letters, maybe ignoring punctuation.",
+      "Move l/r inward, skip allowed symbols and compare the pair.",
+      "O(n)",
+      "O(1) auxiliary",
+      "125 Valid Palindrome; 680 Valid Palindrome II",
+      "Do not normalize unrequested characters.",
+      "Every position outside [l,r] is validated.",
+      "When optimum palindrome SUBSTRING, use center expansion."
+    ],
+    [
+      "In-place char-list reversal",
+      "CORE",
+      "Reverse a mutable list[str] without extra arrays.",
+      "Swap l and r as pointers meet.",
+      "O(n)",
+      "O(1) on list",
+      "344 Reverse String; 557 Reverse Words in a String III",
+      "Python str is immutable.",
+      "Exterior positions already hold reversed target.",
+      "If input is str, output/conversion takes O(n) space."
+    ],
+    [
+      "Hash counts and anagram comparison",
+      "CORE",
+      "Same letters in different orders; duplicates matter.",
+      "Build frequency dictionaries or 26 arrays and compare.",
+      "O(n) expected",
+      "O(k)",
+      "242 Valid Anagram; 383 Ransom Note",
+      "Sets ignore multiplicities.",
+      "Count matches true multiset of scanned chars.",
+      "Fixed arrays require known bounded alphabet."
+    ],
+    [
+      "Canonical group-anagram keys",
+      "CORE",
+      "Group words by character multiset.",
+      "Use sorted-word key or tuple of counts.",
+      "O(W + N log(max(2,L)))",
+      "O(W+N) group keys/references and sorting workspace",
+      "49 Group Anagrams; 438 Find All Anagrams in a String",
+      "Counter objects are unhashable.",
+      "Same signature iff same multiset.",
+      "Sorted signature slower than fixed array for long lowercase words."
+    ],
+    [
+      "Fixed-width frequency window",
+      "CORE",
+      "Every permutation/anagram of pattern inside text.",
+      "Initialize exact-width counts; replace entering/leaving char.",
+      "O(n) fixed alphabet; O(nk) general Counter comparisons",
+      "O(m+u) for initial slice/counts + matches",
+      "567 Permutation in String; 438 Find All Anagrams in a String",
+      "Counts must match; not just distinct letters.",
+      "Counts represent exactly current width m.",
+      "If length varies, use variable window."
+    ],
+    [
+      "Last-seen maximum unique window",
+      "CORE",
+      "Longest substring without repeated code points.",
+      "Track last index; jump left to max(left,last+1).",
+      "O(n) expected",
+      "O(k)",
+      "3 Longest Substring Without Repeating Characters; 159 At Most Two Distinct",
+      "Never move left backward.",
+      "No duplicates lie inside [left,right].",
+      "For arbitrary max frequency constraint use count window."
+    ],
+    [
+      "At-most-K distinct variable window",
+      "CORE",
+      "Longest contiguous region with ≤k types.",
+      "Count active chars, shrink until distinct limit valid.",
+      "O(n) expected",
+      "O(min(u,K+1)) active count keys",
+      "340 Longest Substring with At Most K Distinct Characters; 159 At Most Two",
+      "Delete zero-count keys.",
+      "After shrinking, counts represent exactly the active window and at most K distinct types remain.",
+      "For exact numbers of windows accumulate atMost differences."
+    ],
+    [
+      "Minimum cover / have–need window",
+      "CORE",
+      "Smallest contiguous text containing all target chars.",
+      "Expand counts, track satisfied required types; shrink while valid.",
+      "O(n+m) expected",
+      "O(u_target) + returned substring",
+      "76 Minimum Window Substring; 567 Permutation in String (related)",
+      "Repeated target letters require multiplicity.",
+      "Window valid iff each target count met.",
+      "Empty target needs explicit return."
+    ],
+    [
+      "Character replacement window",
+      "IMPORTANT",
+      "Longest uniform block with ≤k replacements.",
+      "Track max char frequency and length-maxfreq≤k.",
+      "O(n) expected",
+      "O(u) observed symbols (O(1) for fixed alphabet)",
+      "424 Longest Repeating Character Replacement; 1004 Max Consecutive Ones III (analogy)",
+      "Stale maxfreq is for length optimization only.",
+      "Best feasible length is never missed.",
+      "Not for exact reconstruction without extra validation."
+    ],
+    [
+      "Subsequence two-pointer scanner",
+      "CORE",
+      "Check ordered chars with gaps allowed.",
+      "Scan source, advance query index on equal char.",
+      "O(n+m)",
+      "O(1)",
+      "392 Is Subsequence; 524 Longest Word in Dictionary through Deleting",
+      "Substring containment != subsequence.",
+      "Already matched query prefix appears in order.",
+      "For LCS optimum use DP."
+    ],
+    [
+      "Backspace and word transforms",
+      "IMPORTANT",
+      "Compare texts with backspace or reverse words.",
+      "Scan backward with skip count, or tokenize and rebuild.",
+      "O(n+m)",
+      "O(1) comparison / O(n) output",
+      "844 Backspace String Compare; 151 Reverse Words in a String",
+      "Literal-space split retains empty tokens.",
+      "Consumed characters reflect transformed text.",
+      "If whitespace must be preserved, don't use split()."
+    ],
+    [
+      "Odd/even palindrome center expansion",
+      "CORE",
+      "Longest palindromic substring or count all.",
+      "Expand from each of 2n−1 centers while matching.",
+      "O(n²)",
+      "O(1) auxiliary",
+      "5 Longest Palindromic Substring; 647 Palindromic Substrings",
+      "Miss even centers ('abba').",
+      "Each palindrome has a center reached by enumeration.",
+      "For huge n use Manacher O(n)."
+    ],
+    [
+      "Near palindrome by one deletion",
+      "IMPORTANT",
+      "Almost palindrome; delete at most one.",
+      "First mismatch: verify either [l+1,r] or [l,r−1].",
+      "O(n)",
+      "O(1)",
+      "680 Valid Palindrome II; 125 Valid Palindrome (base)",
+      "Trying only one skip may fail.",
+      "Only one mismatch needs a branch into two possibilities.",
+      "Multiple edits require DP/recursion."
+    ],
+    [
+      "Run-length consecutive groups",
+      "CORE",
+      "Compress repeated adjacent letters or describe groups.",
+      "Count each run, emit char+count, flush final run.",
+      "O(n+output)",
+      "O(output)",
+      "443 String Compression; 38 Count and Say",
+      "Singleton count convention varies.",
+      "Each flushed run encoded once.",
+      "If asked total frequency use Counter, not runs."
+    ],
+    [
+      "Stack matching delimiters",
+      "CORE",
+      "Proper nested parentheses/brackets.",
+      "Push opener, ensure each closer matches stack top.",
+      "O(n)",
+      "O(n)",
+      "20 Valid Parentheses; 921 Minimum Add to Make Parentheses Valid",
+      "Matching total counts not enough.",
+      "Stack contains unmatched openers in nesting order.",
+      "Min-insert parentheses-only may use balance O(1)."
+    ],
+    [
+      "Stack adjacent cancellation",
+      "IMPORTANT",
+      "Remove adjacent duplicate runs repeatedly.",
+      "Stack stores reduced scanned prefix; pop on matching top.",
+      "O(n)",
+      "O(n)",
+      "1047 Remove All Adjacent Duplicates In String; 1209 Remove All Adjacent Duplicates II",
+      "Deleting causes new adjacent matches.",
+      "Stack is fully reduced prefix.",
+      "For k-groups maintain (char,count)."
+    ],
+    [
+      "Balanced parentheses prefix state",
+      "IMPORTANT",
+      "Longest valid parentheses or minimum insertions.",
+      "Use running balance for counts, indices stack/DP for longest span.",
+      "O(n)",
+      "O(1) for insertions / O(n) longest",
+      "32 Longest Valid Parentheses; 921 Minimum Add",
+      "Balance alone misses spans and type ordering.",
+      "Prefix state characterizes unmatched openers.",
+      "Use a stack for multiple bracket kinds."
+    ],
+    [
+      "Prefix balances and earliest occurrence",
+      "IMPORTANT",
+      "Longest substring with equal counts in two groups.",
+      "Define prefix balance and first occurrence of every state.",
+      "O(n) expected",
+      "O(n)",
+      "525 Contiguous Array (binary analog); 1371 Even Vowels (parity variant)",
+      "Seed state 0→−1.",
+      "Same prefix state implies balanced substring difference.",
+      "Needs additive property of substring condition."
+    ],
+    [
+      "Parity bitmask of counts",
+      "IMPORTANT",
+      "Longest substring with even categories or ≤1 odd.",
+      "XOR bit for each tracked symbol; seek same or one-bit-off prefix state.",
+      "O(nk) for k bit variants",
+      "O(min(n+1,2^b)) for b tracked parity bits; vowel template at most 32 states",
+      "1371 Even Vowels; 1542 Longest Awesome Substring",
+      "Bit toggles, not adds.",
+      "Mask captures parities of scanned prefix.",
+      "Best only for small alphabet."
+    ],
+    [
+      "KMP prefix-function matching",
+      "IMPORTANT",
+      "Guaranteed linear pattern search and borders.",
+      "Compute lps table; on mismatch fallback j=lps[j−1].",
+      "O(n+m)",
+      "O(m)",
+      "28 First Occurrence; 459 Repeated Substring Pattern",
+      "Never restart blindly on near match.",
+      "j is maximum viable matched-prefix length.",
+      "Multiple patterns => trie/automaton."
+    ],
+    [
+      "Z algorithm prefix matches",
+      "ADVANCED",
+      "Match many positions against text prefix.",
+      "Reuse z-box [l,r] to obtain all longest prefix matches.",
+      "O(n)",
+      "O(n)",
+      "28 First Occurrence; 459 Repeated Substring Pattern",
+      "z[0] convention varies.",
+      "Z[i] means prefix-match length at i.",
+      "Sentinel must not occur when merging pattern/text."
+    ],
+    [
+      "Rabin–Karp rolling windows",
+      "ADVANCED",
+      "Many equal-length substring checks or duplicates.",
+      "Update polynomial hash in O(1) per shift; confirm hash hits.",
+      "O(n+m+H*m), H = verified hash hits; O(nm) worst",
+      "O(m) verification slice + output in supplied template",
+      "187 Repeated DNA Sequences; 1044 Longest Duplicate Substring",
+      "Hash collision => false positive without confirmation.",
+      "Hash summarizes current window length.",
+      "Never use unverified collision-prone hash for exact correctness."
+    ],
+    [
+      "Trie dictionary prefixes",
+      "IMPORTANT",
+      "Autocomplete, search prefixes, many dictionary terms.",
+      "Insert chars into child nodes; terminal flag for whole word.",
+      "O(L) expected per word",
+      "O(total node count)",
+      "208 Implement Trie; 211 Add and Search Words",
+      "Prefix existence ≠ complete word.",
+      "Path corresponds to inserted prefix.",
+      "One-off exact search easier with hash set."
+    ],
+    [
+      "Word Break prefix feasibility DP",
+      "IMPORTANT",
+      "Does a string split into dictionary words?",
+      "dp[i] true if prior feasible cut and word segment valid.",
+      "O(D+nL) expected using trie; retained slice baseline O(n³) worst",
+      "O(D+n) trie and reachability DP",
+      "139 Word Break; 140 Word Break II",
+      "Repeated substring allocations matter.",
+      "dp[i] means s[:i] segmentable.",
+      "Enumerating all segmentations can be exponential."
+    ],
+    [
+      "Edit distance 2D DP",
+      "IMPORTANT",
+      "Minimum insert/delete/replace edits between strings.",
+      "dp[i][j] costs for a[:i]→b[:j], diagonal match else 1+min.",
+      "O(nm)",
+      "O(m) for distance",
+      "72 Edit Distance; 583 Delete Operation for Two Strings",
+      "Initialize empty prefix costs.",
+      "All smaller prefixes already solved.",
+      "Edit-script reconstruction needs backpointers/full table."
+    ],
+    [
+      "Longest common subsequence DP",
+      "IMPORTANT",
+      "Order preserved but positions can be skipped.",
+      "Equal => diag+1; otherwise max(up,left).",
+      "O(nm)",
+      "O(m) length only",
+      "1143 Longest Common Subsequence; 583 Delete Operation",
+      "Don't confuse common substring.",
+      "dp[i][j] is optimum for prefixes.",
+      "To reconstruct sequence needs more memory/alternate algorithm."
+    ],
+    [
+      "Longest palindromic subsequence DP",
+      "IMPORTANT",
+      "Palindrome with optional skipped chars.",
+      "dp[l][r] depends on equal ends and shorter inner intervals.",
+      "O(n²)",
+      "O(n²)",
+      "516 Longest Palindromic Subsequence; 1312 Minimum Insertion Steps",
+      "Centers only find contiguous palindromes.",
+      "Shorter intervals computed before longer ones.",
+      "Requires O(n²) DP unless optimized."
+    ],
+    [
+      "Palindrome partitioning DFS or min-cuts DP",
+      "IMPORTANT",
+      "Partition string into palindromic pieces.",
+      "Backtrack all valid cut points; for optimum use 1D DP with palindrome validation.",
+      "O(n²) cuts DP; output exponential for enumeration",
+      "O(n²) table + output",
+      "131 Palindrome Partitioning; 132 Palindrome Partitioning II",
+      "Number of cuts = pieces−1.",
+      "Every chosen segment is palindrome.",
+      "Output enumeration has unavoidable exponential size."
+    ],
+    [
+      "Backtracking phone letters / parentheses",
+      "IMPORTANT",
+      "Enumerate all legal strings under local choices.",
+      "Choose character, append, recurse, undo; prune invalid partial states.",
+      "O(output size)",
+      "O(depth) excluding output",
+      "17 Letter Combinations; 22 Generate Parentheses",
+      "Output can be exponential.",
+      "Path reflects valid branch choices.",
+      "Don't use backtracking for mere membership when DP available."
+    ],
+    [
+      "Lexicographic monotonic stack",
+      "IMPORTANT",
+      "Smallest distinct-character subsequence or removing k digits.",
+      "Pop larger top only if it can be recovered later.",
+      "O(n) expected",
+      "O(k)",
+      "316 Remove Duplicate Letters; 402 Remove K Digits",
+      "Track remaining counts before pop.",
+      "Stack is lexicographically smallest feasible prefix.",
+      "Requires a well-defined future-availability condition."
+    ],
+    [
+      "Binary search on substring length",
+      "ADVANCED",
+      "Longest repeated substring length with monotonic predicate.",
+      "Guess length, check repeated-window hash, move bound.",
+      "O(n log n+V) rolling check, V verification work; conservative O(n³ log n) worst upper bound; copy baseline O(n² log n)",
+      "O(n) candidate indices + output rolling; O(nL) copy baseline",
+      "1044 Longest Duplicate Substring; 1898 Maximum Removable Characters",
+      "Check true monotonicity and collisions.",
+      "Feasibility is monotonic over length.",
+      "Not for non-monotonic substring conditions."
+    ],
+    [
+      "Aho–Corasick multiple pattern matching",
+      "ADVANCED",
+      "Many keywords in one stream/text.",
+      "Trie plus failure links and outputs; match stream in one pass. Supplied sparse implementation copies suffix outputs; its construction cost is not the ideal automaton bound.",
+      "O(S*h + E + n + z) expected upper bound for supplied sparse build",
+      "O(S+E+z), including copied suffix outputs",
+      "1032 Stream of Characters; 212 Word Search II (trie variant)",
+      "Word Search II uses trie+DFS, not AC directly.",
+      "Failure links preserve viable suffix prefixes.",
+      "Extra preprocessing overhead for one pattern."
+    ],
+    [
+      "Manacher linear palindromes",
+      "ADVANCED",
+      "Longest contiguous palindrome for very large n.",
+      "Exploit palindrome radius mirrors inside known right boundary.",
+      "O(n)",
+      "O(n)",
+      "5 Longest Palindromic Substring; 647 Palindromic Substrings",
+      "Sentinel and parity bookkeeping.",
+      "Mirror radius gives safe initial lower bound.",
+      "Center expansion is simpler for moderate constraints."
+    ]
+  ],
+  "recognize": [
+    [
+      "Same characters in different order",
+      "Counter / frequency signature",
+      "Order irrelevant but multiplicities must match."
+    ],
+    [
+      "Groups of rearranged words",
+      "Sorted key or 26-count tuple",
+      "Canonical multiset fingerprint."
+    ],
+    [
+      "Longest contiguous region without duplicates",
+      "Last-seen sliding window",
+      "Left boundary never moves backwards."
+    ],
+    [
+      "Length exactly pattern width, permutation",
+      "Fixed-width frequency window",
+      "Exact multiset of m-character substring."
+    ],
+    [
+      "Smallest region containing target",
+      "Minimum cover window",
+      "Shrink while valid, track duplicate requirements."
+    ],
+    [
+      "Longest region with <= k distinct",
+      "Variable window + count cleanup",
+      "Discard keys at zero."
+    ],
+    [
+      "Characters in order but gaps allowed",
+      "Subsequence two-pointer",
+      "Not contiguous substring."
+    ],
+    [
+      "Entire string mirror equality",
+      "Opposite-end pointers",
+      "Normalization contract first."
+    ],
+    [
+      "Longest contiguous mirror segment",
+      "Odd/even center expansion",
+      "Every palindrome has a center."
+    ],
+    [
+      "Longest noncontiguous mirror selection",
+      "Palindromic subsequence DP",
+      "May skip characters."
+    ],
+    [
+      "Nested brackets",
+      "Stack of openers",
+      "Balance counts alone insufficient."
+    ],
+    [
+      "Delete adjacent equal pairs repeatedly",
+      "Reduction stack",
+      "Cascades after pop."
+    ],
+    [
+      "Repeated consecutive groups",
+      "Run-length encoding",
+      "Not total frequency."
+    ],
+    [
+      "All occurrences of one pattern worst-case linear",
+      "KMP or Z-function",
+      "Use prefix/border reuse."
+    ],
+    [
+      "Many word prefixes",
+      "Trie",
+      "Mark terminal words."
+    ],
+    [
+      "Many search patterns against same text",
+      "Aho–Corasick",
+      "Trie+failure links."
+    ],
+    [
+      "Longest shared ordered subsequence",
+      "LCS DP",
+      "No contiguity."
+    ],
+    [
+      "Minimum insert/delete/replace operations",
+      "Edit distance DP",
+      "Specify operation costs."
+    ],
+    [
+      "Can text be split into dictionary words?",
+      "Word Break DP",
+      "Memoize suffix/prefix feasibility."
+    ],
+    [
+      "Even/odd count constraints",
+      "Prefix parity XOR mask",
+      "Each occurrence toggles its bit."
+    ],
+    [
+      "Equal counts of two groups",
+      "Prefix signed balance",
+      "First equal state gives max span."
+    ],
+    [
+      "Smallest lexicographic distinct-letter result",
+      "Greedy monotonic stack",
+      "Only pop recoverable letters."
+    ],
+    [
+      "Repeated fixed-length substrings",
+      "Rolling hash / fixed window",
+      "Verify hash collisions."
+    ],
+    [
+      "Case-insensitive Unicode equality",
+      "Normalization + casefold",
+      "Length may expand."
+    ],
+    [
+      "Remove extra whitespace while reversing words",
+      "Tokenize + reverse + join",
+      "Does contract preserve whitespace?"
+    ],
+    [
+      "Count exactly K distinct substrings",
+      "CountAtMost(K)-CountAtMost(K-1)",
+      "Use valid at-most window counting."
+    ]
+  ],
+  "contrasts": [
+    [
+      "Substring vs subsequence",
+      "Substring is contiguous, so scan/window/center; subsequence permits skipped indices and often uses greedy/DP."
+    ],
+    [
+      "Palindrome vs anagram",
+      "Palindrome uses mirror positions. Anagram uses count multiset; reverse order irrelevant."
+    ],
+    [
+      "Counter vs 26 slots",
+      "Counter handles arbitrary code points; 26 slots faster only for guaranteed a–z."
+    ],
+    [
+      "Fixed vs variable window",
+      "Exact length matching uses fixed; minimum-cover uses shrink-while-valid variable window."
+    ],
+    [
+      "Min cover vs longest valid",
+      "Minimize: shrink while valid. Maximize: shrink while invalid."
+    ],
+    [
+      "Palindromic substring vs subsequence",
+      "Centers find contiguous palindromes; interval DP allows skipped characters."
+    ],
+    [
+      "Word Break vs LCS",
+      "Segment with dictionary words versus match ordered chars across two strings."
+    ],
+    [
+      "KMP vs trie",
+      "One text/pattern linear match versus many dictionary prefixes."
+    ],
+    [
+      "lower vs casefold vs NFC",
+      "Case conversion; full caseless equality; canonical Unicode normalization are distinct."
+    ],
+    [
+      "Reverse s[::-1] vs list swaps",
+      "Python str creates new storage; swaps are O(1) extra only on mutable list."
+    ],
+    [
+      "Counter signatures vs sorted key",
+      "Counter signature can be O(length) for bounded alphabet; sort key takes O(length log length)."
+    ]
+  ],
+  "edges": [
+    [
+      "Empty s/pattern",
+      "s='', p=''",
+      "Empty substring/target and no-character answers must be defined."
+    ],
+    [
+      "Single character",
+      "s='a'",
+      "Start/end pointers and loops may skip body."
+    ],
+    [
+      "Even palindrome",
+      "'abba'",
+      "Need center between characters."
+    ],
+    [
+      "Odd palindrome",
+      "'racecar'",
+      "Need center on a character."
+    ],
+    [
+      "All equal",
+      "'aaaaa'",
+      "Distinct windows and overlapping matches."
+    ],
+    [
+      "All unique",
+      "'abcdef'",
+      "Longest unique window can be full length."
+    ],
+    [
+      "Target duplicates",
+      "s='bbaa', t='aab'",
+      "A set cannot represent multiplicities."
+    ],
+    [
+      "No match",
+      "s='abc', t='xyz'",
+      "find=-1 versus index raising exception."
+    ],
+    [
+      "Overlapping substrings",
+      "s='aaaa', p='aa'",
+      "Overlapping starts 0,1,2; count() returns 2."
+    ],
+    [
+      "Multiple whitespace characters",
+      "s=' a  b\\t'",
+      "split() and split(' ') not equivalent."
+    ],
+    [
+      "Only punctuation",
+      "s='.,!?'",
+      "Alphanumeric palindrome filter becomes empty."
+    ],
+    [
+      "Mixed case",
+      "s='Aa'",
+      "Case-sensitive by default."
+    ],
+    [
+      "Unicode composition",
+      "'é' vs 'e\\u0301'",
+      "Normalization matters when requested."
+    ],
+    [
+      "Unicode case expansion",
+      "'ß'.casefold()",
+      "One character expands to two."
+    ],
+    [
+      "Emoji / variation sequences",
+      "'♥️'",
+      "Not one grapheme = one code point."
+    ],
+    [
+      "Long repeated prefix",
+      "s='a'*10000+'b'",
+      "Adversarial naive search can be quadratic."
+    ],
+    [
+      "Crossed bracket order",
+      "'([)]'",
+      "Equal counts not enough."
+    ],
+    [
+      "Backspace over-delete",
+      "s='###a'",
+      "Ignore backspace on empty."
+    ],
+    [
+      "One-deletion palindrome",
+      "'abca'",
+      "Try both skips."
+    ],
+    [
+      "DP empty prefix",
+      "a='',b='abc'",
+      "Base edit costs/empty subsequences."
+    ],
+    [
+      "No LCS",
+      "a='abc',b='def'",
+      "Length should be zero."
+    ],
+    [
+      "Long string O(n²) warning",
+      "n=100000",
+      "Palindromic centers/DP may exceed limits."
+    ],
+    [
+      "Zero window / k",
+      "k=0",
+      "Loop validity and empty answers."
+    ],
+    [
+      "Nested runs / multi-digit count",
+      "'a'*12",
+      "Encoding must handle 12 rather than 1 then 2."
+    ],
+    [
+      "Immutable assignment",
+      "s[0]='x'",
+      "TypeError; convert to list or rebuild."
+    ],
+    [
+      "Exponential output",
+      "digits='7777777'",
+      "Enumerating combinations has inevitable output size."
+    ],
+    [
+      "Algorithm-specific: unique-window retreat",
+      "s=\"abba\"",
+      "longest_unique=2; left=max(left,last+1) avoids moving left backward."
+    ],
+    [
+      "Algorithm-specific: repeated target",
+      "s=\"AAAB\", t=\"AAB\"",
+      "min_window=\"AAB\"; distinct-set coverage alone incorrectly accepts \"AB\"."
+    ],
+    [
+      "Algorithm-specific: overlapping match",
+      "text=\"aaaaa\", pattern=\"aaa\"",
+      "KMP/Rabin-Karp return [0,1,2]; reset KMP j via lps after match."
+    ],
+    [
+      "Algorithm-specific: skip both candidates",
+      "s=\"deeee\"",
+      "one_delete_palindrome=True; left-only or right-only arbitrary skip may fail."
+    ],
+    [
+      "Universal: Unicode escaped versus composed",
+      "x=\"é\", y=\"e\\u0301\" interpreted as combining form",
+      "len(x)=1,len(y)=2; NFC equality True, raw equality False."
+    ],
+    [
+      "Algorithm-specific: longest parentheses reset",
+      "s=\")()())\"",
+      "longest_valid_parentheses=4; unmatched closer must reset base index."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Repeated += in loops",
+      "Build pieces in list then ''.join(parts) to avoid quadratic worst-case."
+    ],
+    [
+      "Claiming reversal is O(1) space",
+      "s[::-1] creates an O(n) string."
+    ],
+    [
+      "Confusing code points and bytes",
+      "Python str is Unicode; ASCII-only shortcuts need explicit constraints."
+    ],
+    [
+      "strip vs removeprefix",
+      "strip('ab') removes edge a/b characters, not the substring 'ab'."
+    ],
+    [
+      "split() vs split(' ')",
+      "Default collapses whitespace; literal space retains empty pieces."
+    ],
+    [
+      "== vs is",
+      "Content comparison always uses ==."
+    ],
+    [
+      "Missing last run in RLE",
+      "Flush after loop or use sentinel i==n."
+    ],
+    [
+      "Matching unique sets for anagrams",
+      "Compare multiplicities, not just distinct symbols."
+    ],
+    [
+      "Zero-count keys in sliding window",
+      "Remove keys once their count reaches zero."
+    ],
+    [
+      "Left pointer moving backwards",
+      "Use max(left,lastSeen[ch]+1)."
+    ],
+    [
+      "Missing even palindrome centers",
+      "Test 'abba' as well as 'aba'."
+    ],
+    [
+      "KMP fallback to zero",
+      "Use lps[j-1] and reuse matched borders."
+    ],
+    [
+      "Hash collisions",
+      "Verify exact substring text on matching hash."
+    ],
+    [
+      "Empty target handling",
+      "Handle target='' before entering min-cover loop."
+    ],
+    [
+      "Fixed 26 alphabet on Unicode",
+      "Use Counter unless lowercase Latin guaranteed."
+    ],
+    [
+      "Unjustified O(n) substring search",
+      "Specify naive O(nm), KMP O(n+m), implementation-dependent built-in."
+    ],
+    [
+      "Substring vs subsequence",
+      "The latter may skip positions."
+    ],
+    [
+      "Mutating immutable string",
+      "Use list chars or return new string."
+    ],
+    [
+      "DP wrong filling order",
+      "Define dp state and dependencies before loops."
+    ],
+    [
+      "Ignoring output growth",
+      "Recursive generators can be exponential."
+    ],
+    [
+      "Silent private note replacement",
+      "Archive exact source and require user approval before clearing."
+    ],
+    [
+      "True rolling-hash hits cost too",
+      "Substring verification can cost O(m) on every real match in repetitive input, not only collisions."
+    ],
+    [
+      "Sparse automaton accounting",
+      "Copied failure outputs and sparse failure-link walks cost extra; do not label this particular Aho–Corasick build universally O(total patterns)."
+    ]
+  ],
+  "impress": [
+    [
+      "Ask about character rules",
+      "Case, ASCII/Unicode, punctuation, spaces, normalization."
+    ],
+    [
+      "Clarify contiguity",
+      "Substring or subsequence changes algorithm entirely."
+    ],
+    [
+      "Explain an invariant",
+      "State meaning of counts/window/stack/DP state."
+    ],
+    [
+      "Optimize memory",
+      "Indices avoid copying; keep string builder efficient."
+    ],
+    [
+      "Compare brute to optimized",
+      "Describe direct approach and why constraints demand better."
+    ],
+    [
+      "Account for output size",
+      "All-substring/combination generation has intrinsic cost."
+    ],
+    [
+      "Explain multiplicities",
+      "Count map not set for target anagrams/windows."
+    ],
+    [
+      "Test duplicates",
+      "Use 'aab', 'abba', 'aaaa' to break shortcuts."
+    ],
+    [
+      "Name variables well",
+      "left,right,need,have,lps,first_seen support reasoning."
+    ],
+    [
+      "Call out failure cases",
+      "Empty pattern, Unicode, no match, even centers."
+    ],
+    [
+      "Compare alternatives",
+      "KMP vs find, Counter vs array, centers vs Manacher."
+    ],
+    [
+      "Keep Pythonic and precise",
+      "Use join, Counter, enumerate without hiding costs."
+    ],
+    [
+      "Show pointer progress",
+      "Explain why every while loop terminates."
+    ],
+    [
+      "Respond to constraints",
+      "Discuss streaming, many queries, or low memory alternatives."
+    ]
+  ],
+  "memory": [
+    [
+      "Half-open boundaries",
+      "s[left:right], length = right-left",
+      "Right excluded; prefix difference uses same endpoints."
+    ],
+    [
+      "Reverse str",
+      "s[::-1]",
+      "O(n) space/time, not in place."
+    ],
+    [
+      "Efficient building",
+      "''.join(parts)",
+      "Total output length matters."
+    ],
+    [
+      "Palindrome comparison",
+      "s[left]==s[right]",
+      "Outside interval already verified."
+    ],
+    [
+      "Anagram multiset",
+      "Counter(a)==Counter(b)",
+      "Count multiplicity."
+    ],
+    [
+      "Fixed window",
+      "add new, remove old",
+      "Width equals target length."
+    ],
+    [
+      "Unique longest window",
+      "left=max(left,last[c]+1)",
+      "Never retreat."
+    ],
+    [
+      "Minimum cover",
+      "formed==required; shrink while valid",
+      "Required means satisfied character classes, not total count."
+    ],
+    [
+      "Subsequence",
+      "advance j if query[j]==ch",
+      "Order matters, not contiguity."
+    ],
+    [
+      "Palindrome centers",
+      "expand(i,i); expand(i,i+1)",
+      "Odd and even."
+    ],
+    [
+      "KMP mismatch",
+      "j=lps[j-1]",
+      "Preserve longest viable border."
+    ],
+    [
+      "Prefix count",
+      "pref[r]-pref[l]",
+      "Works on s[l:r]."
+    ],
+    [
+      "Parity",
+      "mask ^= 1 << bit",
+      "Odd/even toggles."
+    ],
+    [
+      "Bracket stack",
+      "push opens; pop matching closes",
+      "Nesting order must match."
+    ],
+    [
+      "LCS recurrence",
+      "match: diag+1; else max(up,left)",
+      "Length of ordered subsequence."
+    ],
+    [
+      "Edit recurrence",
+      "match diag; else 1+min(up,left,diag)",
+      "Initialize empty-prefix distances."
+    ],
+    [
+      "Palindrome subsequence",
+      "equal: inner+2; else skip side",
+      "Span DP."
+    ],
+    [
+      "Word Break",
+      "dp[i] if some feasible previous cut",
+      "Avoid recomputing suffixes."
+    ],
+    [
+      "Result-size lower bound",
+      "all generated strings ≥ output work",
+      "Report output sensitivity."
+    ]
+  ],
+  "templates": [
+    [
+      "Palindrome check, constant auxiliary",
+      "O(n)",
+      "O(1)",
+      [
+        "def is_palindrome(s):",
+        "    left, right = 0, len(s)-1",
+        "    while left < right:",
+        "        if s[left] != s[right]: return False",
+        "        left += 1; right -= 1",
+        "    return True"
+      ],
+      "Exact code points; bool, empty True. No input mutation; explicit return/sentinel branches define the output. If ignoring punctuation, skip nonalphanumeric characters before comparing."
+    ],
+    [
+      "Alphanumeric palindrome with ASCII assumptions",
+      "O(n)",
+      "O(1)",
+      [
+        "def valid_palindrome(s):",
+        "    left, right = 0, len(s)-1",
+        "    while left < right:",
+        "        while left < right and not s[left].isalnum(): left += 1",
+        "        while left < right and not s[right].isalnum(): right -= 1",
+        "        if s[left].lower() != s[right].lower(): return False",
+        "        left += 1; right -= 1",
+        "    return True"
+      ],
+      "ASCII case-insensitive alphanumeric palindrome; punctuation ignored; bool, empty True. Not full Unicode casefold equivalence. No input mutation; explicit return/sentinel branches define the output. Suitable to LeetCode 125 ASCII letters/digits; Unicode full casefold may expand code points."
+    ],
+    [
+      "Reverse list of characters in place",
+      "O(n)",
+      "O(1)",
+      [
+        "def reverse_chars(chars):",
+        "    l, r = 0, len(chars)-1",
+        "    while l < r:",
+        "        chars[l], chars[r] = chars[r], chars[l]",
+        "        l += 1; r -= 1",
+        "    return chars"
+      ],
+      "Mutable char list; mutates and returns same list, empty unchanged. If the input is an immutable str, use s[::-1] (O(n) extra)."
+    ],
+    [
+      "Anagram check using Counter",
+      "O(n) expected",
+      "O(k)",
+      [
+        "from collections import Counter",
+        "def is_anagram(a,b):",
+        "    return len(a)==len(b) and Counter(a)==Counter(b)"
+      ],
+      "Exact code-point multiplicities; bool; empty inputs equal. No input mutation; explicit return/sentinel branches define the output. Counter handles unrestricted Unicode; if only a-z use 26 counters."
+    ],
+    [
+      "Group anagrams by canonical sorted key",
+      "O(W + N log(max(2,L)))",
+      "O(W+N) group keys/references and sorting workspace",
+      [
+        "from collections import defaultdict",
+        "def group_anagrams(words):",
+        "    groups=defaultdict(list)",
+        "    for word in words:",
+        "        signature=''.join(sorted(word))",
+        "        groups[signature].append(word)",
+        "    return list(groups.values())"
+      ],
+      "Word iterable; groups of original word references; empty input [], empty words group together. No input mutation; explicit return/sentinel branches define the output. N=total characters; L=max word length; sorting makes copies. W=number of words (including empty ones), N=total characters, L=max length."
+    ],
+    [
+      "First unique character",
+      "O(n) expected",
+      "O(k)",
+      [
+        "from collections import Counter",
+        "def first_unique(s):",
+        "    count=Counter(s)",
+        "    for i,ch in enumerate(s):",
+        "        if count[ch]==1: return i",
+        "    return -1"
+      ],
+      "Earliest unique zero-based index or -1; empty -1. No input mutation; explicit return/sentinel branches define the output. Return char rather than index if contract demands."
+    ],
+    [
+      "Anagram starts: fixed window general alphabet",
+      "O(nk) worst for comparing counters",
+      "O(m+u) counts and initial slice + returned indices",
+      [
+        "from collections import Counter",
+        "def find_anagrams(s,p):",
+        "    m=len(p)",
+        "    if not m or m>len(s): return []",
+        "    need=Counter(p); win=Counter(s[:m])",
+        "    result=[0] if win==need else []",
+        "    for right in range(m,len(s)):",
+        "        win[s[right]]+=1",
+        "        old=s[right-m]; win[old]-=1",
+        "        if win[old]==0: del win[old]",
+        "        if win==need: result.append(right-m+1)",
+        "    return result"
+      ],
+      "All overlapping anagram starts; empty pattern [] by convention, m>n []. No input mutation; explicit return/sentinel branches define the output. k=distinct active characters; fixed a-z arrays give O(n) runtime."
+    ],
+    [
+      "Permutation contained: 26 slots (lowercase a-z only)",
+      "O(n+m)",
+      "O(1)",
+      [
+        "def permutation_in_string(pattern,text):",
+        "    m=len(pattern)",
+        "    if m>len(text): return False",
+        "    if not m: return True",
+        "    need=[0]*26; win=[0]*26",
+        "    for ch in pattern: need[ord(ch)-97]+=1",
+        "    for i,ch in enumerate(text):",
+        "        win[ord(ch)-97]+=1",
+        "        if i>=m: win[ord(text[i-m])-97]-=1",
+        "        if i>=m-1 and win==need: return True",
+        "    return False"
+      ],
+      "Lowercase a-z only; bool; empty pattern True. No input mutation; explicit return/sentinel branches define the output. For Unicode, replace fixed array with Counter and track matches."
+    ],
+    [
+      "Longest substring without repeats",
+      "O(n) expected",
+      "O(k)",
+      [
+        "def longest_unique(s):",
+        "    last={}; left=best=0",
+        "    for right,ch in enumerate(s):",
+        "        if ch in last: left=max(left,last[ch]+1)",
+        "        last[ch]=right",
+        "        best=max(best,right-left+1)",
+        "    return best"
+      ],
+      "Longest unique-substring length, empty 0; map retains u observed types. No input mutation; explicit return/sentinel branches define the output. Save best (start,length) if asked for substring itself."
+    ],
+    [
+      "Longest substring with at most K distinct",
+      "O(n) expected",
+      "O(k)",
+      [
+        "from collections import defaultdict",
+        "def longest_k_distinct(s,k):",
+        "    if k<=0: return 0",
+        "    count=defaultdict(int); left=best=0",
+        "    for right,ch in enumerate(s):",
+        "        count[ch]+=1",
+        "        while len(count)>k:",
+        "            old=s[left]; count[old]-=1",
+        "            if count[old]==0: del count[old]",
+        "            left+=1",
+        "        best=max(best,right-left+1)",
+        "    return best"
+      ],
+      "Longest substring length with at most k types; k<=0 returns 0. No input mutation; explicit return/sentinel branches define the output. Count substrings at most K by adding right-left+1 instead of max."
+    ],
+    [
+      "Minimum window substring",
+      "O(n+m) expected",
+      "O(k)",
+      [
+        "from collections import Counter",
+        "def min_window(s,t):",
+        "    if not s or not t: return ''",
+        "    need=Counter(t); have={}",
+        "    formed=0; required=len(need)",
+        "    left=0; best=(float('inf'),0,0)",
+        "    for right,ch in enumerate(s):",
+        "        if ch in need: have[ch]=have.get(ch,0)+1",
+        "        if ch in need and have[ch]==need[ch]: formed+=1",
+        "        while formed==required:",
+        "            if right-left+1<best[0]:",
+        "                best=(right-left+1,left,right+1)",
+        "            old=s[left]",
+        "            if old in need: have[old]-=1",
+        "            if old in need and have[old]<need[old]: formed-=1",
+        "            left+=1",
+        "    return '' if best[0]==float('inf') else s[best[1]:best[2]]"
+      ],
+      "Shortest multiplicity cover str; empty/no-cover empty; first minimum on ties. No input mutation; explicit return/sentinel branches define the output. No mutation; empty source/target or missing cover returns empty str. Track target symbols only: O(u_target) auxiliary plus returned substring. For an index-only contract return best boundaries instead."
+    ],
+    [
+      "Longest repeating character replacement",
+      "O(n) expected",
+      "O(u) observed symbols (constant for fixed alphabet)",
+      [
+        "from collections import defaultdict",
+        "def replacement_length(s,k):",
+        "    if k<0: return 0",
+        "    count=defaultdict(int)",
+        "    left=best=maxfreq=0",
+        "    for right,ch in enumerate(s):",
+        "        count[ch]+=1",
+        "        maxfreq=max(maxfreq,count[ch])",
+        "        while right-left+1-maxfreq>k:",
+        "            count[s[left]]-=1",
+        "            left+=1",
+        "        best=max(best,right-left+1)",
+        "    return best"
+      ],
+      "Nonnegative budget k; best replacement length only; negative returns 0 sentinel, not valid grouping. No input mutation; explicit return/sentinel branches define the output. A stale maxfreq works for best length, not necessarily exact active window reconstruction."
+    ],
+    [
+      "Ordered subsequence scan",
+      "O(n+m)",
+      "O(1)",
+      [
+        "def is_subsequence(query,text):",
+        "    j=0",
+        "    for ch in text:",
+        "        if j<len(query) and query[j]==ch: j+=1",
+        "    return j==len(query)"
+      ],
+      "Ordered-subsequence bool, empty query True. No input mutation; explicit return/sentinel branches define the output. For numerous queries preprocess character index lists and binary-search."
+    ],
+    [
+      "Longest palindromic substring: odd/even centers",
+      "O(n²)",
+      "O(1) auxiliary",
+      [
+        "def longest_palindrome(s):",
+        "    best_l=best_r=0",
+        "    def expand(l,r):",
+        "        nonlocal best_l,best_r",
+        "        while l>=0 and r<len(s) and s[l]==s[r]:",
+        "            if r-l>best_r-best_l: best_l,best_r=l,r",
+        "            l-=1; r+=1",
+        "    for i in range(len(s)):",
+        "        expand(i,i); expand(i,i+1)",
+        "    return s[best_l:best_r+1]"
+      ],
+      "Any longest contiguous palindrome str; empty empty; returned slice allocates. No input mutation; explicit return/sentinel branches define the output. To count every palindromic substring, increment a counter inside each successful expansion."
+    ],
+    [
+      "Valid palindrome after one deletion",
+      "O(n)",
+      "O(1)",
+      [
+        "def one_delete_palindrome(s):",
+        "    def check(l,r):",
+        "        while l<r:",
+        "            if s[l]!=s[r]: return False",
+        "            l+=1; r-=1",
+        "        return True",
+        "    left,right=0,len(s)-1",
+        "    while left<right:",
+        "        if s[left]!=s[right]:",
+        "            return check(left+1,right) or check(left,right-1)",
+        "        left+=1; right-=1",
+        "    return True"
+      ],
+      "At most one deletion; bool, empty True; compare bound intervals without copies. No input mutation; explicit return/sentinel branches define the output. Two skip candidates matter; don't greedily choose only one."
+    ],
+    [
+      "Run-length compression, counts including 1",
+      "O(n+output)",
+      "O(n)",
+      [
+        "def encode_runs(s):",
+        "    if not s: return ''",
+        "    result=[]; start=0",
+        "    for i in range(1,len(s)+1):",
+        "        if i==len(s) or s[i]!=s[start]:",
+        "            result.append(s[start]+str(i-start))",
+        "            start=i",
+        "    return ''.join(result)"
+      ],
+      "Run encoding includes count 1; empty empty; ambiguous to decode unrestricted digits. No input mutation; explicit return/sentinel branches define the output. For LeetCode 443 mutate the supplied char list and omit count 1."
+    ],
+    [
+      "Bracket validation with stack",
+      "O(n)",
+      "O(n)",
+      [
+        "def valid_brackets(s):",
+        "    pair={')':'(',']':'[','}':'{'}",
+        "    stack=[]",
+        "    for ch in s:",
+        "        if ch in '([{': stack.append(ch)",
+        "        elif ch in pair:",
+        "            if not stack or stack.pop()!=pair[ch]: return False",
+        "        else: return False",
+        "    return not stack"
+      ],
+      "Only ()[]{}; bool, empty True, unrelated chars rejected. No input mutation; explicit return/sentinel branches define the output. If unrelated text characters are allowed, skip them instead of rejecting."
+    ],
+    [
+      "Adjacent pair cancellation",
+      "O(n)",
+      "O(n)",
+      [
+        "def remove_pairs(s):",
+        "    stack=[]",
+        "    for ch in s:",
+        "        if stack and stack[-1]==ch: stack.pop()",
+        "        else: stack.append(ch)",
+        "    return ''.join(stack)"
+      ],
+      "Reduced adjacent equal pairs as str; empty empty. No input mutation; explicit return/sentinel branches define the output. For groups of k, track (character,count) in the stack."
+    ],
+    [
+      "Prefix balance longest equal 0s and 1s",
+      "O(n) expected",
+      "O(n)",
+      [
+        "def longest_balanced_binary(s):",
+        "    first={0:-1}; balance=best=0",
+        "    for i,ch in enumerate(s):",
+        "        balance+=1 if ch=='1' else -1",
+        "        if balance in first: best=max(best,i-first[balance])",
+        "        else: first[balance]=i",
+        "    return best"
+      ],
+      "Only 0/1; longest balanced contiguous length; empty 0. No input mutation; explicit return/sentinel branches define the output. Assumes alphabet only '0' and '1'."
+    ],
+    [
+      "Vowel parity bitmask longest substring",
+      "O(n) expected",
+      "O(1), at most 32 vowel-parity states",
+      [
+        "def even_vowel_substring(s):",
+        "    mapping={c:i for i,c in enumerate('aeiou')}",
+        "    seen={0:-1}; mask=best=0",
+        "    for i,ch in enumerate(s):",
+        "        if ch in mapping: mask^=1<<mapping[ch]",
+        "        if mask in seen: best=max(best,i-seen[mask])",
+        "        else: seen[mask]=i",
+        "    return best"
+      ],
+      "Track lowercase aeiou parity only; other code points neutral; longest all-even length, empty 0. No input mutation; explicit return/sentinel branches define the output. To allow at most one odd tracked character, test mask and one-bit toggles."
+    ],
+    [
+      "KMP guaranteed linear substring matching",
+      "O(n+m)",
+      "O(m) + returned matches",
+      [
+        "def kmp(text,pat):",
+        "    if not pat: return [0]",
+        "    m=len(pat); lps=[0]*m; j=0",
+        "    for i in range(1,m):",
+        "        while j and pat[i]!=pat[j]: j=lps[j-1]",
+        "        if pat[i]==pat[j]: j+=1",
+        "        lps[i]=j",
+        "    starts=[]; j=0",
+        "    for i,ch in enumerate(text):",
+        "        while j and ch!=pat[j]: j=lps[j-1]",
+        "        if ch==pat[j]: j+=1",
+        "        if j==m:",
+        "            starts.append(i-m+1)",
+        "            j=lps[j-1]",
+        "    return starts"
+      ],
+      "All overlapping exact starts; empty pattern [0], not every boundary. No input mutation; explicit return/sentinel branches define the output. For first match only, return first start instead of collecting all; state empty-pattern convention."
+    ],
+    [
+      "Z-array longest prefix match per index",
+      "O(n)",
+      "O(n)",
+      [
+        "def z_function(s):",
+        "    n=len(s); z=[0]*n",
+        "    left=right=0",
+        "    for i in range(1,n):",
+        "        if i<=right: z[i]=min(right-i+1,z[i-left])",
+        "        while i+z[i]<n and s[z[i]]==s[i+z[i]]:",
+        "            z[i]+=1",
+        "        if i+z[i]-1>right: left,right=i,i+z[i]-1",
+        "    return z"
+      ],
+      "Z array with Z[0]=0 convention; empty []. No input mutation; explicit return/sentinel branches define the output. For pattern-in-text, prefix with sentinel unavailable in input and compare Z to pattern length."
+    ],
+    [
+      "Trie insert/find/prefix: arbitrary characters",
+      "O(L) expected per operation",
+      "O(sum inserted lengths)",
+      [
+        "class Trie:",
+        "    END=object()",
+        "    def __init__(self): self.root={}",
+        "    def insert(self,word):",
+        "        node=self.root",
+        "        for ch in word:",
+        "            node=node.setdefault(ch,{})",
+        "        node[self.END]=True",
+        "    def search(self,word):",
+        "        node=self.root",
+        "        for ch in word:",
+        "            if ch not in node: return False",
+        "            node=node[ch]",
+        "        return self.END in node",
+        "    def starts_with(self,prefix):",
+        "        node=self.root",
+        "        for ch in prefix:",
+        "            if ch not in node: return False",
+        "            node=node[ch]",
+        "        return True"
+      ],
+      "Trie arbitrary code points, empty word allowed; exact requires terminal, prefix path only; empty prefix True. No input mutation; explicit return/sentinel branches define the output. Word Search II: DFS board constrained by trie prefixes; empty word is allowed as a stored terminal."
+    ],
+    [
+      "Word Break prefix feasibility",
+      "O(n³) worst in Python with slices",
+      "O(n + dictionary)",
+      [
+        "def word_break(s,words):",
+        "    vocabulary=set(words); vocabulary.discard('')",
+        "    dp=[False]*(len(s)+1)",
+        "    dp[0]=True",
+        "    for end in range(1,len(s)+1):",
+        "        for start in range(end):",
+        "            if dp[start] and s[start:end] in vocabulary:",
+        "                dp[end]=True; break",
+        "    return dp[-1]"
+      ],
+      "Dictionary strings, empty words ignored; segmentation bool, empty source True. No input mutation; explicit return/sentinel branches define the output. Prelimit word lengths to reduce slicing overhead; do not assume O(n²) in Python naive form."
+    ],
+    [
+      "Edit distance two rows",
+      "O(nm)",
+      "O(m)",
+      [
+        "def edit_distance(a,b):",
+        "    prev=list(range(len(b)+1))",
+        "    for i,c in enumerate(a,1):",
+        "        curr=[i]+[0]*len(b)",
+        "        for j,d in enumerate(b,1):",
+        "            curr[j]=prev[j-1] if c==d else 1+min(prev[j],curr[j-1],prev[j-1])",
+        "        prev=curr",
+        "    return prev[-1]"
+      ],
+      "Unit insertion/deletion/replacement integer distance; empty bases initialized. No input mutation; explicit return/sentinel branches define the output. For path reconstruction store full parent pointers/table."
+    ],
+    [
+      "Longest common subsequence length",
+      "O(nm)",
+      "O(m)",
+      [
+        "def lcs_length(a,b):",
+        "    prev=[0]*(len(b)+1)",
+        "    for c in a:",
+        "        curr=[0]*(len(b)+1)",
+        "        for j,d in enumerate(b,1):",
+        "            curr[j]=prev[j-1]+1 if c==d else max(prev[j],curr[j-1])",
+        "        prev=curr",
+        "    return prev[-1]"
+      ],
+      "Common subsequence length, not sequence; either empty 0. No input mutation; explicit return/sentinel branches define the output. Use complete table if you need actual subsequence."
+    ],
+    [
+      "Longest palindromic subsequence length",
+      "O(n²)",
+      "O(n²)",
+      [
+        "def longest_pal_subseq(s):",
+        "    n=len(s)",
+        "    if not n: return 0",
+        "    dp=[[0]*n for _ in range(n)]",
+        "    for i in range(n-1,-1,-1):",
+        "        dp[i][i]=1",
+        "        for j in range(i+1,n):",
+        "            if s[i]==s[j]:",
+        "                dp[i][j]=2+(dp[i+1][j-1] if j-i>1 else 0)",
+        "            else: dp[i][j]=max(dp[i+1][j],dp[i][j-1])",
+        "    return dp[0][n-1]"
+      ],
+      "Palindrome subsequence length; empty 0, quadratic table. No input mutation; explicit return/sentinel branches define the output. Minimum insertions to make palindrome = len(s)-LPS length."
+    ],
+    [
+      "Palindrome substring counter by centers",
+      "O(n²)",
+      "O(1)",
+      [
+        "def count_palindromes(s):",
+        "    count=0",
+        "    for center in range(2*len(s)-1):",
+        "        l=center//2; r=l+center%2",
+        "        while l>=0 and r<len(s) and s[l]==s[r]:",
+        "            count+=1; l-=1; r+=1",
+        "    return count"
+      ],
+      "Palindrome substrings counted by positions not distinct values; empty 0. No input mutation; explicit return/sentinel branches define the output. Store best boundaries instead for longest palindrome."
+    ],
+    [
+      "Phone keypad combinations backtracking",
+      "O(4^n * n) worst including materialized output",
+      "O(n) working + output",
+      [
+        "def phone_combos(digits):",
+        "    if not digits: return []",
+        "    letters={'2':'abc','3':'def','4':'ghi','5':'jkl','6':'mno','7':'pqrs','8':'tuv','9':'wxyz'}",
+        "    out=[]; path=[]",
+        "    def dfs(i):",
+        "        if i==len(digits):",
+        "            out.append(''.join(path)); return",
+        "        for ch in letters[digits[i]]:",
+        "            path.append(ch); dfs(i+1); path.pop()",
+        "    dfs(0)",
+        "    return out"
+      ],
+      "Digits 2..9 only; combination strings, empty digits []; other input outside contract. No input mutation; explicit return/sentinel branches define the output. Assumes every digit is 2..9; validate input in production. DFS depth O(n); use iterative traversal for deep inputs rather than globally raising recursion limits."
+    ],
+    [
+      "Remove duplicate letters lexicographically",
+      "O(n) expected",
+      "O(k)",
+      [
+        "from collections import Counter",
+        "def smallest_unique_subsequence(s):",
+        "    remaining=Counter(s); stack=[]; inside=set()",
+        "    for ch in s:",
+        "        remaining[ch]-=1",
+        "        if ch in inside: continue",
+        "        while stack and stack[-1]>ch and remaining[stack[-1]]>0:",
+        "            inside.remove(stack.pop())",
+        "        stack.append(ch); inside.add(ch)",
+        "    return ''.join(stack)"
+      ],
+      "Python lexical order; smallest subsequence with each distinct character once; empty empty. No input mutation; explicit return/sentinel branches define the output. For removing exactly k digits, use a monotonic stack with budget k."
+    ],
+    [
+      "Repeated fixed-length DNA strings",
+      "O(nk) for general k; O(n) for constant k=10",
+      "O(nk) worst",
+      [
+        "def repeated_windows(s,k=10):",
+        "    if k<=0: return []",
+        "    seen=set(); repeated=set()",
+        "    for i in range(len(s)-k+1):",
+        "        chunk=s[i:i+k]",
+        "        if chunk in seen: repeated.add(chunk)",
+        "        seen.add(chunk)",
+        "    return list(repeated)"
+      ],
+      "Unique repeated k-windows unspecified order; k<=0 or k>n returns []. No input mutation; explicit return/sentinel branches define the output. For large variable k, rolling encoded hashes avoid copying every substring; verify collisions."
+    ],
+    [
+      "Naive all overlapping exact pattern positions",
+      "O(nm) worst",
+      "O(1) auxiliary plus output",
+      [
+        "def all_occurrences(text,pattern):",
+        "    if not pattern: return [0]",
+        "    result=[]",
+        "    for i in range(len(text)-len(pattern)+1):",
+        "        if all(text[i+j]==pattern[j] for j in range(len(pattern))):",
+        "            result.append(i)",
+        "    return result"
+      ],
+      "All overlapping exact starts; empty pattern [0]. No input mutation; explicit return/sentinel branches define the output. Use KMP for worst-case linear complexity."
+    ],
+    [
+      "Remove every group of K adjacent equal characters",
+      "O(n + output)",
+      "O(n)",
+      [
+        "def remove_k_duplicates(s,k):",
+        "    if k <= 1: return ''",
+        "    stack=[]",
+        "    for ch in s:",
+        "        if stack and stack[-1][0]==ch: stack[-1][1]+=1",
+        "        else: stack.append([ch,1])",
+        "        if stack[-1][1]==k: stack.pop()",
+        "    return ''.join(ch*count for ch,count in stack)"
+      ],
+      "Positive k adjacent run cancellation; k=1 empty; k<=0 empty sentinel outside mathematical contract. No input mutation; explicit return/sentinel branches define the output. LeetCode 1209. Stack retains reduced prefix; pop can create a new adjacent group."
+    ],
+    [
+      "Generate valid parentheses via bounded DFS",
+      "O(C_n * n) output-sensitive",
+      "O(n) working plus output",
+      [
+        "def generate_parentheses(n):",
+        "    if n<0: return []",
+        "    result=[]; path=[]",
+        "    def dfs(opens,closes):",
+        "        if opens==closes==n:",
+        "            result.append(''.join(path)); return",
+        "        if opens<n:",
+        "            path.append('('); dfs(opens+1,closes); path.pop()",
+        "        if closes<opens:",
+        "            path.append(')'); dfs(opens,closes+1); path.pop()",
+        "    dfs(0,0)",
+        "    return result"
+      ],
+      "Nonnegative n pairs, all valid strings; n=0 [empty string]; negative []; recursion depth 2n. No input mutation; explicit return/sentinel branches define the output. C_n is the nth Catalan number; never append a closer when closes==opens. DFS depth O(n); use iterative traversal for deep inputs rather than globally raising recursion limits."
+    ],
+    [
+      "Palindrome partitioning: enumerate every split",
+      "O(n² + n*2^n) worst output-sensitive",
+      "O(n² + n) working plus output",
+      [
+        "def partition_palindromes(s):",
+        "    n=len(s); palindrome=[[False]*n for _ in range(n)]",
+        "    for i in range(n-1,-1,-1):",
+        "        for j in range(i,n):",
+        "            palindrome[i][j]=s[i]==s[j] and (j-i<3 or palindrome[i+1][j-1])",
+        "    answer=[]; path=[]",
+        "    def dfs(start):",
+        "        if start==n:",
+        "            answer.append(path.copy()); return",
+        "        for end in range(start,n):",
+        "            if palindrome[start][end]:",
+        "                path.append(s[start:end+1])",
+        "                dfs(end+1)",
+        "                path.pop()",
+        "    dfs(0)",
+        "    return answer"
+      ],
+      "All palindrome partitions; empty [[]]; exponential output. No input mutation; explicit return/sentinel branches define the output. For minimum cuts do not enumerate every solution: use min-cut DP. DFS depth O(n); use iterative traversal for deep inputs rather than globally raising recursion limits."
+    ],
+    [
+      "Minimum palindrome partition cuts",
+      "O(n²)",
+      "O(n²)",
+      [
+        "def min_palindrome_cuts(s):",
+        "    n=len(s)",
+        "    if not n: return 0",
+        "    pal=[[False]*n for _ in range(n)]",
+        "    for i in range(n-1,-1,-1):",
+        "        for j in range(i,n):",
+        "            pal[i][j]=s[i]==s[j] and (j-i<3 or pal[i+1][j-1])",
+        "    cuts=[0]*(n+1); cuts[0]=-1",
+        "    for end in range(1,n+1):",
+        "        cuts[end]=end-1",
+        "        for start in range(end):",
+        "            if pal[start][end-1]:",
+        "                cuts[end]=min(cuts[end],cuts[start]+1)",
+        "    return cuts[n]"
+      ],
+      "Minimum palindrome cuts; empty/already palindrome 0. No input mutation; explicit return/sentinel branches define the output. Cuts differ from number of pieces by one; empty prefix has cuts=-1."
+    ],
+    [
+      "Manacher: linear longest palindromic substring",
+      "O(n)",
+      "O(n)",
+      [
+        "def manacher_longest(s):",
+        "    n=len(s); odd=[0]*n; even=[0]*n",
+        "    left=0; right=-1",
+        "    for i in range(n):",
+        "        radius=1 if i>right else min(odd[left+right-i],right-i+1)",
+        "        while i-radius>=0 and i+radius<n and s[i-radius]==s[i+radius]:",
+        "            radius+=1",
+        "        odd[i]=radius",
+        "        if i+radius-1>right:",
+        "            left=i-radius+1; right=i+radius-1",
+        "    left=0; right=-1",
+        "    for i in range(n):",
+        "        radius=0 if i>right else min(even[left+right-i+1],right-i+1)",
+        "        while i-radius-1>=0 and i+radius<n and s[i-radius-1]==s[i+radius]:",
+        "            radius+=1",
+        "        even[i]=radius",
+        "        if i+radius-1>right:",
+        "            left=i-radius; right=i+radius-1",
+        "    best_left=best_length=0",
+        "    for i in range(n):",
+        "        if 2*odd[i]-1>best_length:",
+        "            best_length=2*odd[i]-1; best_left=i-odd[i]+1",
+        "        if 2*even[i]>best_length:",
+        "            best_length=2*even[i]; best_left=i-even[i]",
+        "    return s[best_left:best_left+best_length]"
+      ],
+      "Any longest contiguous palindrome; empty empty; separate odd/even radii. No input mutation; explicit return/sentinel branches define the output. Uses separate odd/even radii (no sentinel collision); center expansion is simpler for normal n."
+    ],
+    [
+      "Rabin-Karp verified exact substring matches",
+      "O(n+m+H*m), H = hash hits; O(nm) worst even for many true matches",
+      "O(m) substring verification plus output",
+      [
+        "def rabin_karp(text,pattern):",
+        "    if not pattern: return [0]",
+        "    n,m=len(text),len(pattern)",
+        "    if m>n: return []",
+        "    base=257; mod=1000000007",
+        "    high=pow(base,m-1,mod)",
+        "    target=window=0",
+        "    for i in range(m):",
+        "        target=(target*base+ord(pattern[i]))%mod",
+        "        window=(window*base+ord(text[i]))%mod",
+        "    result=[]",
+        "    for start in range(n-m+1):",
+        "        if window==target and text[start:start+m]==pattern:",
+        "            result.append(start)",
+        "        if start<n-m:",
+        "            window=(window-ord(text[start])*high)%mod",
+        "            window=(window*base+ord(text[start+m]))%mod",
+        "    return result"
+      ],
+      "All exact overlapping starts; empty pattern [0]; deterministic verified hash, not unconditional linear expectation. No input mutation; explicit return/sentinel branches define the output. Verify matching text on a hash collision; unlike KMP, worst case can be quadratic. Fixed deterministic modulus gives no unconditional expected-time guarantee. Repetitive text and pattern can force O(m) verification for every true hit too."
+    ],
+    [
+      "Aho-Corasick: multi-pattern text matching",
+      "O(S*h + E + n + z) expected upper bound for this sparse implementation",
+      "O(S+E+z)",
+      [
+        "from collections import deque",
+        "def aho_corasick(text,patterns):",
+        "    nodes=[{'go':{},'fail':0,'out':[]}]",
+        "    for index,word in enumerate(patterns):",
+        "        if not word: continue",
+        "        state=0",
+        "        for ch in word:",
+        "            edge=nodes[state]['go']",
+        "            if ch not in edge:",
+        "                edge[ch]=len(nodes)",
+        "                nodes.append({'go':{},'fail':0,'out':[]})",
+        "            state=edge[ch]",
+        "        nodes[state]['out'].append(index)",
+        "    queue=deque(nodes[0]['go'].values())",
+        "    while queue:",
+        "        state=queue.popleft()",
+        "        for ch,nxt in nodes[state]['go'].items():",
+        "            fail=nodes[state]['fail']",
+        "            while fail and ch not in nodes[fail]['go']:",
+        "                fail=nodes[fail]['fail']",
+        "            nodes[nxt]['fail']=nodes[fail]['go'].get(ch,0)",
+        "            nodes[nxt]['out'].extend(nodes[nodes[nxt]['fail']]['out'])",
+        "            queue.append(nxt)",
+        "    result=[]; state=0",
+        "    for i,ch in enumerate(text):",
+        "        while state and ch not in nodes[state]['go']:",
+        "            state=nodes[state]['fail']",
+        "        state=nodes[state]['go'].get(ch,0)",
+        "        for index in nodes[state]['out']:",
+        "            result.append((i-len(patterns[index])+1,index))",
+        "    return result"
+      ],
+      "Indexable pattern list; (start,pattern_index), duplicates retained, empty patterns ignored; endpoint then stored-ID order. No input mutation; explicit return/sentinel branches define the output. Returns (start index, pattern index). Empty patterns are ignored; matches can be numerous. S=trie states, h=max pattern length, E=total copied output IDs, z=matches. Sparse failure-link construction may walk O(h) per edge; copying failure outputs can be superlinear. Fixed-alphabet completed transitions and output links can improve these bounds."
+    ],
+    [
+      "Backspace comparison with backward skips",
+      "O(n+m)",
+      "O(1)",
+      [
+        "def backspace_equal(a,b):",
+        "    def previous(text,i):",
+        "        skip = 0",
+        "        while i >= 0:",
+        "            if text[i] == '#': skip += 1",
+        "            elif skip: skip -= 1",
+        "            else: return i",
+        "            i -= 1",
+        "        return -1",
+        "    i,j = len(a)-1,len(b)-1",
+        "    while True:",
+        "        i,j = previous(a,i),previous(b,j)",
+        "        if i < 0 or j < 0: return i == j",
+        "        if a[i] != b[j]: return False",
+        "        i -= 1; j -= 1"
+      ],
+      "# means backspace, overdelete ignored; transformed equality bool. No input mutation; explicit return/sentinel branches define the output. Hash character means backspace, deleting on empty has no effect; exact code-point comparison; no allocation of transformed strings. Change marker only if input semantics permit."
+    ],
+    [
+      "Longest valid parentheses with index sentinel",
+      "O(n)",
+      "O(n)",
+      [
+        "def longest_valid_parentheses(s):",
+        "    stack = [-1]; best = 0",
+        "    for i,ch in enumerate(s):",
+        "        if ch == '(': stack.append(i)",
+        "        elif ch == ')':",
+        "            stack.pop()",
+        "            if not stack: stack.append(i)",
+        "            else: best = max(best, i-stack[-1])",
+        "        else: raise ValueError('parentheses only')",
+        "    return best"
+      ],
+      "Only parentheses; longest balanced contiguous length, empty 0; others raise ValueError. No input mutation; explicit return/sentinel branches define the output. Input only ( and ); return longest contiguous balanced length, 0 for empty. Stack base records last unmatched closer; general bracket types require matching logic."
+    ],
+    [
+      "Longest duplicate substring by verified length search",
+      "O(n² log n) worst with slices/hash equality; no linear-check claim",
+      "O(nL) stored substring keys at tested length L",
+      [
+        "def longest_duplicate_substring(s):",
+        "    def duplicate(length):",
+        "        seen = set()",
+        "        for i in range(len(s)-length+1):",
+        "            part = s[i:i+length]",
+        "            if part in seen: return part",
+        "            seen.add(part)",
+        "        return None",
+        "    lo,hi = 1,len(s)-1",
+        "    answer = ''",
+        "    while lo <= hi:",
+        "        mid = (lo+hi)//2",
+        "        found = duplicate(mid)",
+        "        if found is not None:",
+        "            answer = found; lo = mid+1",
+        "        else: hi = mid-1",
+        "    return answer"
+      ],
+      "Longest repeated substring, overlaps allowed; empty if none; copy-heavy exact check, not fast rolling hash. No input mutation; explicit return/sentinel branches define the output. Overlapping repeated substrings allowed; returns any longest, empty if none. Exact Python string keys verify equality automatically; this simple copy-heavy baseline is not the optimized rolling-hash implementation. A length-L repeat implies a length-(L-1) repeat."
+    ],
+    [
+      "Word Break trie-guided prefix DP",
+      "O(D+nL) expected",
+      "O(D+n)",
+      [
+        "def word_break_trie(s, words):",
+        "    root = {}; terminal = object(); maxlen = 0",
+        "    for word in words:",
+        "        if not word: continue",
+        "        node = root; maxlen = max(maxlen, len(word))",
+        "        for ch in word: node = node.setdefault(ch,{})",
+        "        node[terminal] = True",
+        "    dp = [False]*(len(s)+1); dp[0] = True",
+        "    for start in range(len(s)):",
+        "        if not dp[start]: continue",
+        "        node = root",
+        "        for end in range(start,min(len(s),start+maxlen)):",
+        "            if s[end] not in node: break",
+        "            node = node[s[end]]",
+        "            if terminal in node: dp[end+1] = True",
+        "    return dp[-1]"
+      ],
+      "D=total dictionary characters, L=max word length, n=len(s). Exact Unicode words; empty dictionary words ignored. Return bool, empty source True; no mutation. Trie walk avoids candidate substring copies and fresh-string hashing; expected hash-map lookup bound."
+    ],
+    [
+      "Longest duplicate substring with verified rolling hashes",
+      "O(n log n+V), V=character verification work; O(n³ log n) conservative worst upper bound",
+      "O(n) hash-bucket indices + returned substring",
+      [
+        "def longest_duplicate_rolling(s, base=257, mod1=1000000007, mod2=1000000009):",
+        "    if base < 1 or mod1 < 1 or mod2 < 1:",
+        "        raise ValueError('positive hashing parameters required')",
+        "    n = len(s)",
+        "    def repeated_start(length):",
+        "        high1 = pow(base,length-1,mod1)",
+        "        high2 = pow(base,length-1,mod2)",
+        "        h1 = h2 = 0",
+        "        for i in range(length):",
+        "            h1 = (h1*base+ord(s[i]))%mod1",
+        "            h2 = (h2*base+ord(s[i]))%mod2",
+        "        buckets = {}",
+        "        for start in range(n-length+1):",
+        "            key = (h1,h2)",
+        "            for old in buckets.get(key,()):",
+        "                if all(s[old+j] == s[start+j] for j in range(length)):",
+        "                    return start",
+        "            buckets.setdefault(key,[]).append(start)",
+        "            if start < n-length:",
+        "                h1 = ((h1-ord(s[start])*high1)*base+ord(s[start+length]))%mod1",
+        "                h2 = ((h2-ord(s[start])*high2)*base+ord(s[start+length]))%mod2",
+        "        return -1",
+        "    lo,hi = 1,n-1",
+        "    best_start = best_length = 0",
+        "    while lo <= hi:",
+        "        mid = (lo+hi)//2",
+        "        start = repeated_start(mid)",
+        "        if start >= 0:",
+        "            best_start,best_length = start,mid",
+        "            lo = mid+1",
+        "        else: hi = mid-1",
+        "    return s[best_start:best_start+best_length]"
+      ],
+      "Exact code points, overlapping repeats allowed; returns any longest duplicate or empty. No mutation. Positive hashing parameters; tiny moduli valid but collision-heavy. Hash pairs retain candidate start indices and every candidate hit is verified character-by-character; forced collisions cannot produce false matches. Double hashing reduces practical collisions but proves no deterministic O(n log n) bound."
+    ]
+  ],
+  "practice": [
+    [
+      "LC 344 Reverse String",
+      "Two pointers",
+      "Easy",
+      "O(n) time / O(1) auxiliary on char list",
+      "Python str immutable"
+    ],
+    [
+      "LC 125 Valid Palindrome",
+      "Filter + two pointers",
+      "Easy",
+      "O(n) / O(1), ASCII contract",
+      "Punctuation/case"
+    ],
+    [
+      "LC 242 Valid Anagram",
+      "Counter",
+      "Easy",
+      "O(n+m) expected / O(u)",
+      "Duplicate counts"
+    ],
+    [
+      "LC 383 Ransom Note",
+      "Frequency inventory",
+      "Easy",
+      "O(n+m) expected / O(u)",
+      "Enough copies"
+    ],
+    [
+      "LC 387 First Unique Character",
+      "Counter + scan",
+      "Easy",
+      "O(n) expected / O(u)",
+      "First by index"
+    ],
+    [
+      "LC 58 Length of Last Word",
+      "Reverse scan",
+      "Easy",
+      "O(n) / O(1)",
+      "Trailing spaces"
+    ],
+    [
+      "LC 14 Longest Common Prefix",
+      "Column/prefix scan",
+      "Easy",
+      "O(total inspected characters) / O(1) auxiliary + prefix output",
+      "Empty list"
+    ],
+    [
+      "LC 392 Is Subsequence",
+      "Greedy scan",
+      "Easy",
+      "O(n+m) / O(1)",
+      "Order, not adjacency"
+    ],
+    [
+      "LC 844 Backspace String Compare",
+      "Backward skip pointers",
+      "Easy",
+      "O(n+m) / O(1) backward skips",
+      "Over-deletes"
+    ],
+    [
+      "LC 680 Valid Palindrome II",
+      "Two skip candidates",
+      "Easy",
+      "O(n) / O(1)",
+      "Try left/right"
+    ],
+    [
+      "LC 20 Valid Parentheses",
+      "Stack",
+      "Easy",
+      "O(n) / O(n)",
+      "Crossed types"
+    ],
+    [
+      "LC 1047 Remove All Adjacent Duplicates in String",
+      "Reduction stack",
+      "Easy",
+      "O(n) / O(n) stack and output",
+      "Cascades"
+    ],
+    [
+      "LC 28 Find the Index of the First Occurrence in a String",
+      "KMP/naive",
+      "Easy",
+      "O(n+m) KMP / O(m) auxiliary; first-match return O(1) output",
+      "Prefix fallback"
+    ],
+    [
+      "LC 459 Repeated Substring Pattern",
+      "KMP border",
+      "Easy",
+      "O(n) / O(n) prefix table",
+      "n mod candidate length"
+    ],
+    [
+      "LC 49 Group Anagrams",
+      "Canonical signatures",
+      "Medium",
+      "O(W+N log(max(2,L))) / O(W+N) with sorted keys",
+      "Hashable signature"
+    ],
+    [
+      "LC 3 Longest Substring Without Repeating Characters",
+      "Last-seen window",
+      "Medium",
+      "O(n) expected / O(u)",
+      "Left never retreats"
+    ],
+    [
+      "LC 567 Permutation in String",
+      "Fixed frequency window",
+      "Medium",
+      "O(n+m) / O(1) fixed alphabet",
+      "Exact width"
+    ],
+    [
+      "LC 438 Find All Anagrams in a String",
+      "Fixed frequency window",
+      "Medium",
+      "O(n+m) fixed alphabet / O(1) state + output; general Counter comparisons O(nu)",
+      "Overlapping matches"
+    ],
+    [
+      "LC 340 Longest Substring with At Most K Distinct Characters",
+      "Variable window",
+      "Medium",
+      "O(n) expected / O(min(u,K+1))",
+      "Zero-count keys"
+    ],
+    [
+      "LC 424 Longest Repeating Character Replacement",
+      "Replacement window",
+      "Medium",
+      "O(n) expected / O(u); fixed uppercase alphabet O(1) state",
+      "Stale maxfreq nuance"
+    ],
+    [
+      "LC 5 Longest Palindromic Substring",
+      "Expand center",
+      "Medium",
+      "O(n²) / O(1) auxiliary + result; Manacher O(n) time/space",
+      "Even center"
+    ],
+    [
+      "LC 647 Palindromic Substrings",
+      "Center count",
+      "Medium",
+      "O(n²) / O(1) auxiliary",
+      "Count by position"
+    ],
+    [
+      "LC 443 String Compression",
+      "Read/write pointer",
+      "Medium",
+      "O(n) / O(1) auxiliary on supplied char list",
+      "Singleton group"
+    ],
+    [
+      "LC 38 Count and Say",
+      "Run-length generation",
+      "Medium",
+      "O(generated output length) per term / O(output) space",
+      "Final run"
+    ],
+    [
+      "LC 1209 Remove All Adjacent Duplicates in String II",
+      "Stack + run counts",
+      "Medium",
+      "O(n+output) / O(n)",
+      "Groups of k"
+    ],
+    [
+      "LC 187 Repeated DNA Sequences",
+      "Window hashing",
+      "Medium",
+      "O(n) for fixed k=10 / O(n) retained windows and result",
+      "Overlapping windows"
+    ],
+    [
+      "LC 208 Implement Trie",
+      "Prefix tree",
+      "Medium",
+      "O(L) expected per operation / O(total inserted characters)",
+      "Terminal flag"
+    ],
+    [
+      "LC 211 Design Add and Search Words",
+      "Trie + wildcard DFS",
+      "Medium",
+      "O(explored trie edges) expected per wildcard query / O(L) DFS depth; structure O(D)",
+      "Dot matches any letter"
+    ],
+    [
+      "LC 139 Word Break",
+      "DP on prefixes",
+      "Medium",
+      "O(D+nL) expected trie DP / O(D+n); slice baseline O(n³) worst",
+      "Empty word"
+    ],
+    [
+      "LC 72 Edit Distance",
+      "Prefix DP",
+      "Medium",
+      "O(nm) / O(m) rolling rows for distance only",
+      "Empty bases"
+    ],
+    [
+      "LC 1143 Longest Common Subsequence",
+      "Prefix DP",
+      "Medium",
+      "O(nm) / O(m) length-only rows",
+      "Subsequence"
+    ],
+    [
+      "LC 516 Longest Palindromic Subsequence",
+      "Interval DP",
+      "Medium",
+      "O(n²) / O(n²) interval table",
+      "Smaller intervals first"
+    ],
+    [
+      "LC 131 Palindrome Partitioning",
+      "Backtracking",
+      "Medium",
+      "O(n²+n*2^n) worst / O(n²+n) working + output",
+      "Palindromic split"
+    ],
+    [
+      "LC 17 Letter Combinations of a Phone Number",
+      "Backtracking",
+      "Medium",
+      "O(n*4^n) worst materialized output / O(n) working + output",
+      "Digits 2..9"
+    ],
+    [
+      "LC 22 Generate Parentheses",
+      "Constrained backtracking",
+      "Medium",
+      "O(n*C_n) output-sensitive / O(n) working + output, C_n Catalan",
+      "Never close too early"
+    ],
+    [
+      "LC 316 Remove Duplicate Letters",
+      "Monotonic stack",
+      "Medium",
+      "O(n) expected / O(u)",
+      "Future availability"
+    ],
+    [
+      "LC 1371 Longest Substring with Even Vowels",
+      "Parity mask",
+      "Medium",
+      "O(n) expected / O(1), at most 32 masks",
+      "Seed mask 0"
+    ],
+    [
+      "LC 76 Minimum Window Substring",
+      "Covering window",
+      "Hard",
+      "O(n+m) expected / O(u_target) + returned substring",
+      "Repeated target chars"
+    ],
+    [
+      "LC 32 Longest Valid Parentheses",
+      "Stack indices",
+      "Hard",
+      "O(n) / O(n)",
+      "Index sentinel"
+    ],
+    [
+      "LC 140 Word Break II",
+      "Memoized generation",
+      "Hard",
+      "Output-sensitive, exponential worst / memoized output + O(n) DFS stack",
+      "Repeated suffix"
+    ],
+    [
+      "LC 132 Palindrome Partitioning II",
+      "Min-cut DP",
+      "Hard",
+      "O(n²) / O(n²) palindrome table",
+      "Cuts vs pieces"
+    ],
+    [
+      "LC 1542 Longest Awesome Substring",
+      "Parity + one-bit flip",
+      "Hard",
+      "O(10n) expected / O(1024) masks",
+      "At most one odd"
+    ],
+    [
+      "LC 1044 Longest Duplicate Substring",
+      "Binary search + rolling hash",
+      "Hard",
+      "Verified rolling hash O(n log n+V), V verification work / O(n)+output; no unconditional linear-check guarantee",
+      "Verify hashes"
+    ],
+    [
+      "LC 1032 Stream of Characters",
+      "Trie/automaton",
+      "Hard",
+      "Sparse AC supplied: O(S*h+E+n+z) expected upper bound / O(S+E+z)",
+      "Streaming suffixes"
+    ]
+  ],
+  "id": "strings",
+  "title": "Strings",
+  "subtitle": "Treat text as immutable code points; separate contiguous windows, ordered subsequences, and exact matching.",
+  "variables": "n = input length; m = second input/pattern length; k = requested window/top-k/budget as specified locally; u = distinct symbols/values; N = total characters; L = longest word; r,c = grid dimensions; q = updates; R = integer range. Standard-library Python 3.10+, CPython list implementation notes where stated. Costs count scalar operations; arbitrary-precision integer arithmetic scales with bit length. Hash table bounds are expected, not worst-case; hashing a new length-L string costs O(L). Auxiliary space excludes returned output only when explicitly stated; sorting, slices and recursion are counted. W=number of words (including empty words); D=total dictionary characters; S=trie states; h=max pattern length; E=total copied automaton output IDs; z=reported matches; b=number of parity bits; H=verified rolling-hash hits. These symbols are local to the named templates.",
+  "sources": [
+    {
+      "title": "Public Recall benchmark baseline",
+      "url": "https://github.com/Chamanthi000/Chamanthi000.github.io/blob/main/leetcode-revision/string-interview-guide.js",
+      "note": "Read from the actual local repository checkout; correct original explanations retained and independently reviewed. Public educational reference only; no personal notes."
+    },
+    {
+      "title": "Python sequence and string documentation",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "note": "Official API reference; complexity annotations here are original analysis, not a Python language guarantee."
+    },
+    {
+      "title": "Python collections documentation",
+      "url": "https://docs.python.org/3/library/collections.html",
+      "note": "Counter and deque API reference; standard library only."
+    },
+    {
+      "title": "AlgoMonster public flowchart",
+      "url": "https://algo.monster/flowchart",
+      "note": "Public high-level pattern reference verified by project research. Both supplied foundation-course URL forms returned 404; no course-specific coverage claim."
+    },
+    {
+      "title": "Research limits",
+      "url": "https://neetcode.io/practice",
+      "note": "No claim of exact NeetCode list coverage or access to paid Grokking material. Explanations and code are original synthesis; no private notes inspected."
+    }
+  ],
+  "decisionProcess": [
+    "0–30 seconds: restate output, empty/no-answer convention, indices versus values, mutation permission, input size and alphabet/value constraints.",
+    "30–60 seconds: separate contiguous ranges from subsequences or combinations; state brute-force repeated work and a concrete counterexample.",
+    "60–120 seconds: choose a family from the recognition cues; say its invariant and prerequisites aloud, rejecting a pattern whose prerequisite fails.",
+    "120–180 seconds: dry-run ordinary, boundary and assumption-breaking inputs; count copies, sorting, hashing, recursion and output before committing.",
+    "Mastery check: reconstruct the template without hints, justify each update with the invariant, test one counterexample to a tempting alternative, and explain a changed-constraint follow-up."
+  ],
+  "operationExamples": [
+    {
+      "code": [
+        "s='text'; result=(s,str(123))",
+        "assert result == ('text', '123')"
+      ],
+      "result": "('text', '123')",
+      "use": "Create text, including converting objects. Interview reminder: Literals are usually loaded as existing constants; conversion cost depends on object type and output size.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=len('é')",
+        "assert result == 1"
+      ],
+      "result": "1",
+      "use": "Count Unicode code points. Interview reminder: Not bytes or human-perceived grapheme clusters.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "s='abc'; result=(s[0],s[-1])",
+        "assert result == ('a', 'c')"
+      ],
+      "result": "('a', 'c')",
+      "use": "Get character at index. Interview reminder: Raises IndexError if empty/out of range.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='abcde'[1:4]",
+        "assert result == 'bcd'"
+      ],
+      "result": "'bcd'",
+      "use": "Get half-open substring. Interview reminder: Copies k characters in general; b is excluded.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='abcde'[::2]",
+        "assert result == 'ace'"
+      ],
+      "result": "'ace'",
+      "use": "Take stride-two characters. Interview reminder: step=0 is invalid.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='abc'[::-1]",
+        "assert result == 'cba'"
+      ],
+      "result": "'cba'",
+      "use": "Reverse string. Interview reminder: New string; not in-place.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=[]",
+        "for ch in 'ab': result.append(ch)",
+        "assert result == ['a', 'b']"
+      ],
+      "result": "['a', 'b']",
+      "use": "Iterate over characters. Interview reminder: No list conversion required.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=[]",
+        "for i,ch in enumerate('ab'): result.append((i,ch))",
+        "assert result == [(0, 'a'), (1, 'b')]"
+      ],
+      "result": "[(0, 'a'), (1, 'b')]",
+      "use": "Iterate with indices. Interview reminder: Iterator not materialized.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=list(zip('ab','x'))",
+        "assert result == [('a', 'x')]"
+      ],
+      "result": "[('a', 'x')]",
+      "use": "Walk paired characters. Interview reminder: Stops at shorter input; check lengths.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=''.join(reversed('abc'))",
+        "assert result == 'cba'"
+      ],
+      "result": "'cba'",
+      "use": "Iterate characters backward. Interview reminder: ''.join(reversed(s)) allocates O(n) output.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='ab'=='ab'",
+        "assert result == True"
+      ],
+      "result": "True",
+      "use": "Compare content. Interview reminder: Use ==, not is.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='10'<'2'",
+        "assert result == True"
+      ],
+      "result": "True",
+      "use": "Unicode lexicographic comparison. Interview reminder: '10'<'2' is True.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='ana' in 'banana'",
+        "assert result == True"
+      ],
+      "result": "True",
+      "use": "Check substring existence. Interview reminder: CPython optimized; n=text, m=pattern.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='banana'.find('ana')",
+        "assert result == 1"
+      ],
+      "result": "1",
+      "use": "First occurrence or -1. Interview reminder: Negative result is not a valid index.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='banana'.rfind('ana')",
+        "assert result == 3"
+      ],
+      "result": "3",
+      "use": "Last occurrence or -1. Interview reminder: Searches from right.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='banana'.index('ana')",
+        "assert result == 1"
+      ],
+      "result": "1",
+      "use": "First occurrence, raises if absent. Interview reminder: ValueError when missing.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='aaaa'.count('aa')",
+        "assert result == 2"
+      ],
+      "result": "2",
+      "use": "Nonoverlapping substring occurrences. Interview reminder: 'aaaa'.count('aa') == 2.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='apple'.startswith(('ap','ba'))",
+        "assert result == True"
+      ],
+      "result": "True",
+      "use": "Test prefix. Interview reminder: Also supports tuple of prefixes.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='file.py'.endswith('.py')",
+        "assert result == True"
+      ],
+      "result": "True",
+      "use": "Test suffix. Interview reminder: Case-sensitive by default.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='ab'+'cd'",
+        "assert result == 'abcd'"
+      ],
+      "result": "'abcd'",
+      "use": "Concatenate. Interview reminder: Repeated += in loops can be quadratic.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='-'.join(['a','b'])",
+        "assert result == 'a-b'"
+      ],
+      "result": "'a-b'",
+      "use": "Efficiently build a string from fragments. Interview reminder: N=total result length.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "chars=list('ab'); chars[0]='x'; result=''.join(chars)",
+        "assert result == 'xb'"
+      ],
+      "result": "'xb'",
+      "use": "Convert to mutable chars and back. Interview reminder: For reverse/mutation tasks.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='ab'*2",
+        "assert result == 'abab'"
+      ],
+      "result": "'abab'",
+      "use": "Repeat k times. Interview reminder: Beware large outputs.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='aaaa'.replace('aa','x')",
+        "assert result == 'xx'"
+      ],
+      "result": "'xx'",
+      "use": "Replace nonoverlapping occurrences. Interview reminder: May change length.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=('Ab'.lower(),'ß'.upper())",
+        "assert result == ('ab', 'SS')"
+      ],
+      "result": "('ab', 'SS')",
+      "use": "Case conversion. Interview reminder: Unicode conversion may expand characters.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='Straße'.casefold()",
+        "assert result == 'strasse'"
+      ],
+      "result": "'strasse'",
+      "use": "Aggressive Unicode caseless conversion. Interview reminder: 'ß'.casefold()=='ss'.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=('hELLO'.capitalize(),'hello world'.title())",
+        "assert result == ('Hello', 'Hello World')"
+      ],
+      "result": "('Hello', 'Hello World')",
+      "use": "Alter casing in returned copy. Interview reminder: Not linguistically perfect.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='Ab'.swapcase()",
+        "assert result == 'aB'"
+      ],
+      "result": "'aB'",
+      "use": "Swap case. Interview reminder: Not always an involution for Unicode.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=('abbaXba'.strip('ab'),'  x '.lstrip(),' x  '.rstrip())",
+        "assert result == ('X', 'x ', ' x')"
+      ],
+      "result": "('X', 'x ', ' x')",
+      "use": "Remove selected edge characters. Interview reminder: strip('ab') strips chars a OR b, not substring.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='prevalue'.removeprefix('pre')",
+        "assert result == 'value'"
+      ],
+      "result": "'value'",
+      "use": "Remove exact prefix if present. Interview reminder: Different from strip.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='value.txt'.removesuffix('.txt')",
+        "assert result == 'value'"
+      ],
+      "result": "'value'",
+      "use": "Remove exact suffix if present. Interview reminder: Works if suffix absent: unchanged.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='abcab'.translate(str.maketrans({'a':'x','b':None}))",
+        "assert result == 'xcx'"
+      ],
+      "result": "'xcx'",
+      "use": "Map or delete characters. Interview reminder: Useful for many replacements.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=('-7'.zfill(4),'a'.center(3,'-'))",
+        "assert result == ('-007', '-a-')"
+      ],
+      "result": "('-007', '-a-')",
+      "use": "Pad to width. Interview reminder: zfill handles sign.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "value=12; result=(f'{value:04d}','{}'.format(value))",
+        "assert result == ('0012', '12')"
+      ],
+      "result": "('0012', '12')",
+      "use": "Format a new string. Interview reminder: Custom object formatting can cost more.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=' a  b '.split()",
+        "assert result == ['a', 'b']"
+      ],
+      "result": "['a', 'b']",
+      "use": "Whitespace tokenization. Interview reminder: Collapses runs of whitespace.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=' a  b '.split(' ')",
+        "assert result == ['', 'a', '', 'b', '']"
+      ],
+      "result": "['', 'a', '', 'b', '']",
+      "use": "Split on literal spaces. Interview reminder: Preserves empty fields.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='a,b,c'.rsplit(',',1)",
+        "assert result == ['a,b', 'c']"
+      ],
+      "result": "['a,b', 'c']",
+      "use": "Split from right. Interview reminder: Useful for suffix parsing.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='key:value'.partition(':')",
+        "assert result == ('key', ':', 'value')"
+      ],
+      "result": "('key', ':', 'value')",
+      "use": "Before, separator, after. Interview reminder: Always returns three parts.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result='a\\r\\nb\\n'.splitlines()",
+        "assert result == ['a', 'b']"
+      ],
+      "result": "['a', 'b']",
+      "use": "Split into lines. Interview reminder: Recognizes multiple newline conventions.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=(int('-12'),str(34))",
+        "assert result == (-12, '34')"
+      ],
+      "result": "(-12, '34')",
+      "use": "Parse/format numbers. Interview reminder: Decimal arbitrary-precision parsing/formatting can be superlinear; CPython may limit decimal digit counts. Small bounded integers use the interview scalar model.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=('é'.isalpha(),'a2'.isalnum(),''.isalpha())",
+        "assert result == (True, True, False)"
+      ],
+      "result": "(True, True, False)",
+      "use": "Unicode alpha/alphanumeric checks. Interview reminder: False on empty; includes non-ASCII.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=('²'.isdecimal(),'²'.isdigit())",
+        "assert result == (False, True)"
+      ],
+      "result": "(False, True)",
+      "use": "Unicode decimal/digit checks. Interview reminder: For ASCII digits use '0' <= c <= '9'.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=('\t'.isspace(),'é'.isascii())",
+        "assert result == (True, False)"
+      ],
+      "result": "(True, False)",
+      "use": "Whitespace/ASCII checks. Interview reminder: Unicode whitespace differs from literal spaces.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=(ord('a'),chr(97))",
+        "assert result == (97, 'a')"
+      ],
+      "result": "(97, 'a')",
+      "use": "Code point to integer and back. Interview reminder: ord requires a single code point.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=list('é'.encode('utf-8'))",
+        "assert result == [195, 169]"
+      ],
+      "result": "[195, 169]",
+      "use": "Encode to bytes. Interview reminder: UTF-8 length differs from code-point length.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=bytes([195,169]).decode('utf-8')",
+        "assert result == 'é'"
+      ],
+      "result": "'é'",
+      "use": "Decode bytes to str. Interview reminder: Invalid bytes can raise.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "import unicodedata; result=unicodedata.normalize('NFC','é')",
+        "assert result == 'é'"
+      ],
+      "result": "'é'",
+      "use": "Normalize canonical Unicode forms. Interview reminder: Useful for visually equivalent characters.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "from collections import Counter; result=dict(Counter('aba'))",
+        "assert result == {'a': 2, 'b': 1}"
+      ],
+      "result": "{'a': 2, 'b': 1}",
+      "use": "Map characters to frequencies. Interview reminder: k is distinct characters.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=sorted(set('aba'))",
+        "assert result == ['a', 'b']"
+      ],
+      "result": "['a', 'b']",
+      "use": "Unique characters. Interview reminder: Does not retain multiplicity.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "result=tuple([2,0,1])",
+        "assert result == (2, 0, 1)"
+      ],
+      "result": "(2, 0, 1)",
+      "use": "Hashable count signature. Interview reminder: Use as group-anagram dictionary key.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "from itertools import groupby; result=[(ch,len(list(run))) for ch,run in groupby('aaba')]",
+        "assert result == [('a', 2), ('b', 1), ('a', 1)]"
+      ],
+      "result": "[('a', 2), ('b', 1), ('a', 1)]",
+      "use": "Adjacent runs iterator. Interview reminder: Not a global frequency grouping.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "s='abc'",
+        "try:",
+        "    s[0]='x'",
+        "except TypeError:",
+        "    result='TypeError'",
+        "assert result == 'TypeError'"
+      ],
+      "result": "'TypeError'",
+      "use": "String mutation is unsupported. Interview reminder: Use a char list or create new str.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    },
+    {
+      "code": [
+        "s='abc'",
+        "try:",
+        "    del s[0]",
+        "except TypeError:",
+        "    result='TypeError'",
+        "assert result == 'TypeError'"
+      ],
+      "result": "'TypeError'",
+      "use": "String elements cannot be deleted. Interview reminder: Return new string.",
+      "mutation": "No input mutation; result allocation/iterator behavior follows the space column. Strings are immutable."
+    }
+  ],
+  "fundamentalDetails": [
+    {
+      "why": "Text units determine what a pointer actually compares.",
+      "use": "Specify code-point, byte or grapheme semantics.",
+      "result": "prints 1 2 then 2",
+      "edge": "Combining-mark strings may look equal but have different length.",
+      "takeaway": "Normalize only when the contract requests equivalence."
+    },
+    {
+      "why": "Immutable prefixes may be recopied on each concatenation.",
+      "use": "Build many fragments with append and join.",
+      "result": "prints ABC",
+      "edge": "Empty builder joins to empty text.",
+      "takeaway": "One final join makes allocation accounting clear."
+    },
+    {
+      "why": "Half-open ranges make empty and adjacent substrings predictable.",
+      "use": "Represent ranges by boundaries until output is needed.",
+      "result": "prints bcd ef",
+      "edge": "s[len(s):] is empty; s[len(s)] raises.",
+      "takeaway": "O(1) indexing does not imply O(1) slicing."
+    },
+    {
+      "why": "Filtering and case policy change the problem definition.",
+      "use": "Human-text comparison only when allowed.",
+      "result": "prints True",
+      "edge": "Casefold expansions need full normalized-string semantics.",
+      "takeaway": "Do not silently discard meaningful punctuation."
+    },
+    {
+      "why": "A mutable list and immutable string have different space contracts.",
+      "use": "Reverse a provided char list in place.",
+      "result": "prints olleh",
+      "edge": "Conversion and final join allocate even with O(1) swap state.",
+      "takeaway": "Count representation changes separately."
+    },
+    {
+      "why": "Even palindromes have a gap center rather than a letter center.",
+      "use": "Choose whole-string check versus longest/count centers.",
+      "result": "prints True then bb",
+      "edge": "Empty string is palindrome; even-only tests reveal missed centers.",
+      "takeaway": "A palindrome has one unique center and radius."
+    },
+    {
+      "why": "Anagrams are multisets, not sets.",
+      "use": "Compare or group reorderings with repeated letters.",
+      "result": "prints True then True (the second equality is insufficient)",
+      "edge": "aab and ab share a set but not counts.",
+      "takeaway": "Multiplicity is the invariant."
+    },
+    {
+      "why": "Adjacent groups differ from global frequencies.",
+      "use": "Compression and count-and-say.",
+      "result": "prints a3b2c1",
+      "edge": "Empty text emits nothing; singleton convention must be explicit.",
+      "takeaway": "Flush the final run exactly once."
+    },
+    {
+      "why": "Skipping changes the search space fundamentally.",
+      "use": "Greedy membership, DP for optimum subsequences.",
+      "result": "prints False then True",
+      "edge": "Empty query is a subsequence of every text.",
+      "takeaway": "Iterator membership consumes forward only."
+    },
+    {
+      "why": "Exact-width and cover-validity windows shrink for different reasons.",
+      "use": "Recognize fixed permutation versus variable cover.",
+      "result": "prints ab, bc, cd",
+      "edge": "k>n produces no windows; k=0 needs a stated convention.",
+      "takeaway": "Slicing every window is a baseline, not the optimized count template."
+    },
+    {
+      "why": "Array indexing needs a proven bounded alphabet.",
+      "use": "26 counters for lowercase a-z.",
+      "result": "prints 3 1 2",
+      "edge": "Uppercase/non-Latin input can index wrongly or raise.",
+      "takeaway": "Do not infer ASCII from Python str."
+    },
+    {
+      "why": "Overlapping borders reuse work on near matches.",
+      "use": "Search long repetitive patterns predictably.",
+      "result": "prints 2; full KMP table/search supplied in templates",
+      "edge": "Pattern aaa in aaaaa has overlapping starts 0,1,2.",
+      "takeaway": "Fallback preserves a viable matched suffix."
+    },
+    {
+      "why": "Counts alone cannot express nesting order.",
+      "use": "Bracket validation or unmatched-opener state.",
+      "result": "prints []",
+      "edge": "([)] has equal counts but invalid order; safe full template guards empty pop.",
+      "takeaway": "Stack stores the unmatched opener order."
+    },
+    {
+      "why": "Equal prefix states cancel to a balanced interior.",
+      "use": "Longest equal-count range, then parity generalization.",
+      "result": "prints 4",
+      "edge": "Store earliest boundary only; overwrite shortens candidates.",
+      "takeaway": "Seed zero at -1."
+    },
+    {
+      "why": "An explicit state prevents guessing recurrences.",
+      "use": "Edit distance and related prefix optimizations.",
+      "result": "prints 1",
+      "edge": "Empty source costs len(target) inserts.",
+      "takeaway": "Read prior row and current left cell intentionally."
+    },
+    {
+      "why": "Canonical composition makes equivalent representations comparable.",
+      "use": "Normalize user text when equivalence is intended.",
+      "result": "prints False then True",
+      "edge": "Byte-exact identifiers may intentionally distinguish forms.",
+      "takeaway": "Normalization is policy, not automatic cleanup."
+    },
+    {
+      "why": "Tokenization can destroy empty fields or whitespace.",
+      "use": "Choose text words versus delimited records.",
+      "result": "prints [a,b] then empty-field-preserving five entries",
+      "edge": "Empty input split()=[] but split(\" \")=[\"\"].",
+      "takeaway": "Separator choice changes semantics."
+    },
+    {
+      "why": "Finite hashes can collide; equality still needs proof.",
+      "use": "Rolling windows or exact substring-key baseline.",
+      "result": "prints [ban,ana,nan,ana]",
+      "edge": "Even true hash hits may require O(m) verification each.",
+      "takeaway": "Hash acceleration is not a deterministic linear guarantee."
+    }
+  ],
+  "patternDetails": [
+    {
+      "steps": [
+        "Set endpoints; skip only symbols authorized by input policy.",
+        "Compare normalized single characters and move inward; mismatch rejects."
+      ],
+      "templates": [
+        "Palindrome check, constant auxiliary",
+        "Alphanumeric palindrome with ASCII assumptions"
+      ],
+      "related": "Endpoint checks validate whole text; centers optimize a substring.",
+      "variations": "Exact palindrome; ASCII punctuation/case ignoring; full Unicode normalization allocates."
+    },
+    {
+      "steps": [
+        "Receive mutable char list, not str.",
+        "Swap endpoints; exterior positions become final."
+      ],
+      "templates": [
+        "Reverse list of characters in place"
+      ],
+      "related": "Immutable reversal allocates; endpoint palindrome comparison does not need reversal.",
+      "variations": "Whole-list reversal; reverse each mutable word segment."
+    },
+    {
+      "steps": [
+        "Check lengths for anagram equality.",
+        "Count multiplicities, compare or consume required inventory."
+      ],
+      "templates": [
+        "Anagram check using Counter",
+        "First unique character"
+      ],
+      "related": "Canonical grouping uses multiplicity signatures; sets cannot test anagrams.",
+      "variations": "Ransom inventory; first unique; fixed alphabet counts."
+    },
+    {
+      "steps": [
+        "Compute hashable sorted-character key.",
+        "Group original word references by key; return groups."
+      ],
+      "templates": [
+        "Group anagrams by canonical sorted key"
+      ],
+      "related": "Fixed anagram windows maintain the same multiset while moving positions.",
+      "variations": "Sorted signature; fixed-26 count tuple; contract-driven normalization."
+    },
+    {
+      "steps": [
+        "Count pattern multiplicities and use exactly its width.",
+        "Add entering, remove outgoing, compare only complete windows."
+      ],
+      "templates": [
+        "Anagram starts: fixed window general alphabet",
+        "Permutation contained: 26 slots (lowercase a-z only)"
+      ],
+      "related": "Minimum cover allows variable width; permutation requires exact width.",
+      "variations": "Permutation existence; all starts; mismatch count to avoid whole-Counter equality."
+    },
+    {
+      "steps": [
+        "Remember last occurrence of each character.",
+        "Set left=max(left,last[ch]+1), then record current index and update best."
+      ],
+      "templates": [
+        "Longest substring without repeats"
+      ],
+      "related": "At-most-K needs active counts, not just last occurrence.",
+      "variations": "Return best boundaries; count valid unique substrings by window lengths."
+    },
+    {
+      "steps": [
+        "Add entering character count.",
+        "Shrink while too many active types; delete zero-count keys, update best."
+      ],
+      "templates": [
+        "Longest substring with at most K distinct"
+      ],
+      "related": "Exact-K window counts = atMost(K)-atMost(K-1); add valid window lengths for counting.",
+      "variations": "Exactly K via two atMost counts; at most two distinct."
+    },
+    {
+      "steps": [
+        "Count target symbols only; track how many required types meet multiplicity.",
+        "Expand until covered, record best and shrink while valid."
+      ],
+      "templates": [
+        "Minimum window substring"
+      ],
+      "related": "Fixed permutation requires exact width; cover requires at least target multiplicity.",
+      "variations": "Shortest cover; index-only answer; minimum subsequence window is different."
+    },
+    {
+      "steps": [
+        "Maintain counts and nondecreasing historical maximum frequency.",
+        "Shrink if length-maxfreq>budget; return optimum length, not unverified witness."
+      ],
+      "templates": [
+        "Longest repeating character replacement"
+      ],
+      "related": "At-most-K types differs from K replacement edits.",
+      "variations": "Length-only stale max; valid witness needs fresh validation."
+    },
+    {
+      "steps": [
+        "Point at first unmatched query character.",
+        "Scan text forward and advance query only on match."
+      ],
+      "templates": [
+        "Ordered subsequence scan"
+      ],
+      "related": "LCS optimizes unknown subsequences; scan tests a known query.",
+      "variations": "Many queries via character index lists and bisect."
+    },
+    {
+      "steps": [
+        "Read backward with skip counts for erased characters.",
+        "Compare next survivors; both transformed texts must exhaust together."
+      ],
+      "templates": [
+        "Backspace comparison with backward skips"
+      ],
+      "related": "Stack simulation is simpler but uses O(n) transformed storage.",
+      "variations": "Backward skip compare; stack transform; word tokenization needs whitespace policy."
+    },
+    {
+      "steps": [
+        "Enumerate letter and gap centers.",
+        "Expand while equal; retain best boundaries or count each successful radius."
+      ],
+      "templates": [
+        "Longest palindromic substring: odd/even centers",
+        "Palindrome substring counter by centers"
+      ],
+      "related": "Manacher shares mirrored radius work to avoid quadratic expansion.",
+      "variations": "Longest palindrome; count by centers; Manacher."
+    },
+    {
+      "steps": [
+        "Scan endpoints to first mismatch.",
+        "Try both one-deletion remaining intervals without copying."
+      ],
+      "templates": [
+        "Valid palindrome after one deletion"
+      ],
+      "related": "Multiple allowed deletions require DP or bounded branching.",
+      "variations": "One deletion; exact check; multiple edits need DP."
+    },
+    {
+      "steps": [
+        "Track run start.",
+        "At change or end emit run under agreed singleton convention, then join fragments."
+      ],
+      "templates": [
+        "Run-length compression, counts including 1"
+      ],
+      "related": "Counter counts all occurrences; run encoding groups adjacent ones.",
+      "variations": "Count every run; omit singleton count; char-list write pointer."
+    },
+    {
+      "steps": [
+        "Push opening brackets.",
+        "Closer must match latest opener; reject leftover unmatched opens."
+      ],
+      "templates": [
+        "Bracket validation with stack"
+      ],
+      "related": "Parentheses-only insertions may use balance; multiple types need nesting stack.",
+      "variations": "Ignore unrelated chars only if allowed; one-type balance for insertion count."
+    },
+    {
+      "steps": [
+        "Store reduced prefix on stack.",
+        "Cancel matching pair or accumulate K-run; pops expose cascaded matches."
+      ],
+      "templates": [
+        "Adjacent pair cancellation",
+        "Remove every group of K adjacent equal characters"
+      ],
+      "related": "Delimiter stacks validate; reduction stacks alter content and can cascade.",
+      "variations": "Pairs; K-runs; case-reactive cancellation."
+    },
+    {
+      "steps": [
+        "Seed index stack with boundary -1.",
+        "Push opens; pop closer, resetting base if empty, otherwise measure from top."
+      ],
+      "templates": [
+        "Longest valid parentheses with index sentinel"
+      ],
+      "related": "Zero prefix balance alone misses spans separated by unmatched closers.",
+      "variations": "Longest valid span; minimum additions; typed matching."
+    },
+    {
+      "steps": [
+        "Map two categories to +1/-1; seed balance 0 at -1.",
+        "Keep earliest index per balance and maximize distance on repeated state."
+      ],
+      "templates": [
+        "Prefix balance longest equal 0s and 1s"
+      ],
+      "related": "Parity masks cancel modulo two rather than exact counts.",
+      "variations": "Equal category counts; modular prefix states; earliest index vs frequency."
+    },
+    {
+      "steps": [
+        "Assign bit per tracked category and seed mask 0 at -1.",
+        "Toggle bit and compare earliest same mask; one-bit neighbors allow one odd count."
+      ],
+      "templates": [
+        "Vowel parity bitmask longest substring"
+      ],
+      "related": "Exact balance uses integer differences; masks retain only odd/even state.",
+      "variations": "All-even; one-odd via neighbor masks; ten-bit digit masks."
+    },
+    {
+      "steps": [
+        "Build pattern longest-proper-prefix/suffix table.",
+        "Fallback through borders on mismatch; fallback after match preserves overlaps."
+      ],
+      "templates": [
+        "KMP guaranteed linear substring matching"
+      ],
+      "related": "Z compares each text position with prefix; KMP streams a matched pattern prefix.",
+      "variations": "First match; overlapping matches; repeated period via border."
+    },
+    {
+      "steps": [
+        "Keep farthest prefix-match box.",
+        "Reuse mirror match inside box, extend only beyond known information, update box."
+      ],
+      "templates": [
+        "Z-array longest prefix match per index"
+      ],
+      "related": "KMP avoids concatenation sentinel policy; Z is convenient for prefix queries.",
+      "variations": "Prefix occurrence counts; safe pattern-sentinel-text matching."
+    },
+    {
+      "steps": [
+        "Hash first pattern-width window and outgoing place weight.",
+        "Roll outgoing/incoming characters; verify every hash hit exactly."
+      ],
+      "templates": [
+        "Rabin-Karp verified exact substring matches",
+        "Repeated fixed-length DNA strings",
+        "Naive all overlapping exact pattern positions"
+      ],
+      "related": "KMP guarantees linear exact matching; fixed DNA slicing is a copy-based baseline.",
+      "variations": "Duplicate fixed windows; rolling encoded DNA; exact verification for certainty."
+    },
+    {
+      "steps": [
+        "Insert characters as trie edges and mark word terminal.",
+        "Exact lookup needs terminal; prefix lookup only needs path."
+      ],
+      "templates": [
+        "Trie insert/find/prefix: arbitrary characters"
+      ],
+      "related": "AC adds failure links for many text patterns; board search uses trie plus DFS.",
+      "variations": "Prefix lookup; wildcard DFS; board search pruning."
+    },
+    {
+      "steps": [
+        "Define reachable prefix boundaries, dp[0]=True.",
+        "From each reachable start walk trie at most L characters, marking terminal endpoints; compare retained slice baseline."
+      ],
+      "templates": [
+        "Word Break prefix feasibility",
+        "Word Break trie-guided prefix DP"
+      ],
+      "related": "Boolean DP avoids exponential segmentation enumeration.",
+      "variations": "Feasibility; count segmentations; memoized generation includes output cost."
+    },
+    {
+      "steps": [
+        "Initialize empty-source edit costs.",
+        "Equal chars take diagonal; otherwise 1+min(delete,insert,replace) using correct old/current rows."
+      ],
+      "templates": [
+        "Edit distance two rows"
+      ],
+      "related": "LCS permits skips; edit distance charges insertion, deletion and replacement.",
+      "variations": "Weighted edits; script reconstruction with parent pointers."
+    },
+    {
+      "steps": [
+        "Initialize empty-prefix row to zero.",
+        "Equal chars extend diagonal; otherwise max(up,left)."
+      ],
+      "templates": [
+        "Longest common subsequence length"
+      ],
+      "related": "Common substring resets on mismatch; subsequence permits gaps.",
+      "variations": "Length rolling rows; actual sequence reconstruction; common substring differs."
+    },
+    {
+      "steps": [
+        "Initialize single-character intervals to 1.",
+        "Left moves backward, right forward; equal endpoints use inner optimum, otherwise skip one endpoint."
+      ],
+      "templates": [
+        "Longest palindromic subsequence length"
+      ],
+      "related": "Center expansion is contiguous; LPS allows skipping.",
+      "variations": "Minimum palindrome insertions n-LPS; careful old-diagonal rolling DP."
+    },
+    {
+      "steps": [
+        "Precompute palindrome intervals from smaller interiors.",
+        "Enumerate legal cuts with choose/undo or minimize cuts from prior palindrome pieces."
+      ],
+      "templates": [
+        "Palindrome partitioning: enumerate every split",
+        "Minimum palindrome partition cuts"
+      ],
+      "related": "Centers recognize palindromes; partition DFS combines valid pieces.",
+      "variations": "Enumerate partitions; minimum cuts; count partitions."
+    },
+    {
+      "steps": [
+        "Define legal character branches and mutable path.",
+        "Choose/recurse/undo; parentheses closer permitted only when closes<opens."
+      ],
+      "templates": [
+        "Phone keypad combinations backtracking",
+        "Generate valid parentheses via bounded DFS"
+      ],
+      "related": "Use DP for feasibility when output generation is unnecessary.",
+      "variations": "Phone product; parentheses pruning; duplicate-safe combination branching."
+    },
+    {
+      "steps": [
+        "Count future availability and keep stack membership.",
+        "Skip used chars; pop larger top only if recoverable later, then push current."
+      ],
+      "templates": [
+        "Remove duplicate letters lexicographically"
+      ],
+      "related": "Future recovery is essential for unique-letter stacks but not ordinary next-greater stacks.",
+      "variations": "Distinct letters needs future availability; remove K digits uses budget."
+    },
+    {
+      "steps": [
+        "Prove repeated-length feasibility downward-closed.",
+        "Binary-search last feasible length; rolling hashes retain candidate starts, exact character comparisons verify all hash hits.",
+        "Keep witness bounds and allocate final substring once; the copy-based baseline remains for comparison."
+      ],
+      "templates": [
+        "Longest duplicate substring by verified length search",
+        "Longest duplicate substring with verified rolling hashes"
+      ],
+      "related": "First-feasible answer searches may reverse predicate direction; this search seeks last feasible length.",
+      "variations": "Longest repeat; alternate monotone threshold checks."
+    },
+    {
+      "steps": [
+        "Build keyword trie with terminal output IDs.",
+        "BFS failure links/inherited IDs; scan with fallback and emit matching suffix outputs."
+      ],
+      "templates": [
+        "Aho-Corasick: multi-pattern text matching"
+      ],
+      "related": "Trie recognizes prefixes; failure links recover suffix-prefix states during continuous scan.",
+      "variations": "Offline matching; streaming retained state; output links avoid copied suffix IDs."
+    },
+    {
+      "steps": [
+        "Compute separate odd/even radii.",
+        "Mirror inside known palindrome, extend beyond boundary, update farthest reach."
+      ],
+      "templates": [
+        "Manacher: linear longest palindromic substring"
+      ],
+      "related": "Center expansion is easier for moderate n; Manacher removes repeated radius work.",
+      "variations": "Odd/even radii; longest; sum radii for palindrome count."
+    }
+  ],
+  "templateDetails": [
+    {
+      "pattern": "Opposite-end palindrome pointers",
+      "preconditions": "Exact code points; bool, empty True. No input mutation; explicit return/sentinel branches define the output. If ignoring punctuation, skip nonalphanumeric characters before comparing.",
+      "observation": "Every position outside [l,r] is validated. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Opposite-end palindrome pointers",
+      "preconditions": "ASCII case-insensitive alphanumeric palindrome; punctuation ignored; bool, empty True. Not full Unicode casefold equivalence. No input mutation; explicit return/sentinel branches define the output. Suitable to LeetCode 125 ASCII letters/digits; Unicode full casefold may expand code points.",
+      "observation": "Every position outside [l,r] is validated. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "In-place char-list reversal",
+      "preconditions": "Mutable char list; mutates and returns same list, empty unchanged. If the input is an immutable str, use s[::-1] (O(n) extra).",
+      "observation": "Exterior positions already hold reversed target. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Hash counts and anagram comparison",
+      "preconditions": "Exact code-point multiplicities; bool; empty inputs equal. No input mutation; explicit return/sentinel branches define the output. Counter handles unrestricted Unicode; if only a-z use 26 counters.",
+      "observation": "Count matches true multiset of scanned chars. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Canonical group-anagram keys",
+      "preconditions": "Word iterable; groups of original word references; empty input [], empty words group together. No input mutation; explicit return/sentinel branches define the output. N=total characters; L=max word length; sorting makes copies. W=number of words (including empty ones), N=total characters, L=max length.",
+      "observation": "Same signature iff same multiset. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Hash counts and anagram comparison",
+      "preconditions": "Earliest unique zero-based index or -1; empty -1. No input mutation; explicit return/sentinel branches define the output. Return char rather than index if contract demands.",
+      "observation": "Count matches true multiset of scanned chars. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Fixed-width frequency window",
+      "preconditions": "All overlapping anagram starts; empty pattern [] by convention, m>n []. No input mutation; explicit return/sentinel branches define the output. k=distinct active characters; fixed a-z arrays give O(n) runtime.",
+      "observation": "Counts represent exactly current width m. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Fixed-width frequency window",
+      "preconditions": "Lowercase a-z only; bool; empty pattern True. No input mutation; explicit return/sentinel branches define the output. For Unicode, replace fixed array with Counter and track matches.",
+      "observation": "Counts represent exactly current width m. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Last-seen maximum unique window",
+      "preconditions": "Longest unique-substring length, empty 0; map retains u observed types. No input mutation; explicit return/sentinel branches define the output. Save best (start,length) if asked for substring itself.",
+      "observation": "No duplicates lie inside [left,right]. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "At-most-K distinct variable window",
+      "preconditions": "Longest substring length with at most k types; k<=0 returns 0. No input mutation; explicit return/sentinel branches define the output. Count substrings at most K by adding right-left+1 instead of max.",
+      "observation": "After shrinking, counts represent exactly the active window and at most K distinct types remain. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Minimum cover / have–need window",
+      "preconditions": "Shortest multiplicity cover str; empty/no-cover empty; first minimum on ties. No input mutation; explicit return/sentinel branches define the output. No mutation; empty source/target or missing cover returns empty str. Track target symbols only: O(u_target) auxiliary plus returned substring. For an index-only contract return best boundaries instead.",
+      "observation": "Window valid iff each target count met. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Character replacement window",
+      "preconditions": "Nonnegative budget k; best replacement length only; negative returns 0 sentinel, not valid grouping. No input mutation; explicit return/sentinel branches define the output. A stale maxfreq works for best length, not necessarily exact active window reconstruction.",
+      "observation": "Best feasible length is never missed. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Subsequence two-pointer scanner",
+      "preconditions": "Ordered-subsequence bool, empty query True. No input mutation; explicit return/sentinel branches define the output. For numerous queries preprocess character index lists and binary-search.",
+      "observation": "Already matched query prefix appears in order. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Odd/even palindrome center expansion",
+      "preconditions": "Any longest contiguous palindrome str; empty empty; returned slice allocates. No input mutation; explicit return/sentinel branches define the output. To count every palindromic substring, increment a counter inside each successful expansion.",
+      "observation": "Each palindrome has a center reached by enumeration. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Near palindrome by one deletion",
+      "preconditions": "At most one deletion; bool, empty True; compare bound intervals without copies. No input mutation; explicit return/sentinel branches define the output. Two skip candidates matter; don't greedily choose only one.",
+      "observation": "Only one mismatch needs a branch into two possibilities. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Run-length consecutive groups",
+      "preconditions": "Run encoding includes count 1; empty empty; ambiguous to decode unrestricted digits. No input mutation; explicit return/sentinel branches define the output. For LeetCode 443 mutate the supplied char list and omit count 1.",
+      "observation": "Each flushed run encoded once. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Stack matching delimiters",
+      "preconditions": "Only ()[]{}; bool, empty True, unrelated chars rejected. No input mutation; explicit return/sentinel branches define the output. If unrelated text characters are allowed, skip them instead of rejecting.",
+      "observation": "Stack contains unmatched openers in nesting order. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Stack adjacent cancellation",
+      "preconditions": "Reduced adjacent equal pairs as str; empty empty. No input mutation; explicit return/sentinel branches define the output. For groups of k, track (character,count) in the stack.",
+      "observation": "Stack is fully reduced prefix. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Prefix balances and earliest occurrence",
+      "preconditions": "Only 0/1; longest balanced contiguous length; empty 0. No input mutation; explicit return/sentinel branches define the output. Assumes alphabet only '0' and '1'.",
+      "observation": "Same prefix state implies balanced substring difference. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Parity bitmask of counts",
+      "preconditions": "Track lowercase aeiou parity only; other code points neutral; longest all-even length, empty 0. No input mutation; explicit return/sentinel branches define the output. To allow at most one odd tracked character, test mask and one-bit toggles.",
+      "observation": "Mask captures parities of scanned prefix. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "KMP prefix-function matching",
+      "preconditions": "All overlapping exact starts; empty pattern [0], not every boundary. No input mutation; explicit return/sentinel branches define the output. For first match only, return first start instead of collecting all; state empty-pattern convention.",
+      "observation": "j is maximum viable matched-prefix length. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Z algorithm prefix matches",
+      "preconditions": "Z array with Z[0]=0 convention; empty []. No input mutation; explicit return/sentinel branches define the output. For pattern-in-text, prefix with sentinel unavailable in input and compare Z to pattern length.",
+      "observation": "Z[i] means prefix-match length at i. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Trie dictionary prefixes",
+      "preconditions": "Trie arbitrary code points, empty word allowed; exact requires terminal, prefix path only; empty prefix True. No input mutation; explicit return/sentinel branches define the output. Word Search II: DFS board constrained by trie prefixes; empty word is allowed as a stored terminal.",
+      "observation": "Path corresponds to inserted prefix. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Word Break prefix feasibility DP",
+      "preconditions": "Dictionary strings, empty words ignored; segmentation bool, empty source True. No input mutation; explicit return/sentinel branches define the output. Prelimit word lengths to reduce slicing overhead; do not assume O(n²) in Python naive form.",
+      "observation": "dp[i] means s[:i] segmentable. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Edit distance 2D DP",
+      "preconditions": "Unit insertion/deletion/replacement integer distance; empty bases initialized. No input mutation; explicit return/sentinel branches define the output. For path reconstruction store full parent pointers/table.",
+      "observation": "All smaller prefixes already solved. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Longest common subsequence DP",
+      "preconditions": "Common subsequence length, not sequence; either empty 0. No input mutation; explicit return/sentinel branches define the output. Use complete table if you need actual subsequence.",
+      "observation": "dp[i][j] is optimum for prefixes. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Longest palindromic subsequence DP",
+      "preconditions": "Palindrome subsequence length; empty 0, quadratic table. No input mutation; explicit return/sentinel branches define the output. Minimum insertions to make palindrome = len(s)-LPS length.",
+      "observation": "Shorter intervals computed before longer ones. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Odd/even palindrome center expansion",
+      "preconditions": "Palindrome substrings counted by positions not distinct values; empty 0. No input mutation; explicit return/sentinel branches define the output. Store best boundaries instead for longest palindrome.",
+      "observation": "Each palindrome has a center reached by enumeration. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Backtracking phone letters / parentheses",
+      "preconditions": "Digits 2..9 only; combination strings, empty digits []; other input outside contract. No input mutation; explicit return/sentinel branches define the output. Assumes every digit is 2..9; validate input in production. DFS depth O(n); use iterative traversal for deep inputs rather than globally raising recursion limits.",
+      "observation": "Path reflects valid branch choices. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Lexicographic monotonic stack",
+      "preconditions": "Python lexical order; smallest subsequence with each distinct character once; empty empty. No input mutation; explicit return/sentinel branches define the output. For removing exactly k digits, use a monotonic stack with budget k.",
+      "observation": "Stack is lexicographically smallest feasible prefix. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Rabin–Karp rolling windows",
+      "preconditions": "Unique repeated k-windows unspecified order; k<=0 or k>n returns []. No input mutation; explicit return/sentinel branches define the output. For large variable k, rolling encoded hashes avoid copying every substring; verify collisions.",
+      "observation": "Hash summarizes current window length. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Rabin–Karp rolling windows",
+      "preconditions": "All overlapping exact starts; empty pattern [0]. No input mutation; explicit return/sentinel branches define the output. Use KMP for worst-case linear complexity.",
+      "observation": "Hash summarizes current window length. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Stack adjacent cancellation",
+      "preconditions": "Positive k adjacent run cancellation; k=1 empty; k<=0 empty sentinel outside mathematical contract. No input mutation; explicit return/sentinel branches define the output. LeetCode 1209. Stack retains reduced prefix; pop can create a new adjacent group.",
+      "observation": "Stack is fully reduced prefix. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Backtracking phone letters / parentheses",
+      "preconditions": "Nonnegative n pairs, all valid strings; n=0 [empty string]; negative []; recursion depth 2n. No input mutation; explicit return/sentinel branches define the output. C_n is the nth Catalan number; never append a closer when closes==opens. DFS depth O(n); use iterative traversal for deep inputs rather than globally raising recursion limits.",
+      "observation": "Path reflects valid branch choices. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Palindrome partitioning DFS or min-cuts DP",
+      "preconditions": "All palindrome partitions; empty [[]]; exponential output. No input mutation; explicit return/sentinel branches define the output. For minimum cuts do not enumerate every solution: use min-cut DP. DFS depth O(n); use iterative traversal for deep inputs rather than globally raising recursion limits.",
+      "observation": "Every chosen segment is palindrome. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Palindrome partitioning DFS or min-cuts DP",
+      "preconditions": "Minimum palindrome cuts; empty/already palindrome 0. No input mutation; explicit return/sentinel branches define the output. Cuts differ from number of pieces by one; empty prefix has cuts=-1.",
+      "observation": "Every chosen segment is palindrome. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Manacher linear palindromes",
+      "preconditions": "Any longest contiguous palindrome; empty empty; separate odd/even radii. No input mutation; explicit return/sentinel branches define the output. Uses separate odd/even radii (no sentinel collision); center expansion is simpler for normal n.",
+      "observation": "Mirror radius gives safe initial lower bound. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Rabin–Karp rolling windows",
+      "preconditions": "All exact overlapping starts; empty pattern [0]; deterministic verified hash, not unconditional linear expectation. No input mutation; explicit return/sentinel branches define the output. Verify matching text on a hash collision; unlike KMP, worst case can be quadratic. Fixed deterministic modulus gives no unconditional expected-time guarantee. Repetitive text and pattern can force O(m) verification for every true hit too.",
+      "observation": "Hash summarizes current window length. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Aho–Corasick multiple pattern matching",
+      "preconditions": "Indexable pattern list; (start,pattern_index), duplicates retained, empty patterns ignored; endpoint then stored-ID order. No input mutation; explicit return/sentinel branches define the output. Returns (start index, pattern index). Empty patterns are ignored; matches can be numerous. S=trie states, h=max pattern length, E=total copied output IDs, z=matches. Sparse failure-link construction may walk O(h) per edge; copying failure outputs can be superlinear. Fixed-alphabet completed transitions and output links can improve these bounds.",
+      "observation": "Failure links preserve viable suffix prefixes. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Backspace and word transforms",
+      "preconditions": "# means backspace, overdelete ignored; transformed equality bool. No input mutation; explicit return/sentinel branches define the output. Hash character means backspace, deleting on empty has no effect; exact code-point comparison; no allocation of transformed strings. Change marker only if input semantics permit.",
+      "observation": "Consumed characters reflect transformed text. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Balanced parentheses prefix state",
+      "preconditions": "Only parentheses; longest balanced contiguous length, empty 0; others raise ValueError. No input mutation; explicit return/sentinel branches define the output. Input only ( and ); return longest contiguous balanced length, 0 for empty. Stack base records last unmatched closer; general bracket types require matching logic.",
+      "observation": "Prefix state characterizes unmatched openers. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Binary search on substring length",
+      "preconditions": "Longest repeated substring, overlaps allowed; empty if none; copy-heavy exact check, not fast rolling hash. No input mutation; explicit return/sentinel branches define the output. Overlapping repeated substrings allowed; returns any longest, empty if none. Exact Python string keys verify equality automatically; this simple copy-heavy baseline is not the optimized rolling-hash implementation. A length-L repeat implies a length-(L-1) repeat.",
+      "observation": "Feasibility is monotonic over length. Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Word Break prefix feasibility DP",
+      "preconditions": "D=total dictionary characters, L=max word length, n=len(s). Exact Unicode words; empty dictionary words ignored. Return bool, empty source True; no mutation. Trie walk avoids candidate substring copies and fresh-string hashing; expected hash-map lookup bound.",
+      "observation": "Reachable boundaries launch trie walks; terminal nodes mark the next feasible cut."
+    },
+    {
+      "pattern": "Binary search on substring length",
+      "preconditions": "Exact code points, overlapping repeats allowed; returns any longest duplicate or empty. No mutation. Positive hashing parameters; tiny moduli valid but collision-heavy. Hash pairs retain candidate start indices and every candidate hit is verified character-by-character; forced collisions cannot produce false matches. Double hashing reduces practical collisions but proves no deterministic O(n log n) bound.",
+      "observation": "A repeat of length L implies a shorter repeat; hashes choose candidates, exact comparison proves equality."
+    }
+  ],
+  "practiceDetails": [
+    {
+      "insight": "Swaps solve reversal without new list storage.",
+      "secondary": "Opposite pointers"
+    },
+    {
+      "insight": "Compare only characters authorized by normalization policy.",
+      "secondary": "ASCII case policy"
+    },
+    {
+      "insight": "Equal frequency inventories characterize anagrams.",
+      "secondary": "Hash counting"
+    },
+    {
+      "insight": "Every required copy consumes inventory.",
+      "secondary": "Counter subtraction"
+    },
+    {
+      "insight": "A second scan preserves earliest index order.",
+      "secondary": "Frequency map"
+    },
+    {
+      "insight": "Skip trailing spaces then count one reverse run.",
+      "secondary": "Boundary scan"
+    },
+    {
+      "insight": "Stop at first column disagreement.",
+      "secondary": "Prefix scan"
+    },
+    {
+      "insight": "Greedy earliest match preserves future room.",
+      "secondary": "Two pointers"
+    },
+    {
+      "insight": "Backward skip counters avoid transformed allocations.",
+      "secondary": "Reverse scan"
+    },
+    {
+      "insight": "First mismatch offers only two deletion candidates.",
+      "secondary": "Palindrome check"
+    },
+    {
+      "insight": "Last unmatched opener must match closer.",
+      "secondary": "LIFO invariant"
+    },
+    {
+      "insight": "Reduction of prefix exposes cascaded adjacent pairs.",
+      "secondary": "Stack"
+    },
+    {
+      "insight": "Fallback retains matched border rather than restarting.",
+      "secondary": "Prefix function"
+    },
+    {
+      "insight": "Period length is n-lps[-1], requiring divisibility.",
+      "secondary": "KMP borders"
+    },
+    {
+      "insight": "Canonical multiset signature gives equal group keys.",
+      "secondary": "Sorting or fixed alphabet counts"
+    },
+    {
+      "insight": "Jump left without ever retreating.",
+      "secondary": "Last-seen indices"
+    },
+    {
+      "insight": "A fixed-width window needs exact multiplicity.",
+      "secondary": "Frequency array"
+    },
+    {
+      "insight": "Slide counts to retain overlapping matches.",
+      "secondary": "Difference counts"
+    },
+    {
+      "insight": "Delete zero-count keys before distinct comparison.",
+      "secondary": "Variable window"
+    },
+    {
+      "insight": "Stale maximum supports best length, not exact witness.",
+      "secondary": "Frequency bound"
+    },
+    {
+      "insight": "Every palindrome has an odd or even center.",
+      "secondary": "Manacher follow-up"
+    },
+    {
+      "insight": "Count positions, not distinct palindrome values.",
+      "secondary": "Center expansion"
+    },
+    {
+      "insight": "Write output no faster than unread input advances.",
+      "secondary": "Run-length groups"
+    },
+    {
+      "insight": "Describe consecutive runs, not global counts.",
+      "secondary": "String builder"
+    },
+    {
+      "insight": "Store run counts and remove exactly k.",
+      "secondary": "Reduction stack"
+    },
+    {
+      "insight": "Fixed length 10 makes substring copy cost constant.",
+      "secondary": "Rolling 2-bit encoding follow-up"
+    },
+    {
+      "insight": "Terminal flag distinguishes word from prefix.",
+      "secondary": "Trie"
+    },
+    {
+      "insight": "Wildcard branches over children, not a single path.",
+      "secondary": "DFS"
+    },
+    {
+      "insight": "Reachable cut boundaries define a DP.",
+      "secondary": "Trie avoids Python slices"
+    },
+    {
+      "insight": "Empty prefix costs initialize the DP.",
+      "secondary": "Rolling rows"
+    },
+    {
+      "insight": "Equal symbols extend diagonal; otherwise skip one side.",
+      "secondary": "Prefix DP"
+    },
+    {
+      "insight": "Inner intervals must be solved first.",
+      "secondary": "Interval DP"
+    },
+    {
+      "insight": "Only palindromic pieces are legal branches.",
+      "secondary": "Palindrome table"
+    },
+    {
+      "insight": "Every digit contributes one branch position.",
+      "secondary": "Cartesian-product DFS"
+    },
+    {
+      "insight": "Never close before an unmatched opening exists.",
+      "secondary": "Catalan pruning"
+    },
+    {
+      "insight": "Pop a larger letter only if it occurs again.",
+      "secondary": "Remaining frequency"
+    },
+    {
+      "insight": "Equal masks cancel all tracked parity bits.",
+      "secondary": "Prefix states"
+    },
+    {
+      "insight": "Shrink while all required multiplicities remain covered.",
+      "secondary": "Have/need counts"
+    },
+    {
+      "insight": "Unmatched closer resets base index.",
+      "secondary": "Stack indices"
+    },
+    {
+      "insight": "Memoize suffix work but count output size.",
+      "secondary": "Backtracking"
+    },
+    {
+      "insight": "Minimum cuts is optimum pieces minus one.",
+      "secondary": "DP"
+    },
+    {
+      "insight": "Same or one-bit-off masks allow at most one odd count.",
+      "secondary": "Parity masks"
+    },
+    {
+      "insight": "Repeated-length feasibility is monotone; equality verification costs matter.",
+      "secondary": "Binary search + verified hashing"
+    },
+    {
+      "insight": "Suffix-prefix failure links share many dictionary searches.",
+      "secondary": "Trie or Aho–Corasick"
+    }
+  ]
+}

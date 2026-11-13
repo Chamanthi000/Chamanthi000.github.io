@@ -8,13 +8,20 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 TOPICS = (
-    "hash-maps", "linked-lists", "stacks", "queues", "trees", "heaps",
+    "arrays", "strings", "hash-maps", "linked-lists", "stacks", "queues", "trees", "heaps",
     "graphs", "tries", "union-find",
 )
 ROWS = {
     "operations": 6, "fundamentals": 6, "patterns": 10, "recognize": 3,
     "contrasts": 2, "edges": 3, "mistakes": 2, "impress": 2,
     "memory": 3, "templates": 5, "practice": 5,
+}
+SUPPLEMENTAL = {
+    "operationExamples": ("operations", {"code", "result", "use", "mutation"}),
+    "fundamentalDetails": ("fundamentals", {"why", "use", "result", "edge", "takeaway"}),
+    "patternDetails": ("patterns", {"steps", "templates", "related", "variations"}),
+    "templateDetails": ("templates", {"pattern", "preconditions", "observation"}),
+    "practiceDetails": ("practice", {"insight", "secondary"}),
 }
 MARKER = "/*__DSA_GUIDE_DATA__*/[]"
 
@@ -43,9 +50,11 @@ def validate_code(lines, where):
 def validate_guide(data, topic):
     if not isinstance(data, dict):
         fail(topic, "expected an object")
-    unknown = set(data) - {"id", "title", "subtitle", "variables", *ROWS}
+    unknown = set(data) - {"id", "title", "subtitle", "variables", *ROWS, *SUPPLEMENTAL, "decisionProcess", "sources"}
     if unknown:
         fail(topic, "unknown fields outside the public content contract: " + ", ".join(sorted(unknown)))
+    if topic not in TOPICS:
+        fail(topic, "unsupported public preset topic")
     if data.get("id") != topic:
         fail(topic + ".id", "must match the topic filename")
     for key in ("title", "subtitle"):
@@ -85,6 +94,48 @@ def validate_guide(data, topic):
                     text(value, field)
             if key == "patterns" and row[1] not in ("CORE", "IMPORTANT", "ADVANCED", "SPECIALIST"):
                 fail(where + "[1]", "unknown pattern tier")
+    template_names = [row[0] for row in data["templates"]]
+    if len(set(template_names)) != len(template_names):
+        fail(topic + ".templates", "template names must be unique")
+    for key, (aligned, fields) in SUPPLEMENTAL.items():
+        if key not in data:
+            continue
+        entries = data[key]
+        if not isinstance(entries, list) or len(entries) != len(data[aligned]):
+            fail(topic + "." + key, "must align one-for-one with " + aligned)
+        for i, entry in enumerate(entries):
+            where = f"{topic}.{key}[{i}]"
+            if not isinstance(entry, dict) or set(entry) != fields:
+                fail(where, "expected exactly " + ", ".join(sorted(fields)))
+            for field, value in entry.items():
+                if field == "code":
+                    validate_code(value, where + ".code")
+                elif field in ("steps", "templates"):
+                    if not isinstance(value, list) or not value:
+                        fail(where + "." + field, "expected a nonempty list")
+                    for item in value:
+                        text(item, where + "." + field)
+                        if field == "templates" and item not in template_names:
+                            fail(where + ".templates", "unknown template name: " + item)
+                else:
+                    text(value, where + "." + field)
+    if "decisionProcess" in data:
+        if not isinstance(data["decisionProcess"], list) or not data["decisionProcess"]:
+            fail(topic + ".decisionProcess", "expected nonempty steps")
+        for step in data["decisionProcess"]:
+            text(step, topic + ".decisionProcess")
+    if "sources" in data:
+        if not isinstance(data["sources"], list) or not data["sources"]:
+            fail(topic + ".sources", "expected nonempty sources")
+        from urllib.parse import urlparse
+        for source in data["sources"]:
+            if not isinstance(source, dict) or set(source) != {"title", "url", "note"}:
+                fail(topic + ".sources", "expected title, url, note only")
+            for value in source.values():
+                text(value, topic + ".sources")
+            url = urlparse(source["url"])
+            if url.scheme != "https" or not url.netloc or url.username or url.password:
+                fail(topic + ".sources", "expected public HTTPS URL without credentials")
     return data
 
 
@@ -117,7 +168,7 @@ def bundle(guides):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", type=Path, default=ROOT)
+    parser.add_argument("--data-dir", type=Path, default=ROOT / "data/dsa")
     parser.add_argument("--output", type=Path, default=ROOT / "dsa-interview-guides.js")
     parser.add_argument("--allow-partial", action="store_true", help="development only: skip missing files")
     parser.add_argument("--check", action="store_true", help="validate and verify the bundle is up to date")

@@ -11,12 +11,20 @@ const style=document.createElement('style');style.textContent="\n.ds-revision{ma
 const panel=document.createElement('section');panel.id='dataStructureRevision';panel.className='ds-revision';
 panel.innerHTML='<button class="ds-toggle" type="button" id="dsToggle" aria-expanded="false" aria-controls="dsBody"><span class="ds-heading"><span class="ds-mark" aria-hidden="true">▦</span><span><strong>Data Structure Revision</strong><small>Personal notes · editable topic notebooks · saved automatically</small></span></span><span class="ds-arrow" aria-hidden="true">⌄</span></button><div class="ds-body" id="dsBody" hidden><div class="ds-toolbar"><input class="ds-search" id="dsSearch" type="search" placeholder="Search DSA topics, patterns, code, traps…" aria-label="Search DSA notes"></div><div class="ds-meta"><span id="dsSummary">Revision topics</span><span class="ds-meta-actions"><span id="dsStatus" role="status">Saved on this device</span><button class="ds-collapse-all" type="button" id="dsCollapseAll">Collapse all</button></span></div><nav class="ds-topic-nav" id="dsTopicNav" aria-label="DSA revision topics"></nav><div class="ds-list" id="dsList"></div></div>';
 container.insertAdjacentElement('afterend',panel);
+const scrollBehavior=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth';
+function focusDestination(target){const summary=target?.querySelector(':scope > summary');if(summary){summary.focus({preventScroll:true});summary.scrollIntoView({behavior:scrollBehavior(),block:'start'});}}
 panel.addEventListener('click',async e=>{
+ const templateLink=e.target.closest('[data-dg-target]');
+ if(templateLink){
+   const guide=templateLink.closest('.dg'),target=[...guide.querySelectorAll('[id]')].find(node=>node.id===templateLink.dataset.dgTarget);
+   if(target){for(let node=target;node&&node!==guide;node=node.parentElement)if(node.matches('details')){if(node.dataset.agSection)setGuideSectionOpen(node,true);else node.open=true;}focusDestination(target);}
+   return;
+ }
  const navigation=e.target.closest('[data-ag-open]');
  if(navigation){
    const id=navigation.dataset.agOpen;
    const guide=navigation.closest('.ag'),section=[...guide.querySelectorAll('.ag-section[data-ag-section]')].find(x=>x.dataset.agSection===id);
-   if(section){setGuideSectionOpen(section,true);section.querySelector('summary')?.scrollIntoView({behavior:'smooth',block:'start'});}
+   if(section){setGuideSectionOpen(section,true);focusDestination(section);}
    return;
  }
  if(e.target.closest('[data-ag-expand-all]')){
@@ -41,7 +49,7 @@ panel.addEventListener('click',async e=>{
    await navigator.clipboard.writeText(code);
    const old=btn.textContent;btn.textContent='Copied ✓';
    setTimeout(()=>btn.textContent=old,1200);
- }catch{}
+ }catch{btn.textContent='Copy unavailable';btn.setAttribute('aria-label','Copy unavailable. Select the code to copy manually.');}
 });
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const arrayOpenSections=new Set((()=>{try{const value=JSON.parse(localStorage.getItem(ARRAY_OPEN_KEY)||'[]');return Array.isArray(value)?value.filter(x=>typeof x==='string'&&/^ag-[a-z-]+$/.test(x)):[]}catch{return []}})());
@@ -50,7 +58,25 @@ const stringOpenSections=new Set((()=>{try{const items=JSON.parse(localStorage.g
 function storeStringOpen(){try{localStorage.setItem(STRING_OPEN_KEY,JSON.stringify([...stringOpenSections]))}catch{}}
 const dsaGuide=id=>Object.prototype.hasOwnProperty.call(window.RecallDSAGuides||{},id)?window.RecallDSAGuides[id]:null;
 const dsaSectionNames=['operations','fundamentals','patterns','recognize','edges','interview','memorize','practice'];
-const validDSASections=new Set(presets.filter(topic=>dsaGuide(topic.id)?.html).flatMap(topic=>dsaSectionNames.map(name=>'dg-'+topic.id+'-'+name)));
+const validDSASections=new Set(presets.filter(topic=>!['arrays','strings'].includes(topic.id)&&dsaGuide(topic.id)?.html).flatMap(topic=>dsaSectionNames.map(name=>'dg-'+topic.id+'-'+name)));
+const DSA_NESTED_KEY='recall-dsa-guides-nested-v1';
+const nestedPreferences=(()=>{try{const value=JSON.parse(localStorage.getItem(DSA_NESTED_KEY)||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value:{}}catch{return {}}})();
+function prepareNestedPreferences(view){
+ for(const guide of view.querySelectorAll('.dg[data-dg-topic]')){
+  const topic=guide.dataset.dgTopic,known=presets.some(item=>item.id===topic);if(!known)continue;
+  const nodes=[...guide.querySelectorAll('details:not(.ag-section)')];
+  const saved=Array.isArray(nestedPreferences[topic])?nestedPreferences[topic]:[];
+  const occurrences=new Map();
+  for(const node of nodes){const label=node.querySelector(':scope > summary')?.textContent.trim()||'',base=node.id||label;const count=occurrences.get(base)||0;occurrences.set(base,count+1);const key=node.id||base+'#'+count;node.dataset.dgNested=key;node.open=saved.includes(key);}
+ }
+}
+function saveNestedPreference(node){
+ const guide=node.closest('.dg[data-dg-topic]');if(!guide||!panel.contains(node)||!node.hasAttribute('data-dg-nested'))return;
+ const topic=guide.dataset.dgTopic,nodes=[...guide.querySelectorAll('details[data-dg-nested]')];
+ nestedPreferences[topic]=nodes.filter(item=>item.open).map(item=>item.dataset.dgNested);
+ const safe=Object.fromEntries(presets.filter(item=>Array.isArray(nestedPreferences[item.id])).map(item=>[item.id,nestedPreferences[item.id].filter(key=>typeof key==='string'&&key.length<2000).slice(0,2000)]));
+ try{localStorage.setItem(DSA_NESTED_KEY,JSON.stringify(safe))}catch{}
+}
 const dsaOpenSections=new Set((()=>{try{const items=JSON.parse(localStorage.getItem(DSA_OPEN_KEY)||'[]');return Array.isArray(items)?items.filter(id=>validDSASections.has(id)):[]}catch{return []}})());
 function storeDSAOpen(){try{localStorage.setItem(DSA_OPEN_KEY,JSON.stringify([...dsaOpenSections]))}catch{}}
 function guideSectionState(id){
@@ -67,6 +93,7 @@ function setGuideSectionOpen(section,open){
 }
 panel.addEventListener('toggle',e=>{
  const section=e.target;
+ if(section?.matches?.('.dg details[data-dg-nested]')){saveNestedPreference(section);return;}
  if(!section?.matches?.('.ag > details.ag-section[data-ag-section]'))return;
  // Ignore pending toggle events from a view replaced by search/cloud rendering.
  if(!panel.contains(section))return;
@@ -111,7 +138,10 @@ function renderTopic(item){
  const legacyGuide=isArrayGuide||isStringGuide;
  const generatedGuide=!!dsaGuide(item?.id)?.html;
  const customGuide=legacyGuide||generatedGuide;
- const core=isArrayGuide?window.RecallArrayGuide.html:isStringGuide?window.RecallStringGuide.html:topicGuide(item);
+ let core=generatedGuide?dsaGuide(item.id).html:isArrayGuide?window.RecallArrayGuide.html:isStringGuide?window.RecallStringGuide.html:topicGuide(item);
+ // Keep the legacy identity/classes for original browser/API consumers while enriched sections use dg IDs.
+ if(generatedGuide&&legacyGuide){const prefix=isArrayGuide?'ag-':'sg-';core=core.replace('class="ag dg"','class="ag dg'+(isStringGuide?' sg':'')+'"');for(const name of dsaSectionNames){const from='dg-'+item.id+'-'+name,to=prefix+name;core=core.replaceAll('"'+from+'"','"'+to+'"').replaceAll('"'+from+'-heading"','"'+to+'-heading"');}}
+ if(isStringGuide&&!generatedGuide)core=core.replaceAll('ag-pattern-','sg-pattern-');
  const personal=personalNotes(item);
  const opened=customGuide?core.replace(/<details class="ag-section" data-ag-section="([a-z-]+)"[^>]*>/g,(all,id)=>guideSectionState(id)?.[0].has(id)?all.replace('>',' open>'):all):core;
  const finalGuide=isArrayGuide?opened.replace('</article>',preservedArrayMarkup(item,personal)+'</article>'):isStringGuide?opened.replace('</article>',preservedStringMarkup(item,personal)+'</article>'):generatedGuide?opened:readable(core);
@@ -370,13 +400,13 @@ for(const el of $('dsList').querySelectorAll('textarea[data-ds-id]')){
 const item=records.find(x=>x.id===el.dataset.dsId);if(!item)continue;el.value=personalNotes(item);
 const block=el.closest('.ds-editor'),view=block.querySelector('[data-read-id]'),switcher=block.querySelector('[data-edit-id]');
 function setEditing(flag){if(flag)editingIds.add(item.id);else editingIds.delete(item.id);el.hidden=!flag;view.hidden=flag;switcher.textContent=flag?'Done reading ✓':(personalNotes(item).trim()?'Edit my notes ✎':'Add my notes ＋');switcher.setAttribute('aria-pressed',String(flag));if(flag){el.focus();}}
-view.innerHTML=renderTopic(item);setEditing(editingIds.has(item.id));
-switcher.addEventListener('click',()=>{const wasEditing=editingIds.has(item.id);setEditing(!wasEditing);if(wasEditing){view.innerHTML=renderTopic(item);cloudSend()}});
-el.addEventListener('input',()=>{if(item.id==='arrays'&&item.arrayMergeVersion===1)item.arrayIntegratedNotes=el.value;else if(item.id==='strings'&&item.stringMergeVersion===1)item.stringIntegratedNotes=el.value;else item.notes=el.value;item.updatedAt=new Date().toISOString();persist();view.innerHTML=renderTopic(item);el.closest('details').querySelector('.ds-note-count').textContent=hasRevisionGuide(item)?'Revision guide'+(el.value.trim()?' + notes':''):(el.value.trim()?'Has notes':'Add notes')});
+view.innerHTML=renderTopic(item);prepareNestedPreferences(view);setEditing(editingIds.has(item.id));
+switcher.addEventListener('click',()=>{const wasEditing=editingIds.has(item.id);setEditing(!wasEditing);if(wasEditing){view.innerHTML=renderTopic(item);prepareNestedPreferences(view);cloudSend()}});
+el.addEventListener('input',()=>{if(item.id==='arrays'&&item.arrayMergeVersion===1)item.arrayIntegratedNotes=el.value;else if(item.id==='strings'&&item.stringMergeVersion===1)item.stringIntegratedNotes=el.value;else item.notes=el.value;item.updatedAt=new Date().toISOString();persist();view.innerHTML=renderTopic(item);prepareNestedPreferences(view);el.closest('details').querySelector('.ds-note-count').textContent=hasRevisionGuide(item)?'Revision guide'+(el.value.trim()?' + notes':''):(el.value.trim()?'Has notes':'Add notes')});
 el.addEventListener('blur',()=>{cloudSend();const active=records.filter(isVisibleTopic);$('dsSummary').textContent=active.length+' data structures · '+active.filter(x=>personalNotes(x).trim()).length+' with personal notes'});
 }
-for(const detail of $('dsList').querySelectorAll('.ds-topic'))detail.addEventListener('toggle',()=>{if(!detail.open||!panel.contains(detail))return;for(const other of $('dsList').querySelectorAll('.ds-topic[open]'))if(other!==detail)other.open=false;detail.scrollIntoView({block:'nearest',behavior:'smooth'})});
-for(const chip of $('dsTopicNav').querySelectorAll('[data-nav-id]'))chip.addEventListener('click',()=>{if($('dsSearch').value){$('dsSearch').value='';render();queueMicrotask(()=>document.querySelector('[data-id="'+CSS.escape(chip.dataset.navId)+'"]')?.setAttribute('open',''));return}const target=[...$('dsList').querySelectorAll('.ds-topic')].find(x=>x.dataset.id===chip.dataset.navId);if(target){target.open=true;target.scrollIntoView({block:'start',behavior:'smooth'})}});
+for(const detail of $('dsList').querySelectorAll('.ds-topic'))detail.addEventListener('toggle',()=>{if(!detail.open||!panel.contains(detail))return;for(const other of $('dsList').querySelectorAll('.ds-topic[open]'))if(other!==detail)other.open=false;detail.scrollIntoView({block:'nearest',behavior:scrollBehavior()})});
+for(const chip of $('dsTopicNav').querySelectorAll('[data-nav-id]'))chip.addEventListener('click',()=>{if($('dsSearch').value){$('dsSearch').value='';render();queueMicrotask(()=>document.querySelector('[data-id="'+CSS.escape(chip.dataset.navId)+'"]')?.setAttribute('open',''));return}const target=[...$('dsList').querySelectorAll('.ds-topic')].find(x=>x.dataset.id===chip.dataset.navId);if(target){target.open=true;target.scrollIntoView({block:'start',behavior:scrollBehavior()})}});
 if(focusId){const el=[...$('dsList').querySelectorAll('textarea')].find(x=>x.dataset.dsId===focusId);if(el){el.closest('details').open=true;el.focus();if(selection)el.setSelectionRange(...selection)}}
 window.dispatchEvent(new Event('recall-concept-render'));
 }

@@ -9,20 +9,17 @@ const DB_NAME='recall-autobackups-v1',STORE='snapshots',MAX=20;
 const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1',structures:'recall-structures-v1',concepts:'recall-concept-reviews-v1',conflicts:'recall-sync-conflicts-v1'};
 const KINDS=Object.keys(KEYS);
 let timer=null,running=false,resave=false;
-const local=kind=>{
- try{
-  const raw=localStorage.getItem(KEYS[kind]),parsed=raw?JSON.parse(raw):null;
-  if(kind==='goals'||kind==='habits')return Array.isArray(parsed?.[kind])?parsed[kind]:[];
-  return Array.isArray(parsed)?parsed:[];
- }catch{return []}
+const snapshotPayload=()=>{
+ const raw=Object.fromEntries([...new Set(Object.values(KEYS))].map(k=>[k,localStorage.getItem(k)]));
+ const parsed=Object.fromEntries(Object.entries(raw).map(([k,v])=>[k,v===null?null:JSON.parse(v)]));
+ const records={};
+ for(const kind of KINDS){
+  const v=parsed[KEYS[kind]],rows=kind==='goals'||kind==='habits'?v?.[kind]:v;
+  if(v!==null&&!Array.isArray(rows))throw Error('Invalid device storage for '+kind);
+  records[kind]=rows||[];
+ }
+ return {format:'recall-full-backup',version:2,exportedAt:new Date().toISOString(),source:'automatic local version',...records,originals:{localStorage:raw}};
 };
-const snapshotPayload=()=>({
- format:'recall-full-backup',
- version:1,
- exportedAt:new Date().toISOString(),
- source:'automatic local version',
- ...Object.fromEntries(KINDS.map(k=>[k,local(k)]))
-});
 const fingerprint=payload=>{
  const raw=JSON.stringify(KINDS.map(k=>payload[k]));
  // FNV-1a fingerprint: only used to avoid identical duplicate snapshots.
@@ -52,7 +49,9 @@ function allRows(db){
  return new Promise((resolve,reject)=>{
   const tx=db.transaction(STORE,'readonly');
   const req=tx.objectStore(STORE).getAll();
-  req.onsuccess=()=>resolve(req.result||[]);
+  let rows;req.onsuccess=()=>{rows=req.result||[]};
+  tx.oncomplete=()=>resolve(rows||[]);
+  tx.onabort=()=>reject(tx.error||Error('Backup read canceled.'));
   req.onerror=()=>reject(req.error||Error('Backup history unavailable.'));
  });
 }
@@ -84,16 +83,18 @@ async function createSnapshot(){
   try{
    const payload=snapshotPayload(),hash=fingerprint(payload);
    const rows=await allRows(db),previous=rows.reduce((a,b)=>!a||b.id>a.id?b:a,null);
-   if(!previous||previous.hash!==hash){
+   if(!previous||previous.hash!==hash||JSON.stringify(KINDS.map(k=>previous.payload[k]))!==JSON.stringify(KINDS.map(k=>payload[k]))){
     await transaction(db,'readwrite',store=>store.add({createdAt:payload.exportedAt,hash,payload}));
-    const updated=await allRows(db),surplus=updated.sort((a,b)=>b.id-a.id).slice(MAX);
+    const updated=await allRows(db);
+    if(!updated.some(r=>JSON.stringify(r.payload)===JSON.stringify(payload)))throw Error('Backup readback failed; prior snapshots retained.');
+    const surplus=updated.sort((a,b)=>b.id-a.id).slice(MAX);
     if(surplus.length)await transaction(db,'readwrite',store=>surplus.forEach(r=>store.delete(r.id)));
    }
    const latest=await allRows(db);renderHistory(latest);
    const last=latest.reduce((a,b)=>!a||b.id>a.id?b:a,null);
    status.textContent='✓ Auto backup updated '+humanTime(last.createdAt)+' · '+latest.length+' saved versions. Firebase sync is separate when signed in.';
   }finally{db.close()}
- }catch(e){status.textContent='⚠ Automatic local backup unavailable: '+(e?.message||e)+'. Your normal app saves still work; use Back up everything for a separate file.';console.warn(e)}
+ }catch(e){status.textContent='⚠ Automatic local backup unavailable: '+(e?.message||e)+'. Device saving is unverified; use Back up everything for a separate file.';console.warn(e)}
  finally{
   running=false;
   if(resave){resave=false;enqueue()}
@@ -118,6 +119,7 @@ async function downloadVersion(){
   const url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download='recall-previous-version-'+row.createdAt.slice(0,19).replace(/[:T]/g,'-')+'.json';
   document.body.appendChild(a);a.click();
+  status.textContent='Version download requested. Confirm the file exists; this page cannot verify a download.';
   setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},60000);
  }catch(err){status.textContent='Could not download version: '+(err?.message||err)}
 }

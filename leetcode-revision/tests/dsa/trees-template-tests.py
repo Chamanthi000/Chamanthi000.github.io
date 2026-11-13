@@ -79,6 +79,38 @@ def chain(Node, n, value=1):
     return root
 
 class TreeTemplates(unittest.TestCase):
+    def test_supplemental_alignment_and_operation_outputs(self):
+        import contextlib
+        import io
+        fields = {'operationExamples': ('operations', ('code','result','use','mutation')),
+                  'fundamentalDetails': ('fundamentals', ('why','use','result','edge','takeaway')),
+                  'patternDetails': ('patterns', ('steps','templates','related','variations')),
+                  'templateDetails': ('templates', ('pattern','preconditions','observation')),
+                  'practiceDetails': ('practice', ('insight','secondary'))}
+        names = {row[0] for row in DATA['templates']}
+        mapped = set()
+        for field, (base, keys) in fields.items():
+            self.assertEqual(len(DATA[field]), len(DATA[base]), field)
+            for entry in DATA[field]:
+                self.assertEqual(set(entry), set(keys), field)
+                self.assertTrue(all(entry[key] for key in keys), (field, entry))
+        for entry in DATA['patternDetails']:
+            self.assertTrue(set(entry['templates']) <= names)
+            mapped.update(entry['templates'])
+        self.assertEqual(mapped, names)
+        for row, entry in zip(DATA['operations'], DATA['operationExamples']):
+            with self.subTest(operation=row[1]):
+                code = '\n'.join(entry['code'])
+                ast.parse(code)
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    exec(compile(code, row[1], 'exec'), {})
+                self.assertEqual(output.getvalue().strip(), entry['result'])
+        self.assertGreaterEqual(len(DATA['decisionProcess']), 3)
+        for source in DATA['sources']:
+            self.assertEqual(set(source), {'title','url','note'})
+            self.assertTrue(source['url'].startswith('https://'))
+
     def test_schema_all_code(self):
         self.assertEqual(DATA['id'], 'trees')
         for field in ('title', 'subtitle', 'variables'):
@@ -395,6 +427,102 @@ class TreeTemplates(unittest.TestCase):
         before = signature(root)
         f(f(root))
         self.assertEqual(signature(root), before)
+
+    def test_level_frontier(self):
+        ns = namespace('Binary tree levels')
+        Node, f = ns['Node'], ns['levels']
+        self.assertEqual(f(None), [])
+        self.assertEqual(f(Node(0)), [[0]])
+        self.assertEqual(f(Node(1, Node(2, None, Node(4)), Node(3))), [[1],[2,3],[4]])
+        self.assertEqual(f(chain(Node, 3000)), [[1]]*3000)
+
+    def test_paired_shape_and_mirror(self):
+        ns = namespace('Paired equality and mirror checks')
+        Node, same, symmetric = ns['Node'], ns['same_tree'], ns['symmetric']
+        self.assertTrue(same(None, None))
+        self.assertFalse(same(Node(1), None))
+        self.assertFalse(same(Node(1, Node(2)), Node(1, None, Node(2))))
+        self.assertTrue(symmetric(None))
+        self.assertTrue(symmetric(Node(0, Node(2, Node(3)), Node(2, None, Node(3)))))
+        self.assertFalse(symmetric(Node(0, Node(2, Node(3)), Node(2, Node(3)))))
+        self.assertTrue(same(chain(Node, 3000), chain(Node, 3000)))
+        rng = random.Random(232)
+        for n in range(60):
+            root, _ = random_tree(Node, rng, n)
+            def clone(node, mirror=False):
+                if node is None:
+                    return None
+                a, b = clone(node.left, mirror), clone(node.right, mirror)
+                return Node(node.val, b, a) if mirror else Node(node.val, a, b)
+            self.assertTrue(same(root, clone(root)))
+            self.assertTrue(same(root, clone(root, True), mirror=True))
+
+    def test_lazy_iterator(self):
+        ns = namespace('Lazy BST iterator')
+        Node, cls = ns['Node'], ns['BSTIterator']
+        it = cls(None)
+        self.assertFalse(it.has_next())
+        with self.assertRaises(StopIteration):
+            next(it)
+        rng = random.Random(233)
+        for _ in range(100):
+            values = rng.sample(range(-100, 100), rng.randrange(50))
+            root = bst(Node, values)
+            before = signature(root)
+            it = cls(root)
+            self.assertEqual(list(it), sorted(values))
+            self.assertFalse(it.has_next())
+            with self.assertRaises(StopIteration):
+                next(it)
+            self.assertEqual(signature(root), before)
+        self.assertEqual(list(cls(bst(Node, range(2500)))), list(range(2500)))
+
+    def test_floor_ceiling_successor(self):
+        ns = namespace('BST floor ceiling and strict successor')
+        Node, f, successor = ns['Node'], ns['floor_ceiling'], ns['successor']
+        self.assertEqual(f(None, 1), (None, None))
+        self.assertIsNone(successor(None, 1))
+        rng = random.Random(234)
+        for _ in range(100):
+            values = rng.sample(range(-50, 51), rng.randrange(30))
+            root = bst(Node, values)
+            before = signature(root)
+            for key in range(-55, 56):
+                self.assertEqual(f(root, key), (max((v for v in values if v <= key), default=None),
+                                               min((v for v in values if v >= key), default=None)))
+                self.assertEqual(successor(root, key), min((v for v in values if v > key), default=None))
+            self.assertEqual(signature(root), before)
+
+    def test_reroot_distances(self):
+        from collections import deque
+        f = namespace('Reroot all-node distance sums')['distance_sums']
+        self.assertEqual(f(0, []), [])
+        self.assertEqual(f(1, []), [0])
+        self.assertEqual(f(6, [(0,1),(0,2),(2,3),(2,4),(2,5)]), [8,12,6,10,10,10])
+        for n, edges in ((-1,[]),(2,[]),(2,[(0,0)]),(4,[(0,1),(1,2),(2,0)]),(3,[(0,1),(0,1)]),(2,[(0,2)])):
+            with self.assertRaises(ValueError):
+                f(n, edges)
+        rng = random.Random(235)
+        for n in range(1, 80):
+            edges = [(i,rng.randrange(i)) for i in range(1,n)]
+            adj = [[] for _ in range(n)]
+            for u,v in edges:
+                adj[u].append(v)
+                adj[v].append(u)
+            expected = []
+            for start in range(n):
+                distance, q = {start:0}, deque([start])
+                while q:
+                    u = q.popleft()
+                    for v in adj[u]:
+                        if v not in distance:
+                            distance[v] = distance[u]+1
+                            q.append(v)
+                expected.append(sum(distance.values()))
+            self.assertEqual(f(n, iter(edges)), expected)
+        n=3000
+        self.assertEqual(f(n, ((i-1,i) for i in range(1,n))),
+                         [i*(i+1)//2+(n-1-i)*(n-i)//2 for i in range(n)])
 
     def test_zz_every_template_executed(self):
         self.assertEqual(USED, {t[0] for t in DATA['templates']})

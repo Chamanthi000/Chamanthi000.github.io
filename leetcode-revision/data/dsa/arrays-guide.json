@@ -1,0 +1,3586 @@
+{
+  "operations": [
+    [
+      "Access",
+      "a[i], a[-1]",
+      "Read value",
+      "O(1)",
+      "O(1)",
+      "Negative index counts from the right; invalid index raises IndexError."
+    ],
+    [
+      "Access",
+      "a[i] = x",
+      "Replace value",
+      "O(1)",
+      "O(1)",
+      "Mutates original."
+    ],
+    [
+      "Access",
+      "len(a)",
+      "Length",
+      "O(1)",
+      "O(1)",
+      "Python lists track length."
+    ],
+    [
+      "Access",
+      "a[l:r]",
+      "Half-open slice",
+      "O(k)",
+      "O(k)",
+      "Copies k elements, excluding r."
+    ],
+    [
+      "Access",
+      "a[l:r:step]",
+      "Strided slice",
+      "O(k)",
+      "O(k)",
+      "Creates another list."
+    ],
+    [
+      "Access",
+      "a[::-1]",
+      "Reverse copy",
+      "O(n)",
+      "O(n)",
+      "Does not mutate a."
+    ],
+    [
+      "Access",
+      "a.copy(), a[:]",
+      "Shallow copy",
+      "O(n)",
+      "O(n)",
+      "Nested elements are shared references."
+    ],
+    [
+      "Access",
+      "a == b",
+      "Equality comparison",
+      "O(n) worst",
+      "O(1)",
+      "Element equality may itself have a cost."
+    ],
+    [
+      "Insert/Delete",
+      "a.append(x)",
+      "Append",
+      "O(1) amort.",
+      "O(1) amortized capacity growth; O(n) transient on resize",
+      "A resize can cost O(n) once."
+    ],
+    [
+      "Insert/Delete",
+      "a.extend(b)",
+      "Append m items",
+      "O(m) amort.",
+      "O(m) growth",
+      "m is the length of b."
+    ],
+    [
+      "Insert/Delete",
+      "a.insert(i,x)",
+      "Insert at index",
+      "O(n)",
+      "O(1) auxiliary without resize; O(n) transient on resize",
+      "Shifts trailing values."
+    ],
+    [
+      "Insert/Delete",
+      "a.pop()",
+      "Remove last",
+      "O(1) amortized; O(n) individual shrink worst case",
+      "O(1)",
+      "Empty raises IndexError; occasional CPython capacity shrink can reallocate."
+    ],
+    [
+      "Insert/Delete",
+      "a.pop(i)",
+      "Remove by index",
+      "O(n) worst",
+      "O(1)",
+      "Shifts after i; pop(0) is slow."
+    ],
+    [
+      "Insert/Delete",
+      "a.remove(x)",
+      "Remove first equal value",
+      "O(n)",
+      "O(1)",
+      "Value, NOT index; missing value raises ValueError."
+    ],
+    [
+      "Insert/Delete",
+      "del a[i]",
+      "Delete index",
+      "O(n) worst",
+      "O(1)",
+      "May shift elements."
+    ],
+    [
+      "Insert/Delete",
+      "del a[l:r]",
+      "Delete slice",
+      "O(n) worst",
+      "O(k) temporary deleted references; possible resize",
+      "CPython keeps deleted references temporarily while shifting/releasing; k = deleted slice length. Not strict O(1) auxiliary."
+    ],
+    [
+      "Insert/Delete",
+      "a[l:r] = b",
+      "Slice replacement",
+      "O(n+m) worst",
+      "O(k+m) temporary references worst; possible resize",
+      "k removed and m replacement references; self-assignment and resizing need temporary storage."
+    ],
+    [
+      "Insert/Delete",
+      "a.clear()",
+      "Clear all",
+      "O(n)",
+      "O(1) aux.",
+      "Same object is emptied."
+    ],
+    [
+      "Search",
+      "x in a",
+      "Membership",
+      "O(n)",
+      "O(1)",
+      "Repeated queries? Use a set."
+    ],
+    [
+      "Search",
+      "a.index(x)",
+      "Find first index",
+      "O(n)",
+      "O(1)",
+      "Raises ValueError if missing."
+    ],
+    [
+      "Search",
+      "a.count(x)",
+      "Count occurrences",
+      "O(n)",
+      "O(1)",
+      "Counter helps for all frequencies."
+    ],
+    [
+      "Search",
+      "bisect_left(a,x)",
+      "Sorted lower bound",
+      "O(log n)",
+      "O(1)",
+      "Requires sorted list; result may be len(a)."
+    ],
+    [
+      "Search",
+      "bisect_right(a,x)",
+      "Right insertion boundary",
+      "O(log n)",
+      "O(1)",
+      "Sorted input; returns position just after equal values."
+    ],
+    [
+      "Search",
+      "insort(a,x)",
+      "Sorted insertion",
+      "O(n)",
+      "O(1) without resize; O(n) transient on resize",
+      "Binary search is O(log n), shift is O(n)."
+    ],
+    [
+      "Transform",
+      "a.sort()",
+      "In-place stable sort",
+      "O(n log n) worst",
+      "O(n) worst aux.",
+      "Returns None."
+    ],
+    [
+      "Transform",
+      "sorted(a)",
+      "Sorted copy",
+      "O(n log n) worst",
+      "O(n)",
+      "Original unchanged."
+    ],
+    [
+      "Transform",
+      "a.sort(key=f,reverse=True)",
+      "Custom stable sort",
+      "O(n log n) worst",
+      "O(n) worst aux.",
+      "Ties keep previous ordering."
+    ],
+    [
+      "Transform",
+      "a.reverse()",
+      "Reverse in-place",
+      "O(n)",
+      "O(1)",
+      "Returns None."
+    ],
+    [
+      "Transform",
+      "a + b",
+      "Concatenate",
+      "O(n+m)",
+      "O(n+m)",
+      "Makes new list."
+    ],
+    [
+      "Transform",
+      "a += b",
+      "Extend in place",
+      "O(m) amortized",
+      "O(m) growth",
+      "Mutates original a rather than making a new list."
+    ],
+    [
+      "Transform",
+      "a * k",
+      "Repeat references",
+      "O(nk)",
+      "O(nk)",
+      "Danger with nested mutable rows."
+    ],
+    [
+      "Transform",
+      "[f(x) for x in a]",
+      "Comprehension",
+      "O(n·cost(f))",
+      "O(n)",
+      "Does new allocation."
+    ],
+    [
+      "Transform",
+      "list(reversed(a))",
+      "Reverse iterator materialized",
+      "O(n)",
+      "O(n)",
+      "reversed(a) alone O(1) setup."
+    ],
+    [
+      "Iteration",
+      "for i,x in enumerate(a)",
+      "Index + value",
+      "O(n) total",
+      "O(1)",
+      "Avoid a.index(x) during iteration."
+    ],
+    [
+      "Iteration",
+      "for x,y in zip(a,b)",
+      "Parallel iteration",
+      "O(min(n,m))",
+      "O(1)",
+      "Stops at shorter input."
+    ],
+    [
+      "Aggregates",
+      "sum(a)",
+      "Total",
+      "O(n)",
+      "O(1) aux.",
+      "For numeric types."
+    ],
+    [
+      "Aggregates",
+      "min(a), max(a)",
+      "Extrema",
+      "O(n)",
+      "O(1)",
+      "Empty list needs default."
+    ],
+    [
+      "Aggregates",
+      "any(a), all(a)",
+      "Boolean checks",
+      "O(n) worst",
+      "O(1)",
+      "Short-circuit."
+    ],
+    [
+      "Aggregates",
+      "Counter(a)",
+      "Frequency dictionary",
+      "O(n) expected",
+      "O(u)",
+      "u distinct hashable values."
+    ],
+    [
+      "Aggregates",
+      "set(a)",
+      "Unique values",
+      "O(n) expected",
+      "O(u)",
+      "Does not retain original index information."
+    ],
+    [
+      "Aggregates",
+      "list(accumulate(a))",
+      "Prefix running totals",
+      "O(n)",
+      "O(n)",
+      "Use initial=0 for leading zero."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "Indexing and boundaries",
+      "Indices are 0 to n-1; Python also supports negative indices. Access and replacement are constant time.",
+      [
+        "a = [10, 20, 30]",
+        "first, last = a[0], a[-1]",
+        "i = 2",
+        "if 0 <= i < len(a):",
+        "    print(a[i])"
+      ],
+      "O(1)",
+      "O(1)",
+      "a[0] and a[-1] are invalid on []."
+    ],
+    [
+      "Traversing with enumerate and reverse indices",
+      "Use enumerate to keep index/value together; reverse indexed traversal needs a negative step.",
+      [
+        "a = [4, 7, 9]",
+        "for i, value in enumerate(a):",
+        "    print(i, value)",
+        "for i in range(len(a)-1, -1, -1):",
+        "    print(a[i])"
+      ],
+      "O(n)",
+      "O(1)",
+      "range(n-1,-1,-1) includes 0."
+    ],
+    [
+      "Python dynamic arrays and amortized append",
+      "Lists grow capacity occasionally; most appends cost constant time, rare reallocations copy the references.",
+      [
+        "nums = []",
+        "for x in range(5):",
+        "    nums.append(x)",
+        "last = nums.pop()"
+      ],
+      "O(1) amortized append",
+      "O(n) list storage",
+      "An individual append can be O(n) on resize."
+    ],
+    [
+      "Half-open slicing",
+      "a[l:r] contains indices l through r-1, creates a list, and costs time/space proportional to copied length.",
+      [
+        "a = [2, 4, 6, 8, 10]",
+        "middle = a[1:4] # [4, 6, 8]",
+        "reverse_copy = a[::-1]",
+        "print(a) # unchanged"
+      ],
+      "O(k)",
+      "O(k)",
+      "Slicing in recursion/loops may add hidden work."
+    ],
+    [
+      "Insertion, removal, mutation",
+      "Access/update are fast; inserting/deleting in the middle shifts later elements.",
+      [
+        "a = [1, 3, 4]",
+        "a.insert(1, 2)",
+        "removed = a.pop(1) # index",
+        "a.remove(3)       # value"
+      ],
+      "O(n) insert/remove/middle pop",
+      "O(1) without resize; O(n) transient resize worst case",
+      "remove(x) removes a value; pop(i) removes an index."
+    ],
+    [
+      "Aliasing, shallow copies, independent rows",
+      "Assignment shares the original list. copy() duplicates only the outer list; use row copies for a 2D independent matrix.",
+      [
+        "a = [[1], [2]]",
+        "alias = a",
+        "shallow = a.copy()",
+        "alias[0][0] = 9",
+        "shallow[1].append(3) # affects a",
+        "independent = [row[:] for row in a]"
+      ],
+      "O(n) shallow; O(r*c) cell copy",
+      "O(n) / O(r*c)",
+      "Never allocate rows with [[0]*cols]*rows."
+    ],
+    [
+      "Sorting and stable key functions",
+      "sort mutates and returns None; sorted returns a copy. Equal-key elements preserve input order.",
+      [
+        "pairs = [(2,'b'),(1,'x'),(2,'a')]",
+        "ordered = sorted(pairs,key=lambda p:p[0])",
+        "# [(1,'x'),(2,'b'),(2,'a')]",
+        "nums = [3,1,2]",
+        "nums.sort()"
+      ],
+      "O(n log n) worst",
+      "O(n) worst auxiliary",
+      "Never write nums = nums.sort()."
+    ],
+    [
+      "Linear search versus binary search",
+      "Unsorted scan costs O(n); on a sorted list, bisect finds an insertion boundary in O(log n).",
+      [
+        "from bisect import bisect_left",
+        "a = [1,3,3,7]",
+        "i = bisect_left(a,3) # 1",
+        "found = i < len(a) and a[i] == 3"
+      ],
+      "O(n) scan; O(log n) bisect",
+      "O(1)",
+      "Always guard i == len(a)."
+    ],
+    [
+      "Hash sets and frequency maps",
+      "A set handles presence, a dict or Counter handles values/indices/counts in expected constant lookup time.",
+      [
+        "from collections import Counter",
+        "a = [2,2,5,7]",
+        "freq = Counter(a)",
+        "seen = set()",
+        "for x in a:",
+        "    if x in seen: print('duplicate', x)",
+        "    seen.add(x)"
+      ],
+      "O(n) expected build",
+      "O(u)",
+      "Hash lookups are average/expected O(1), not guaranteed worst-case."
+    ],
+    [
+      "Subarray, subsequence, subset",
+      "Subarray = contiguous; subsequence = in order but can skip; subset = order is irrelevant.",
+      [
+        "a = [1,2,3,4]",
+        "subarray = a[1:3]  # [2,3]",
+        "subsequence = [a[0],a[2]] # [1,3]",
+        "subset = {4,1}"
+      ],
+      "O(k) to create examples",
+      "O(k)",
+      "Sliding windows apply to contiguous subarrays."
+    ],
+    [
+      "2D grids and valid neighbors",
+      "rows = number of rows, cols = columns. Always test both dimensions and build independent rows.",
+      [
+        "rows, cols = 3, 4",
+        "grid = [[0]*cols for _ in range(rows)]",
+        "for r in range(rows):",
+        "    for c in range(cols):",
+        "        grid[r][c] = r+c",
+        "dirs = [(1,0),(-1,0),(0,1),(0,-1)]"
+      ],
+      "O(r*c)",
+      "O(r*c) for grid",
+      "Handle [] and [[]]; do not assume square grid."
+    ],
+    [
+      "Prefix sum with a leading zero",
+      "Prefix[i] = sum(nums[:i]); then sum(nums[l:r]) = prefix[r]-prefix[l].",
+      [
+        "a = [3,-1,4,2]",
+        "prefix = [0]",
+        "for x in a:",
+        "    prefix.append(prefix[-1] + x)",
+        "answer = prefix[3] - prefix[1] # 3"
+      ],
+      "O(n) build, O(1) per query",
+      "O(n)",
+      "Right bound is exclusive and negatives are supported."
+    ],
+    [
+      "In-place read/write pointers",
+      "Maintain a prefix [0:write] of valid results while read scans the original.",
+      [
+        "a = [0,1,0,3,12]",
+        "write = 0",
+        "for x in a:",
+        "    if x != 0:",
+        "        a[write] = x",
+        "        write += 1",
+        "for i in range(write,len(a)):",
+        "    a[i] = 0"
+      ],
+      "O(n)",
+      "O(1) aux.",
+      "Do not use a[write:] = [0]*k if strict O(1) space is required."
+    ],
+    [
+      "Loop invariants and total pointer moves",
+      "Explain what remains true after every iteration; two nested loops can be linear if both pointers only move forward at most n times.",
+      [
+        "a = [1, 2, 3, 1]",
+        "left, total = 0, 0",
+        "for right, x in enumerate(a):",
+        "    total += x",
+        "    while total > 3:",
+        "        total -= a[left]",
+        "        left += 1",
+        "    # invariant: sum(a[left:right+1]) <= 3"
+      ],
+      "O(n) for monotonic pointer movement",
+      "Depends on state",
+      "This concrete nonnegative-sum example assumes threshold >= 0; arbitrary negatives destroy monotonic shrinking."
+    ]
+  ],
+  "patterns": [
+    [
+      "Hash map / set",
+      "CORE",
+      "Unsorted pair, duplicates, frequency or complement",
+      "Remember seen values/counts instead of rescanning",
+      "O(n) expected",
+      "O(n)",
+      "Two Sum; Contains Duplicate",
+      "Find complement before inserting current index.",
+      "seen contains only earlier indices",
+      "Need strict worst-case bounds or sorted low-memory scan"
+    ],
+    [
+      "Opposite-direction two pointers",
+      "CORE",
+      "Sorted pair/triplet; operate from two ends",
+      "Move left/right using a sorted monotonic rule",
+      "O(n) scan",
+      "O(1)",
+      "Two Sum II; 3Sum; Container With Most Water",
+      "Do not use sorted-pair rules on unsorted input.",
+      "Discarded endpoint cannot form a better target pair under sorted monotonicity",
+      "Unsorted pair sums without sorting; container water uses a different height proof"
+    ],
+    [
+      "Same-direction / write pointers",
+      "CORE",
+      "Remove duplicates, compact values, in-place rewrite",
+      "Read everything and write retained prefix",
+      "O(n)",
+      "O(1)",
+      "Move Zeroes; Remove Duplicates",
+      "Decide if stable original order is needed.",
+      "a[:write] is the stable retained prefix of values read so far",
+      "Arbitrary reordering or output larger than original capacity"
+    ],
+    [
+      "Fixed sliding window",
+      "CORE",
+      "Exactly k consecutive items",
+      "Add entering, remove leaving",
+      "O(n)",
+      "O(1) / O(k)",
+      "Maximum Average Subarray I",
+      "Validate k bounds.",
+      "running equals sum of exactly the current k values",
+      "Variable-width validity"
+    ],
+    [
+      "Variable sliding window",
+      "CORE",
+      "Longest/shortest valid contiguous segment",
+      "Expand then shrink while invariant fails or target holds",
+      "O(n)",
+      "O(1) / O(u)",
+      "Minimum Size Subarray Sum",
+      "Arbitrary negative numbers can break sum-based shrinking.",
+      "Positive values ensure removing left decreases sum",
+      "Arbitrary negative sum constraints"
+    ],
+    [
+      "Prefix sum + hashmap",
+      "CORE",
+      "Exact subarray sum count, possibly negative numbers",
+      "Compare cumulative sums and store frequencies",
+      "O(n) expected",
+      "O(n)",
+      "Subarray Sum Equals K",
+      "Initialize {0:1}; count before updating.",
+      "freq counts earlier prefix boundaries only",
+      "Dynamic range updates; use a tree instead"
+    ],
+    [
+      "Prefix/suffix aggregation",
+      "CORE",
+      "Result excluding self; range aggregates",
+      "Accumulate left and right contributions",
+      "O(n)",
+      "O(1) extra excluding output",
+      "Product of Array Except Self",
+      "Division fails with zero values.",
+      "Output holds left products before right products are multiplied",
+      "Noninvertible range queries requiring updates"
+    ],
+    [
+      "Binary search boundary",
+      "CORE",
+      "Sorted data; first/last satisfying monotonic condition",
+      "Halve a half-open search range",
+      "O(log n)",
+      "O(1)",
+      "Search Insert Position",
+      "lo may become len(a).",
+      "First valid insertion position stays within [lo,hi]",
+      "Unordered or nonmonotone predicate"
+    ],
+    [
+      "Binary search on answer",
+      "IMPORTANT",
+      "Minimum feasible capacity/speed/time",
+      "Search monotonic feasible threshold",
+      "O(log R * check)",
+      "Depends on check",
+      "Koko Eating Bananas",
+      "Prove feasibility monotonicity.",
+      "First feasible answer remains in inclusive bounds; hi is feasible",
+      "Feasibility is nonmonotone or upper bound unproven"
+    ],
+    [
+      "Rotated binary search",
+      "IMPORTANT",
+      "Sorted array rotated around pivot",
+      "Identify sorted half each iteration",
+      "O(log n) distinct values",
+      "O(1)",
+      "Search in Rotated Sorted Array",
+      "Duplicates may degrade to O(n).",
+      "A distinct sorted half lets each step discard a region",
+      "Duplicate-heavy input needs different handling and may degrade to linear"
+    ],
+    [
+      "Merge intervals",
+      "CORE",
+      "Overlapping start/end ranges",
+      "Sort by start, merge with previous",
+      "O(n log n)",
+      "O(n) output",
+      "Merge Intervals",
+      "Clarify whether touching endpoints overlap.",
+      "Output is sorted disjoint union of processed intervals",
+      "Dynamic online intervals without ordered structure"
+    ],
+    [
+      "Cyclic sort / index placement",
+      "IMPORTANT",
+      "Dense range of IDs 1..n or 0..n",
+      "Swap each valid value to matching index",
+      "O(n)",
+      "O(1)",
+      "First Missing Positive",
+      "Duplicates and invalid values need a guard.",
+      "Each successful swap places a valid value in its final index",
+      "Need original order or values have no bounded index mapping"
+    ],
+    [
+      "Kadane",
+      "CORE",
+      "Max sum of contiguous segment",
+      "Track best sum ending here and overall",
+      "O(n)",
+      "O(1)",
+      "Maximum Subarray",
+      "Initialize from first value for all negatives.",
+      "end is best nonempty sum ending here; best is best encountered",
+      "Subsequence selection or maximum product"
+    ],
+    [
+      "Monotonic stack",
+      "CORE",
+      "Next/previous greater or smaller",
+      "Keep unresolved monotonic indices",
+      "O(n) amortized",
+      "O(n)",
+      "Daily Temperatures",
+      "< vs <= matters when equal values appear.",
+      "Stack holds unresolved indices in nonincreasing value order",
+      "Sliding-window extrema require expiration, use deque"
+    ],
+    [
+      "Monotonic deque",
+      "IMPORTANT",
+      "Maximum/minimum of every length-k window",
+      "Keep best live candidates with indices",
+      "O(n) amortized",
+      "O(k)",
+      "Sliding Window Maximum",
+      "Expire old indices at front.",
+      "Deque contains only live candidates in decreasing value order",
+      "Arbitrary interval queries without sequential windows"
+    ],
+    [
+      "Difference array / sweep line",
+      "IMPORTANT",
+      "Many interval updates / event changes",
+      "Apply boundary deltas; accumulate",
+      "O(n+R) or O(n log n)",
+      "O(R) or O(n)",
+      "Car Pooling",
+      "Inclusive/exclusive right boundary is crucial.",
+      "Accumulated boundary deltas equal all updates active at this index",
+      "Interleaved online updates and queries"
+    ],
+    [
+      "Heap / Top K",
+      "IMPORTANT",
+      "K largest / kth, streaming best k",
+      "Maintain a bounded heap",
+      "O(n log k)",
+      "O(k)",
+      "Kth Largest Element",
+      "Python heapq is a min-heap.",
+      "Heap contains min(k,processed) largest values seen",
+      "Need full sorted output or k near n with sorting simpler"
+    ],
+    [
+      "Quickselect",
+      "ADVANCED",
+      "Kth in unsorted input",
+      "Random pivot; three-way partition; iterate only into target-rank side",
+      "O(n) expected with random pivot + equal band; O(n²) worst",
+      "O(1) iterative aux.",
+      "Kth Largest Element",
+      "Bad pivots degrade worst-case.",
+      "Target rank lies in active partition; equal pivot band can terminate",
+      "Need sorted order or guaranteed worst-case linear time"
+    ],
+    [
+      "Greedy array scan",
+      "IMPORTANT",
+      "Reachability, local choices with provable optimality",
+      "Track current reach/best resource",
+      "Often O(n)",
+      "O(1)",
+      "Jump Game; Gas Station",
+      "A plausible greedy choice is not a proof.",
+      "Every index no greater than farthest is reachable",
+      "Weighted/min-cost jumps require more state"
+    ],
+    [
+      "2D traversal / grid search",
+      "CORE",
+      "Rows/columns, islands, connected neighbors",
+      "Use careful bounds, DFS/BFS for regions",
+      "O(r*c)",
+      "O(r*c) worst",
+      "Number of Islands; Spiral Matrix",
+      "Rows need not equal cols.",
+      "Each queued cell is marked once and connected to its component root",
+      "Ragged grid or diagonal adjacency without adapting bounds"
+    ],
+    [
+      "2D prefix sums",
+      "IMPORTANT",
+      "Many rectangular sum queries",
+      "2D inclusion-exclusion with zero border",
+      "Build O(r*c); query O(1)",
+      "O(r*c)",
+      "Range Sum Query 2D",
+      "Four terms and shifted indices.",
+      "p[i][j] sums g[:i][:j] by inclusion-exclusion",
+      "Frequent dynamic cell updates"
+    ],
+    [
+      "1D DP",
+      "IMPORTANT",
+      "Overlapping best/count choices on prefixes",
+      "Define state, transition, base case",
+      "O(n * transitions)",
+      "O(n) or O(1)",
+      "House Robber",
+      "Negatives may require tracking min and max product.",
+      "prev1/prev2 solve the preceding two independent-set prefixes",
+      "Adjacent constraint is different or reconstruction is required"
+    ],
+    [
+      "Backtracking",
+      "IMPORTANT",
+      "All subsets, permutations, combinations",
+      "Choose/recurse/undo with pruning",
+      "O(n*2^n) subsets; O(n*n!) permutations",
+      "O(n) recursion excluding output",
+      "Subsets; Permutations",
+      "Append path.copy(), not the mutable path reference.",
+      "path is exactly the choices for the current DFS prefix",
+      "Only count/feasibility is needed and output is exponential"
+    ],
+    [
+      "XOR / bitwise",
+      "SPECIALIST",
+      "All values paired except one; bit constraints",
+      "XOR equal pairs to zero",
+      "O(n) in fixed-word model",
+      "O(1)",
+      "Single Number",
+      "Check exact frequency constraint.",
+      "XOR of processed values cancels every even multiplicity",
+      "More than one unpaired value without adapting the bit proof"
+    ],
+    [
+      "Dutch National Flag / 3-way partition",
+      "CORE",
+      "Three categories, sort 0/1/2 in place",
+      "Maintain low, mid and high partitions",
+      "O(n)",
+      "O(1)",
+      "Sort Colors",
+      "After swapping with high, recheck a[mid].",
+      "Before low are zeros; low..mid-1 ones; after high twos",
+      "Arbitrary keys outside exactly three categories"
+    ],
+    [
+      "Merge two sorted arrays",
+      "CORE",
+      "Two sorted arrays, spare space at end of first",
+      "Compare tails, fill backward",
+      "O(m+n)",
+      "O(1)",
+      "Merge Sorted Array",
+      "Front-first fill can overwrite unread values.",
+      "Slots after w are final; unread inputs end at i,j",
+      "No spare capacity or first input aliases second"
+    ],
+    [
+      "Longest consecutive sequence",
+      "IMPORTANT",
+      "Longest run independent of original order",
+      "Expand only at starts without predecessor",
+      "O(n) expected",
+      "O(n)",
+      "Longest Consecutive Sequence",
+      "Scanning a run from every value is quadratic.",
+      "Only predecessor-free values launch a run; each distinct value visited once",
+      "Longest increasing subsequence respects original order"
+    ],
+    [
+      "Boyer–Moore majority voting",
+      "IMPORTANT",
+      "A number appears more than half the time",
+      "Cancel competing values in one pass",
+      "O(n)",
+      "O(1)",
+      "Majority Element",
+      "Verify candidate if majority isn't guaranteed.",
+      "Cancelled unequal pairs cannot remove a strict majority",
+      "Majority absent unless second pass verifies"
+    ],
+    [
+      "Fast/slow cycle in array indices",
+      "IMPORTANT",
+      "Values 1..n with n+1 items, cannot mutate",
+      "Treat nums[i] as next pointer; find cycle entrance",
+      "O(n)",
+      "O(1)",
+      "Find the Duplicate Number",
+      "Requires exact index-range constraints.",
+      "Functional graph has reachable cycle caused by the repeated value",
+      "Values outside 1..n or multiple repeated distinct values"
+    ],
+    [
+      "Frequency buckets / bucket sort",
+      "IMPORTANT",
+      "Top K frequent elements when frequencies bounded by n",
+      "Count frequency, group by count and scan buckets descending",
+      "O(n) expected",
+      "O(n)",
+      "Top K Frequent Elements",
+      "Bucket construction needs n+1 lists and careful k=0 handling.",
+      "Bucket[f] contains all values with exact frequency f",
+      "Streaming counts or too much O(n) bucket memory"
+    ],
+    [
+      "Counting sort for bounded integers",
+      "IMPORTANT",
+      "Values fall in small known integer range",
+      "Count value frequencies and reconstruct order",
+      "O(n+R)",
+      "O(n+R) or O(R) count-only",
+      "Sort Array; Sort Colors variant",
+      "Range R can dwarf n; don't use for huge values.",
+      "Counts store all occurrences; reconstruction emits sorted multiplicities",
+      "Range R is huge or noninteger"
+    ],
+    [
+      "Longest Increasing Subsequence (LIS)",
+      "IMPORTANT",
+      "Longest strictly increasing subsequence, not necessarily contiguous",
+      "Maintain minimum tail for each subsequence length with bisect",
+      "O(n log n)",
+      "O(n)",
+      "Longest Increasing Subsequence",
+      "Use bisect_left for STRICT increase; tails array is not an actual LIS.",
+      "tails[j] is minimum possible tail for length j+1",
+      "Need concrete subsequence without predecessor reconstruction"
+    ],
+    [
+      "Next permutation / lexicographic pivot",
+      "IMPORTANT",
+      "Find next lexicographically greater ordering in place",
+      "Find descending suffix, swap pivot, reverse suffix",
+      "O(n)",
+      "O(1)",
+      "Next Permutation",
+      "If entire sequence descending, reverse all to smallest.",
+      "Suffix is maximal descending; smallest greater successor increases minimally",
+      "Need arbitrary rank jump without repeated iteration"
+    ],
+    [
+      "Trapping rainwater two pointers",
+      "CORE",
+      "Bars and water held between left/right boundaries",
+      "Process the lower boundary, track maxima",
+      "O(n)",
+      "O(1)",
+      "Trapping Rain Water",
+      "Only confirmed boundaries can determine water safely.",
+      "Lower confirmed boundary determines water at the processed endpoint",
+      "Negative heights or 2D terrain"
+    ],
+    [
+      "Minimum jumps / greedy levels",
+      "IMPORTANT",
+      "Minimum jumps to reach array end when each value is range",
+      "Track farthest reach in current jump interval",
+      "O(n)",
+      "O(1)",
+      "Jump Game II",
+      "Unreachable inputs need special handling if not ruled out.",
+      "end delimits indices reachable in jumps moves; farthest is next layer",
+      "Negative/weighted jumps or missing unreachable handling"
+    ],
+    [
+      "Maximum product subarray (dual extremes)",
+      "IMPORTANT",
+      "Maximum product of a contiguous segment with negative/zero values",
+      "Track both maximum and minimum product ending here",
+      "O(n)",
+      "O(1)",
+      "Maximum Product Subarray",
+      "Negative x swaps roles of min/max; zero resets naturally.",
+      "high/low are extreme products ending here; best is global maximum",
+      "Noncontiguous product or big-int cost ignored"
+    ]
+  ],
+  "recognize": [
+    [
+      "Sorted pair or triplet sum",
+      "Opposite two pointers",
+      "On unsorted two-sum, hash map often wins."
+    ],
+    [
+      "In-place deletion / dedup",
+      "Read-write pointers",
+      "Keep a valid compact prefix."
+    ],
+    [
+      "Exactly k consecutive",
+      "Fixed sliding window",
+      "Incrementally replace outgoing element."
+    ],
+    [
+      "Longest/shortest contiguous valid range",
+      "Variable sliding window",
+      "Can left-shrinking predictably fix violations?"
+    ],
+    [
+      "Count subarrays sum k with negatives",
+      "Prefix sum + hashmap",
+      "Naive positive-only sliding window will fail."
+    ],
+    [
+      "Many static range-sum queries",
+      "Prefix sums",
+      "Pay O(n) once, then O(1) per range."
+    ],
+    [
+      "Product excluding self, zero possible",
+      "Prefix/suffix",
+      "Do not divide."
+    ],
+    [
+      "Sorted boundary / first true",
+      "Binary search",
+      "Decide half-open or inclusive invariant."
+    ],
+    [
+      "Minimum feasible capacity",
+      "Binary search on answer",
+      "Feasibility must be monotonic."
+    ],
+    [
+      "Rotated sorted search",
+      "Rotated binary search",
+      "Handle equal elements carefully."
+    ],
+    [
+      "Next greater or smaller neighbor",
+      "Monotonic stack",
+      "Each index is pushed/popped once."
+    ],
+    [
+      "Max/min in every k-sized window",
+      "Monotonic deque",
+      "A sum-only window is not enough."
+    ],
+    [
+      "Integers in 1..n, missing or duplicate",
+      "Cyclic placement",
+      "Requires range bounds, duplicates guard."
+    ],
+    [
+      "Overlapping ranges",
+      "Sort + merge intervals",
+      "Clarify whether touching counts as overlap."
+    ],
+    [
+      "Large number of range increments",
+      "Difference array",
+      "Mark starts and ends rather than every position."
+    ],
+    [
+      "Kth largest, top K",
+      "Heap / quickselect",
+      "Compare worst-case and whether sorting is needed."
+    ],
+    [
+      "Maximum contiguous sum",
+      "Kadane",
+      "Works for negative-only with correct initialization."
+    ],
+    [
+      "Grid neighbors / connected components",
+      "Grid BFS/DFS",
+      "Bound check and visited tracking."
+    ],
+    [
+      "All subsets / permutations",
+      "Backtracking",
+      "Output itself is exponential."
+    ],
+    [
+      "Three categories, sort in place",
+      "Dutch National Flag",
+      "Maintain low/mid/high zones."
+    ],
+    [
+      "Two sorted arrays, spare space in first",
+      "Merge backwards",
+      "Prevents overwriting unread elements."
+    ],
+    [
+      "Longest consecutive run, unordered data",
+      "Hash set start-only scan",
+      "Only expand when x-1 missing."
+    ],
+    [
+      "Majority > n/2",
+      "Boyer–Moore",
+      "Verify if not guaranteed."
+    ],
+    [
+      "Duplicate without modifying values 1..n",
+      "Array-index cycle detection",
+      "Floyd fast and slow."
+    ],
+    [
+      "Top K most frequent values",
+      "Counter + heap or frequency buckets",
+      "Buckets O(n) expected when counts <= n."
+    ],
+    [
+      "Integer keys in small known range",
+      "Counting sort",
+      "Compare range R to n before allocating."
+    ],
+    [
+      "Longest increasing subsequence (can skip positions)",
+      "LIS tails + binary search",
+      "O(n log n) instead of O(n²) DP."
+    ],
+    [
+      "Next lexicographical permutation",
+      "Pivot/successor/suffix reverse",
+      "Find rightmost ascent."
+    ],
+    [
+      "Rainwater trapped between bars",
+      "Two ends + running maxima",
+      "Process smaller boundary."
+    ],
+    [
+      "Minimum jumps to reach end",
+      "Greedy window levels",
+      "Track farthest reachable in current jump count."
+    ],
+    [
+      "Maximum contiguous PRODUCT (not sum)",
+      "Track min/max products",
+      "Negative factor can flip extremes."
+    ]
+  ],
+  "contrasts": [
+    [
+      "Window vs prefix sum",
+      "Window needs an incrementally maintainable validity rule; prefix sums handle arbitrary exact sums including negatives."
+    ],
+    [
+      "Hash map vs opposite pointers",
+      "Hashing retains original positions; two pointers exploits sorted order. Sorting can destroy original indices."
+    ],
+    [
+      "Stack vs deque",
+      "Monotonic stack answers nearest greater/smaller; deque answers moving-window extrema."
+    ],
+    [
+      "Greedy vs dynamic programming",
+      "Greedy needs proof; DP defines reusable states for overlapping choices."
+    ],
+    [
+      "Subarray vs subsequence",
+      "A subarray is contiguous; a subsequence may skip elements."
+    ],
+    [
+      "Sort vs heap vs quickselect",
+      "Need all ordered? Sort. Streaming best k? Heap. One kth? Quickselect possible."
+    ],
+    [
+      "In-place vs constant extra space",
+      "Mutation does not guarantee O(1) auxiliary storage: slices/copies allocate."
+    ],
+    [
+      "Binary search vs two pointers",
+      "Binary search finds a monotonic boundary; pointers maintain a pair/window invariant."
+    ],
+    [
+      "Longest consecutive vs LIS",
+      "Consecutive concerns numeric +1 runs regardless of position; LIS respects original order but allows skipping indices."
+    ],
+    [
+      "Kadane sum vs max product",
+      "Sum needs one best-ending state; product needs both best and worst because negatives flip signs."
+    ],
+    [
+      "Heap Top-K vs bucket Top-K",
+      "Heap is O(n log k) and good for streaming; frequency buckets use O(n) memory/time expected for static bounded frequency counts."
+    ]
+  ],
+  "edges": [
+    [
+      "Size / missing answers",
+      "[], [5], no valid pair, target not present, empty result.",
+      "Ask about return contract."
+    ],
+    [
+      "Order / duplicates",
+      "All equal [3,3,3], all unique, sorted, reversed, many ties.",
+      "Uniqueness of indices vs values?"
+    ],
+    [
+      "Signs / zero",
+      "All negative, mixed signs, all zeros, target=0.",
+      "Max subarray must work for all negatives."
+    ],
+    [
+      "Boundaries",
+      "First/last answer, adjacent pointers, right exclusive, i=len(a).",
+      "Avoid off-by-one errors."
+    ],
+    [
+      "Window k",
+      "k=0, k=1, k=n, k>n, no valid window.",
+      "Honor problem constraints."
+    ],
+    [
+      "Ties / multiple solutions",
+      "Multiple valid pairs/windows, equal next-greater values.",
+      "Any, first, or all?"
+    ],
+    [
+      "Scale / constraints",
+      "n up to 10^5, large values, time/memory limit.",
+      "O(n²) often too costly."
+    ],
+    [
+      "Mutation / aliasing",
+      "Input immutable? Nested list copied? Order preserved?",
+      "Sorting can violate contract."
+    ],
+    [
+      "2D shape",
+      "[], [[]], 1x1, one row, one column, rectangular.",
+      "Don't assume square."
+    ],
+    [
+      "Pattern-breaking input",
+      "Negatives in sliding sum, duplicates in rotated search, cyclic out-of-range.",
+      "Counterexamples validate the technique."
+    ],
+    [
+      "Intervals",
+      "Touching endpoints, zero-length intervals, unsorted ranges.",
+      "Choose closed vs half-open."
+    ],
+    [
+      "Return details",
+      "Return values vs indices, count vs array, zero-based vs one-based.",
+      "Make contract explicit."
+    ],
+    [
+      "Integer ranges and memory",
+      "Values near huge limits, narrow vs wide range, possibly 64-bit constraints.",
+      "Counting sort requires range R small enough to fit."
+    ],
+    [
+      "Circular / lexicographic",
+      "Descending permutation, all duplicates, n=1, wrap from last index to first.",
+      "Test pivot-not-found and modulo boundaries."
+    ],
+    [
+      "Algorithm-specific: negative window trap",
+      "a=[1,-1,5], target=5",
+      "Shortest is [5] length 1. Positive-only shrink may stop at length 3; use an appropriate signed-sum method."
+    ],
+    [
+      "Algorithm-specific: zero prefix frequency",
+      "a=[0,0], k=0",
+      "count_sum_k=3; missing {0:1} or update-before-count gives wrong count."
+    ],
+    [
+      "Algorithm-specific: equal quickselect pivots",
+      "a=[7]*2000, k=1000",
+      "Returns 7; 3-way partition completes one active partition, unlike quadratic two-way <= partition."
+    ],
+    [
+      "Algorithm-specific: strict LIS",
+      "a=[2,2,2]",
+      "LIS length=1, not 3; bisect_right changes problem to nondecreasing."
+    ],
+    [
+      "Algorithm-specific: unreachable jumps",
+      "a=[3,2,1,0,4]",
+      "can_jump=False, min_jumps=-1; do not return a jump count for stalled frontier."
+    ],
+    [
+      "Universal: alias identity",
+      "a=[[0]]; b=a.copy(); b[0][0]=9",
+      "a becomes [[9]]; shallow copy does not isolate nested objects."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Hidden O(n²)",
+      "Calling index, count, or slicing repeatedly inside a loop may add a factor of n."
+    ],
+    [
+      "pop(0) for a queue",
+      "Use collections.deque.popleft() O(1); list.pop(0) is O(n)."
+    ],
+    [
+      "sort() return value",
+      "a.sort() and a.reverse() both mutate and return None."
+    ],
+    [
+      "Repeated copies",
+      "Avoid a[1:] in a recursive binary search if you promise O(1) auxiliary space."
+    ],
+    [
+      "Unknown invariants",
+      "Define valid [left,right] window or binary [lo,hi) interval before coding."
+    ],
+    [
+      "Naive windows on negatives",
+      "Positive-only sum window reasoning fails with arbitrary negatives."
+    ],
+    [
+      "Missing prefix base case",
+      "Use freq={0:1} for exact subarray counts."
+    ],
+    [
+      "Duplicate stack handling",
+      "Choose strict < versus <= intentionally."
+    ],
+    [
+      "Input mutation",
+      "Sort and index placement change input; ask first."
+    ],
+    [
+      "Nested row aliasing",
+      "[[0]*m]*n repeats the exact same row reference."
+    ],
+    [
+      "Losing indices",
+      "A set or sorted list loses original Two Sum index mapping."
+    ],
+    [
+      "Misreading nested while",
+      "Total monotonic pointer movements may still be O(n)."
+    ],
+    [
+      "Binary off-by-one",
+      "Validate lo == hi, target absent, bisect result == n."
+    ],
+    [
+      "Overclaiming complexity",
+      "Hashing is expected O(1); quickselect average O(n), worst O(n²)."
+    ],
+    [
+      "Wrong frequency structure",
+      "Use Counter for counts, set for presence, dict for indices."
+    ],
+    [
+      "LIS tails are not the actual answer sequence",
+      "The tails array determines length; reconstructing a concrete LIS needs predecessor pointers."
+    ],
+    [
+      "Quickselect mutates input",
+      "Ask before partitioning the original array; randomize pivot if you promise expected O(n)."
+    ],
+    [
+      "Frequency bucket output ties",
+      "Most Top-K questions accept any order among equal counts; verify tie contract."
+    ],
+    [
+      "Slice deletion memory",
+      "CPython del a[l:r] can keep O(k) temporary references while releasing removed objects; mutation is not allocation-free."
+    ],
+    [
+      "Duplicate-heavy Quickselect",
+      "Random pivot alone does not rescue two-way <= partition on all-equal data. Use a 3-way equal band for expected linear selection across duplicates."
+    ]
+  ],
+  "impress": [
+    [
+      "Clarify first",
+      "Sorted? Duplicates? Negatives? Input mutable? Indices or values?"
+    ],
+    [
+      "Read constraints aloud",
+      "Explain why an O(n²) brute force is or is not acceptable."
+    ],
+    [
+      "Explain brute force",
+      "Identify repeated computation to eliminate."
+    ],
+    [
+      "Say the invariant",
+      "Define what is already processed or guaranteed by pointers."
+    ],
+    [
+      "Justify the pattern",
+      "Two pointers rely on sorting; binary search needs monotonicity."
+    ],
+    [
+      "Use meaningful variables",
+      "left, right, write, prefix, seen, rather than unexplained letters."
+    ],
+    [
+      "Dry-run a counterexample",
+      "Show one normal, one boundary, and one trap case."
+    ],
+    [
+      "Account for ALL memory",
+      "Copies, sort, output, recursion stack, map."
+    ],
+    [
+      "Explain amortized bounds",
+      "Each pointer or stack element advances/pushes/pops only finitely often."
+    ],
+    [
+      "Discuss tradeoffs",
+      "O(n) time/O(n) map vs O(n log n) sort and mutation."
+    ],
+    [
+      "Finish confidently",
+      "State correctness argument, time, space, and assumptions."
+    ]
+  ],
+  "memory": [
+    [
+      "Range [l,r) sum",
+      "prefix[r] - prefix[l]",
+      "prefix[0] = 0."
+    ],
+    [
+      "Exact sum k counts",
+      "freq[prefix-k]",
+      "Seed freq={0:1}; lookup first."
+    ],
+    [
+      "Fixed window",
+      "window += entering - leaving",
+      "Each shift O(1)."
+    ],
+    [
+      "Window left boundary",
+      "left = right-k+1",
+      "When right is inclusive."
+    ],
+    [
+      "Two Sum",
+      "need = target - x",
+      "Look up before inserting x."
+    ],
+    [
+      "Binary midpoint",
+      "mid = (lo+hi)//2",
+      "Keep bound invariant."
+    ],
+    [
+      "Grid bounds",
+      "0<=r<rows and 0<=c<cols",
+      "Rows and cols differ."
+    ],
+    [
+      "Cyclic placement",
+      "correct = nums[i]-1",
+      "Only for valid 1..n."
+    ],
+    [
+      "Kadane",
+      "end = max(x, end+x)",
+      "Initialize from first value."
+    ],
+    [
+      "Except-self product",
+      "left_product * right_product",
+      "Handles zero values."
+    ],
+    [
+      "Min-feasible binary",
+      "feasible(mid) => hi = mid",
+      "Requires monotonicity."
+    ],
+    [
+      "Monotonic stack",
+      "while stack and nums[stack[-1]]<x",
+      "Use indices; equality choice matters."
+    ]
+  ],
+  "templates": [
+    [
+      "Two Sum — unsorted",
+      "O(n) expected",
+      "O(n)",
+      [
+        "def two_sum(nums, target):",
+        "    seen = {}",
+        "    for i, x in enumerate(nums):",
+        "        need = target - x",
+        "        if need in seen: return [seen[need], i]",
+        "        seen[x] = i",
+        "    return []"
+      ],
+      "Unsorted hashable numeric values; two distinct zero-based indices or []; no mutation. Lookup before insert; adapt all pairs with multiplicity-aware lists."
+    ],
+    [
+      "Pair sum — sorted",
+      "O(n)",
+      "O(1)",
+      [
+        "def pair_sorted(a, target):",
+        "    l, r = 0, len(a)-1",
+        "    while l < r:",
+        "        s = a[l]+a[r]",
+        "        if s == target: return (l, r)",
+        "        if s < target: l += 1",
+        "        else: r -= 1",
+        "    return None"
+      ],
+      "Sorted nondecreasing numbers; zero-based pair tuple or None; no mutation. Sorting first adds O(n log n)/O(n) copy and loses original indices."
+    ],
+    [
+      "Stable compact — in-place",
+      "O(n)",
+      "O(1)",
+      [
+        "def remove_value(a, value):",
+        "    write = 0",
+        "    for x in a:",
+        "        if x != value:",
+        "            a[write] = x",
+        "            write += 1",
+        "    return write # a[:write] is valid"
+      ],
+      "Mutates a stably; returns logical retained length; tail unspecified. Slicing a[:write] afterward allocates."
+    ],
+    [
+      "Fixed max-window sum",
+      "O(n)",
+      "O(1)",
+      [
+        "def max_k_sum(a, k):",
+        "    if not 1 <= k <= len(a): return None",
+        "    running = 0",
+        "    for i in range(k): running += a[i]",
+        "    best = running",
+        "    for r in range(k,len(a)):",
+        "        running += a[r] - a[r-k]",
+        "        best = max(best,running)",
+        "    return best"
+      ],
+      "Exactly k consecutive values; invalid k returns None. Negative values supported; no mutation."
+    ],
+    [
+      "Shortest window with positive values",
+      "O(n)",
+      "O(1)",
+      [
+        "def min_len_positive(a, target):",
+        "    # a elements > 0; target > 0",
+        "    l = total = 0",
+        "    best = len(a)+1",
+        "    for r, x in enumerate(a):",
+        "        total += x",
+        "        while total >= target:",
+        "            best = min(best, r-l+1)",
+        "            total -= a[l]",
+        "            l += 1",
+        "    return 0 if best == len(a)+1 else best"
+      ],
+      "All values strictly positive and target>0; returns shortest length or 0, no mutation. Preconditions not runtime-validated; negatives invalidate proof."
+    ],
+    [
+      "Count sum-k subarrays",
+      "O(n) expected",
+      "O(n)",
+      [
+        "def count_sum_k(a, k):",
+        "    freq = {0: 1}",
+        "    prefix = answer = 0",
+        "    for x in a:",
+        "        prefix += x",
+        "        answer += freq.get(prefix-k,0)",
+        "        freq[prefix] = freq.get(prefix,0)+1",
+        "    return answer"
+      ],
+      "Any signed numeric sums; returns count including overlaps; empty 0; no mutation. Lookup before insert excludes empty ranges."
+    ],
+    [
+      "Product except self",
+      "O(n)",
+      "O(1) extra excl. output",
+      [
+        "def product_except_self(a):",
+        "    out = [1]*len(a)",
+        "    left = 1",
+        "    for i in range(len(a)):",
+        "        out[i] = left",
+        "        left *= a[i]",
+        "    right = 1",
+        "    for i in range(len(a)-1,-1,-1):",
+        "        out[i] *= right",
+        "        right *= a[i]",
+        "    return out"
+      ],
+      "Return products excluding self, no division/mutation; []->[], singleton->[1]. Count O(n) output and big-integer arithmetic separately."
+    ],
+    [
+      "Lower bound",
+      "O(log n)",
+      "O(1)",
+      [
+        "def lower_bound(a, target):",
+        "    lo, hi = 0, len(a)",
+        "    while lo < hi:",
+        "        mid = (lo+hi)//2",
+        "        if a[mid] < target: lo = mid+1",
+        "        else: hi = mid",
+        "    return lo # can equal len(a)"
+      ],
+      "Sorted a; first position >=target in [0,n] including absent; no mutation. For upper bound compare <= instead."
+    ],
+    [
+      "First feasible answer",
+      "O(log R * cost(check))",
+      "O(1) search state + auxiliary memory used by check",
+      [
+        "def first_feasible(lo, hi, check):",
+        "    # Precondition: check(hi) is True",
+        "    while lo < hi:",
+        "        mid = (lo+hi)//2",
+        "        if check(mid): hi = mid",
+        "        else: lo = mid+1",
+        "    return lo"
+      ],
+      "Integer lo<=hi, check false-then-true and check(hi) true; first feasible inclusive integer. Caller supplies predicate; no feasible answer outside contract."
+    ],
+    [
+      "Merge closed intervals",
+      "O(n log n)",
+      "O(n) sort workspace + O(n) returned intervals",
+      [
+        "def merge(intervals):",
+        "    out = []",
+        "    for start, end in sorted(intervals):",
+        "        if not out or start > out[-1][1]:",
+        "            out.append([start,end])",
+        "        else:",
+        "            out[-1][1] = max(out[-1][1],end)",
+        "    return out"
+      ],
+      "Valid closed intervals start<=end; new sorted merged lists; touching merges; no input mutation. Half-open touching requires changing > to >=."
+    ],
+    [
+      "Kadane nonempty maximum",
+      "O(n)",
+      "O(1)",
+      [
+        "def max_subarray(a):",
+        "    if not a: return None",
+        "    end = best = a[0]",
+        "    for i in range(1,len(a)):",
+        "        x = a[i]",
+        "        end = max(x,end+x)",
+        "        best = max(best,end)",
+        "    return best"
+      ],
+      "Best nonempty sum; empty None, all-negative greatest element; no mutation. Allow empty optimum only with changed initialization."
+    ],
+    [
+      "Next strictly greater to right",
+      "O(n)",
+      "O(n)",
+      [
+        "def next_greater(a):",
+        "    ans = [-1]*len(a)",
+        "    stack = [] # unresolved indices",
+        "    for i,x in enumerate(a):",
+        "        while stack and a[stack[-1]] < x:",
+        "            ans[stack.pop()] = x",
+        "        stack.append(i)",
+        "    return ans"
+      ],
+      "Next strictly greater VALUE or -1 per index; no mutation. Equality does not resolve; adapt assignment for indices/distances."
+    ],
+    [
+      "Sliding window maximum",
+      "O(n)",
+      "O(k) deque + O(n-k+1) output",
+      [
+        "from collections import deque",
+        "def window_max(a,k):",
+        "    if not 1 <= k <= len(a): return []",
+        "    q, out = deque(), []",
+        "    for i,x in enumerate(a):",
+        "        while q and q[0] <= i-k: q.popleft()",
+        "        while q and a[q[-1]] <= x: q.pop()",
+        "        q.append(i)",
+        "        if i >= k-1: out.append(a[q[0]])",
+        "    return out"
+      ],
+      "Width 1..n; invalid []; returns every window max; no mutation. Indices enable expiration; output space separate."
+    ],
+    [
+      "Cyclic placement in range 1..n",
+      "O(n)",
+      "O(1)",
+      [
+        "def place_1_to_n(a):",
+        "    i, n = 0, len(a)",
+        "    while i < n:",
+        "        x = a[i]",
+        "        correct = x-1",
+        "        if 1 <= x <= n and a[correct] != x:",
+        "            a[i], a[correct] = a[correct], a[i]",
+        "        else:",
+        "            i += 1",
+        "    return a # mismatched positions reveal missing"
+      ],
+      "Mutates bounded integers into matching x-1 positions; invalid/duplicate values skipped; same list returned. Missing IDs are mismatches."
+    ],
+    [
+      "Top k largest as heap",
+      "O(n log(k+1))",
+      "O(k)",
+      [
+        "import heapq",
+        "def top_k(a,k):",
+        "    if k <= 0: return []",
+        "    h = []",
+        "    for x in a:",
+        "        if len(h) < k: heapq.heappush(h,x)",
+        "        elif x > h[0]: heapq.heapreplace(h,x)",
+        "    return h # heap order, not sorted"
+      ],
+      "Largest min(k,n) values in heap order, duplicates allowed; k<=0 []; no input mutation. O(min(k,n)) heap; ordered output needs sort."
+    ],
+    [
+      "2D rectangle prefix sum",
+      "O(r*c) build; O(1) query",
+      "O(r*c)",
+      [
+        "def prefix_2d(g):",
+        "    r = len(g)",
+        "    c = len(g[0]) if r else 0",
+        "    if any(len(row) != c for row in g): raise ValueError('rectangular grid required')",
+        "    p = [[0]*(c+1) for _ in range(r+1)]",
+        "    for i in range(r):",
+        "        for j in range(c):",
+        "            p[i+1][j+1] = g[i][j]+p[i][j+1]+p[i+1][j]-p[i][j]",
+        "    return p",
+        "# sum [r1:r2,c1:c2]:",
+        "# p[r2][c2]-p[r1][c2]-p[r2][c1]+p[r1][c1]",
+        "def rectangle_sum(p, r1, c1, r2, c2):",
+        "    rows, cols = len(p)-1, len(p[0])-1",
+        "    if not (0 <= r1 <= r2 <= rows and 0 <= c1 <= c2 <= cols):",
+        "        raise ValueError('invalid half-open rectangle')",
+        "    return p[r2][c2]-p[r1][c2]-p[r2][c1]+p[r1][c1]"
+      ],
+      "Rectangular numeric grid including []/[[]]; prefix table and half-open rectangle query, no mutation. Empty rectangle 0; invalid/ragged raises ValueError."
+    ],
+    [
+      "Dutch National Flag (0/1/2)",
+      "O(n)",
+      "O(1)",
+      [
+        "def sort_colors(a):",
+        "    low = mid = 0",
+        "    high = len(a)-1",
+        "    while mid <= high:",
+        "        if a[mid] == 0:",
+        "            a[low],a[mid] = a[mid],a[low]",
+        "            low += 1; mid += 1",
+        "        elif a[mid] == 2:",
+        "            a[mid],a[high] = a[high],a[mid]",
+        "            high -= 1 # recheck a[mid]",
+        "        else:",
+        "            mid += 1",
+        "    return a"
+      ],
+      "Values exactly 0,1,2; mutates/returns same list; empty unchanged. Other values outside contract. Adapt predicates for generalized three-way partition."
+    ],
+    [
+      "Merge sorted arrays from the back",
+      "O(m+n)",
+      "O(1)",
+      [
+        "def merge_sorted(nums1,m,nums2,n):",
+        "    # nums1 length is m+n, with spare capacity",
+        "    i,j,w = m-1,n-1,m+n-1",
+        "    while j >= 0:",
+        "        if i >= 0 and nums1[i] > nums2[j]:",
+        "            nums1[w] = nums1[i]",
+        "            i -= 1",
+        "        else:",
+        "            nums1[w] = nums2[j]",
+        "            j -= 1",
+        "        w -= 1",
+        "    return nums1"
+      ],
+      "nums1 length m+n with first m sorted, nums2 first n sorted; nonaliasing and valid sizes. Mutates nums1 backward; returns it."
+    ],
+    [
+      "Longest consecutive sequence",
+      "O(n) expected",
+      "O(n)",
+      [
+        "def longest_consecutive(nums):",
+        "    values = set(nums)",
+        "    best = 0",
+        "    for x in values:",
+        "        if x-1 not in values:",
+        "            y = x",
+        "            while y in values: y += 1",
+        "            best = max(best,y-x)",
+        "    return best"
+      ],
+      "Integer values, longest +1 run ignoring order/duplicates; empty 0; no mutation. Scan starts from deduplicated set."
+    ],
+    [
+      "Majority vote (>n/2 guaranteed)",
+      "O(n)",
+      "O(1)",
+      [
+        "def majority(nums):",
+        "    candidate = None; count = 0",
+        "    for x in nums:",
+        "        if count == 0: candidate = x",
+        "        count += 1 if x == candidate else -1",
+        "    return candidate # verify if not guaranteed"
+      ],
+      "Nonempty strict majority guaranteed; returns candidate, empty None; no mutation. Otherwise second-pass verification mandatory."
+    ],
+    [
+      "Find duplicate with Floyd cycle",
+      "O(n)",
+      "O(1)",
+      [
+        "def find_duplicate(nums):",
+        "    # len(nums)=n+1; each value 1..n",
+        "    slow = fast = nums[0]",
+        "    while True:",
+        "        slow = nums[slow]",
+        "        fast = nums[nums[fast]]",
+        "        if slow == fast: break",
+        "    slow = nums[0]",
+        "    while slow != fast:",
+        "        slow = nums[slow]",
+        "        fast = nums[fast]",
+        "    return slow"
+      ],
+      "len=n+1, each value 1..n, exactly one repeated distinct value; no mutation. Empty/out-of-range outside contract."
+    ],
+    [
+      "3Sum with duplicate skipping",
+      "O(n²)",
+      "O(n) sort copy + output",
+      [
+        "def three_sum(nums):",
+        "    a = sorted(nums)",
+        "    result = []",
+        "    for i in range(len(a)-2):",
+        "        if i and a[i] == a[i-1]: continue",
+        "        if a[i] > 0: break",
+        "        l, r = i+1, len(a)-1",
+        "        while l < r:",
+        "            total = a[i]+a[l]+a[r]",
+        "            if total < 0: l += 1",
+        "            elif total > 0: r -= 1",
+        "            else:",
+        "                result.append([a[i],a[l],a[r]])",
+        "                l += 1; r -= 1",
+        "                while l < r and a[l] == a[l-1]: l += 1",
+        "                while l < r and a[r] == a[r+1]: r -= 1",
+        "    return result"
+      ],
+      "Unique value triplets totaling zero, not indices; sorted copy keeps input unchanged. Too-short returns []; skip equal endpoints."
+    ],
+    [
+      "Rotated sorted search (distinct)",
+      "O(log n)",
+      "O(1)",
+      [
+        "def search_rotated(a, target):",
+        "    lo, hi = 0, len(a)-1",
+        "    while lo <= hi:",
+        "        mid = (lo+hi)//2",
+        "        if a[mid] == target: return mid",
+        "        if a[lo] <= a[mid]:",
+        "            if a[lo] <= target < a[mid]: hi = mid-1",
+        "            else: lo = mid+1",
+        "        else:",
+        "            if a[mid] < target <= a[hi]: lo = mid+1",
+        "            else: hi = mid-1",
+        "    return -1"
+      ],
+      "Distinct rotated ascending values; target index or -1, empty -1; no mutation. Duplicates need additional handling and may force O(n)."
+    ],
+    [
+      "Difference array: inclusive range additions",
+      "O(n+q)",
+      "O(n)",
+      [
+        "def range_add(n, updates):",
+        "    diff = [0]*(n+1)",
+        "    for left,right,delta in updates:",
+        "        diff[left] += delta",
+        "        diff[right+1] -= delta",
+        "    running = 0",
+        "    for i in range(n):",
+        "        running += diff[i]",
+        "        diff[i] = running",
+        "    return diff[:n] # n outputs"
+      ],
+      "n>=0; inclusive update triples 0<=left<=right<n. Materialized output; n=0 with no updates gives []; invalid bounds outside contract."
+    ],
+    [
+      "Top K frequent with buckets",
+      "O(n) expected",
+      "O(n)",
+      [
+        "from collections import Counter",
+        "def top_k_frequent(nums,k):",
+        "    if k <= 0: return []",
+        "    counts = Counter(nums)",
+        "    buckets = [[] for _ in range(len(nums)+1)]",
+        "    for value,frequency in counts.items():",
+        "        buckets[frequency].append(value)",
+        "    out = []",
+        "    for frequency in range(len(nums),0,-1):",
+        "        for value in buckets[frequency]:",
+        "            out.append(value)",
+        "            if len(out) == k: return out",
+        "    return out"
+      ],
+      "Hashable values, k>=0; up to min(k,u) frequent values, arbitrary ties; empty/k=0 []; no mutation. Buckets allocate O(n)."
+    ],
+    [
+      "Longest increasing subsequence length",
+      "O(n log n)",
+      "O(n)",
+      [
+        "from bisect import bisect_left",
+        "def lis_length(nums):",
+        "    tails = []",
+        "    for x in nums:",
+        "        i = bisect_left(tails,x)",
+        "        if i == len(tails): tails.append(x)",
+        "        else: tails[i] = x",
+        "    return len(tails)"
+      ],
+      "Strict increasing subsequence LENGTH; empty 0; no mutation. bisect_right gives nondecreasing variant; reconstruction needs links."
+    ],
+    [
+      "Maximum product subarray",
+      "O(n)",
+      "O(1)",
+      [
+        "def max_product(nums):",
+        "    if not nums: return None",
+        "    high = low = best = nums[0]",
+        "    for i in range(1,len(nums)):",
+        "        x = nums[i]",
+        "        if x < 0: high,low = low,high",
+        "        high = max(x,high*x)",
+        "        low = min(x,low*x)",
+        "        best = max(best,high)",
+        "    return best"
+      ],
+      "Largest nonempty contiguous product; empty None; negatives/zeros valid; no mutation. Old extremes drive both transitions; bit cost matters."
+    ],
+    [
+      "Next permutation in-place",
+      "O(n)",
+      "O(1)",
+      [
+        "def next_permutation(a):",
+        "    n = len(a)",
+        "    i = n-2",
+        "    while i >= 0 and a[i] >= a[i+1]: i -= 1",
+        "    if i >= 0:",
+        "        j = n-1",
+        "        while a[j] <= a[i]: j -= 1",
+        "        a[i],a[j] = a[j],a[i]",
+        "    l,r = i+1,n-1",
+        "    while l < r:",
+        "        a[l],a[r] = a[r],a[l]",
+        "        l += 1; r -= 1",
+        "    return a"
+      ],
+      "Next lexicographic ordering in place, wrap maximal to smallest; empty/singleton unchanged. Swap reverse avoids suffix allocation."
+    ],
+    [
+      "Trapping rainwater (two-pointer)",
+      "O(n)",
+      "O(1)",
+      [
+        "def trap(height):",
+        "    left,right = 0,len(height)-1",
+        "    left_max = right_max = water = 0",
+        "    while left < right:",
+        "        if height[left] <= height[right]:",
+        "            left_max = max(left_max,height[left])",
+        "            water += left_max-height[left]",
+        "            left += 1",
+        "        else:",
+        "            right_max = max(right_max,height[right])",
+        "            water += right_max-height[right]",
+        "            right -= 1",
+        "    return water"
+      ],
+      "Nonnegative heights; trapped water; empty/singleton 0; no mutation. Different objective from container area."
+    ],
+    [
+      "Jump Game II minimum jumps",
+      "O(n)",
+      "O(1)",
+      [
+        "def min_jumps(nums):",
+        "    if len(nums) < 2: return 0",
+        "    farthest = end = jumps = 0",
+        "    for i in range(len(nums)-1):",
+        "        farthest = max(farthest,i+nums[i])",
+        "        if i == end:",
+        "            if farthest <= i: return -1",
+        "            jumps += 1",
+        "            end = farthest",
+        "            if end >= len(nums)-1: return jumps",
+        "    return -1"
+      ],
+      "Nonnegative forward jump bounds; minimum jumps or -1 if unreachable; empty/singleton 0; no mutation. Weighted jumps need a different solver."
+    ],
+    [
+      "Quickselect Kth largest (random pivot)",
+      "O(n) expected; O(n²) worst",
+      "O(1) auxiliary",
+      [
+        "from random import randrange",
+        "def kth_largest(a, k):",
+        "    if not 1 <= k <= len(a): return None",
+        "    target = len(a)-k",
+        "    left, right = 0, len(a)-1",
+        "    while left <= right:",
+        "        pivot = a[randrange(left, right+1)]",
+        "        low = mid = left",
+        "        high = right",
+        "        while mid <= high:",
+        "            if a[mid] < pivot:",
+        "                a[low], a[mid] = a[mid], a[low]",
+        "                low += 1; mid += 1",
+        "            elif a[mid] > pivot:",
+        "                a[mid], a[high] = a[high], a[mid]",
+        "                high -= 1",
+        "            else: mid += 1",
+        "        if target < low: right = low-1",
+        "        elif target > high: left = high+1",
+        "        else: return pivot"
+      ],
+      "Mutates a; returns kth largest including duplicates, None for invalid k. Three-way partition makes all-equal data one pass. Random pivots give expected linear time, not worst-case linear."
+    ],
+    [
+      "Reachability greedy frontier",
+      "O(n)",
+      "O(1)",
+      [
+        "def can_jump(nums):",
+        "    farthest = 0",
+        "    for i, jump in enumerate(nums):",
+        "        if i > farthest: return False",
+        "        farthest = max(farthest, i+jump)",
+        "    return True"
+      ],
+      "Nonnegative integer jumps, no mutation; empty input returns True by vacuous reachability convention. Adapt to minimum jumps with greedy layers, not this boolean alone."
+    ],
+    [
+      "Grid connected components BFS",
+      "O(r*c)",
+      "O(r*c) visited and queue",
+      [
+        "from collections import deque",
+        "def count_islands(grid):",
+        "    rows = len(grid)",
+        "    cols = len(grid[0]) if rows else 0",
+        "    if any(len(row) != cols for row in grid): raise ValueError('rectangular grid required')",
+        "    visited = set(); answer = 0",
+        "    for r in range(rows):",
+        "        for c in range(cols):",
+        "            if grid[r][c] != '1' or (r,c) in visited: continue",
+        "            answer += 1; visited.add((r,c)); queue = deque([(r,c)])",
+        "            while queue:",
+        "                x,y = queue.popleft()",
+        "                for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):",
+        "                    nx,ny = x+dx,y+dy",
+        "                    if 0 <= nx < rows and 0 <= ny < cols and grid[nx][ny] == '1' and (nx,ny) not in visited:",
+        "                        visited.add((nx,ny)); queue.append((nx,ny))",
+        "    return answer"
+      ],
+      "Rectangular grid of string cells 0/1; four-neighbor adjacency; no mutation, empty grid returns 0. Adapt the predicate and directions explicitly. Iterative BFS avoids recursion-depth failure."
+    ],
+    [
+      "House robber rolling prefix DP",
+      "O(n)",
+      "O(1)",
+      [
+        "def rob(nums):",
+        "    prev2 = prev1 = 0",
+        "    for x in nums:",
+        "        prev2, prev1 = prev1, max(prev1, prev2+x)",
+        "    return prev1"
+      ],
+      "Return maximum sum of nonadjacent values, allowing choose-none (so negatives/empty return 0); no mutation. Reconstruction needs retained decisions."
+    ],
+    [
+      "Subsets choose and undo",
+      "O(n*2^n) including output",
+      "O(n) recursion/path + output",
+      [
+        "def subsets(nums):",
+        "    out = []; path = []",
+        "    def dfs(i):",
+        "        if i == len(nums):",
+        "            out.append(path.copy()); return",
+        "        dfs(i+1)",
+        "        path.append(nums[i]); dfs(i+1); path.pop()",
+        "    dfs(0)",
+        "    return out"
+      ],
+      "Distinct input values; returns every positional subset, [[]] for empty. Duplicate values need sorted same-depth skipping. Recursion depth n: use iterative enumeration for deep inputs; output already exponential."
+    ],
+    [
+      "Single unpaired value XOR",
+      "O(n) fixed-word operations",
+      "O(1) scalar state",
+      [
+        "def single_number(nums):",
+        "    answer = 0",
+        "    for x in nums: answer ^= x",
+        "    return answer"
+      ],
+      "Exactly one value appears once and every other value twice; integers. Empty returns identity 0 but is outside uniqueness guarantee. Python XOR scales with integer bit length."
+    ],
+    [
+      "Counting sort bounded integers",
+      "O(n+R)",
+      "O(R) counts + O(n) output",
+      [
+        "def counting_sort(nums, low, high):",
+        "    if low > high: raise ValueError('invalid range')",
+        "    counts = [0]*(high-low+1)",
+        "    for x in nums:",
+        "        if not low <= x <= high: raise ValueError('value outside range')",
+        "        counts[x-low] += 1",
+        "    out = []",
+        "    for i,count in enumerate(counts):",
+        "        for _ in range(count): out.append(low+i)",
+        "    return out"
+      ],
+      "Integer bounds low<=high, range fits memory; returns sorted copy without mutation. Values outside range raise ValueError; adapt to stable record sorting with cumulative offsets."
+    ]
+  ],
+  "practice": [
+    [
+      "LC 1 Two Sum",
+      "Hash map",
+      "Easy",
+      "O(n) expected time / O(n) space",
+      "Lookup before insertion prevents same-index reuse"
+    ],
+    [
+      "LC 217 Contains Duplicate",
+      "Hash set",
+      "Easy",
+      "O(n) expected / O(n)",
+      "A set loses multiplicity"
+    ],
+    [
+      "LC 283 Move Zeroes",
+      "Write pointer",
+      "Easy",
+      "O(n) / O(1)",
+      "Preserve nonzero order"
+    ],
+    [
+      "LC 88 Merge Sorted Array",
+      "Backward merge",
+      "Easy",
+      "O(m+n) / O(1)",
+      "Do not overwrite unread prefix"
+    ],
+    [
+      "LC 169 Majority Element",
+      "Boyer–Moore",
+      "Easy",
+      "O(n) / O(1)",
+      "Verify unless majority guaranteed"
+    ],
+    [
+      "LC 121 Best Time to Buy and Sell Stock",
+      "Running minimum",
+      "Easy",
+      "O(n) / O(1)",
+      "Buy must precede sell"
+    ],
+    [
+      "LC 643 Maximum Average Subarray I",
+      "Fixed window",
+      "Easy",
+      "O(n) / O(1)",
+      "All-negative windows need first-window initialization"
+    ],
+    [
+      "LC 75 Sort Colors",
+      "Dutch National Flag",
+      "Medium",
+      "O(n) / O(1)",
+      "Recheck value swapped from high"
+    ],
+    [
+      "LC 238 Product of Array Except Self",
+      "Prefix/suffix",
+      "Medium",
+      "O(n) / O(1) auxiliary + O(n) output",
+      "Division breaks at zeros"
+    ],
+    [
+      "LC 53 Maximum Subarray",
+      "Kadane",
+      "Medium",
+      "O(n) / O(1)",
+      "All-negative input"
+    ],
+    [
+      "LC 152 Maximum Product Subarray",
+      "Dual extrema",
+      "Medium",
+      "O(n) scalar operations / O(1) scalar state",
+      "A negative minimum may become maximum"
+    ],
+    [
+      "LC 209 Minimum Size Subarray Sum",
+      "Positive-sum window",
+      "Medium",
+      "O(n) / O(1)",
+      "Negatives invalidate shrinking"
+    ],
+    [
+      "LC 560 Subarray Sum Equals K",
+      "Prefix frequencies",
+      "Medium",
+      "O(n) expected / O(n)",
+      "Seed prefix 0 once, count before update"
+    ],
+    [
+      "LC 11 Container With Most Water",
+      "Opposite pointers",
+      "Medium",
+      "O(n) / O(1)",
+      "Moving taller side cannot improve fixed shorter boundary"
+    ],
+    [
+      "LC 15 3Sum",
+      "Sorted two pointers",
+      "Medium",
+      "O(n²) / O(n) sort copy + output",
+      "Unique value triplets, not index triples"
+    ],
+    [
+      "LC 33 Search in Rotated Sorted Array",
+      "Rotated binary search",
+      "Medium",
+      "O(log n) / O(1)",
+      "Distinct values premise"
+    ],
+    [
+      "LC 56 Merge Intervals",
+      "Sort and merge",
+      "Medium",
+      "O(n log n) / O(n) workspace + output",
+      "Touching closed ranges overlap"
+    ],
+    [
+      "LC 370 Range Addition",
+      "Difference array",
+      "Medium",
+      "O(n+q) / O(n)",
+      "Inclusive end needs right+1"
+    ],
+    [
+      "LC 287 Find the Duplicate Number",
+      "Floyd cycle",
+      "Medium",
+      "O(n) / O(1)",
+      "Exact value range and one repeated distinct value"
+    ],
+    [
+      "LC 128 Longest Consecutive Sequence",
+      "Set start-only scan",
+      "Medium",
+      "O(n) expected / O(n)",
+      "Do not start scans at every duplicate value"
+    ],
+    [
+      "LC 347 Top K Frequent Elements",
+      "Frequency buckets",
+      "Medium",
+      "O(n) expected / O(n)",
+      "Tie ordering is not necessarily specified"
+    ],
+    [
+      "LC 215 Kth Largest Element in an Array",
+      "3-way randomized quickselect",
+      "Medium",
+      "O(n) expected, O(n²) worst / O(1)",
+      "Two-way equal pivots can still be quadratic"
+    ],
+    [
+      "LC 300 Longest Increasing Subsequence",
+      "Tails and bisect",
+      "Medium",
+      "O(n log n) / O(n)",
+      "Tails is not an actual subsequence"
+    ],
+    [
+      "LC 31 Next Permutation",
+      "Pivot/suffix",
+      "Medium",
+      "O(n) / O(1)",
+      "Descending input wraps to smallest"
+    ],
+    [
+      "LC 55 Jump Game",
+      "Greedy reachability",
+      "Medium",
+      "O(n) / O(1)",
+      "Stalled frontier"
+    ],
+    [
+      "LC 45 Jump Game II",
+      "Greedy levels",
+      "Medium",
+      "O(n) / O(1)",
+      "Unreachable case if not ruled out"
+    ],
+    [
+      "LC 73 Set Matrix Zeroes",
+      "Row/column markers",
+      "Medium",
+      "O(r*c) / O(1)",
+      "Save first-row and first-column flags"
+    ],
+    [
+      "LC 304 Range Sum Query 2D - Immutable",
+      "2D prefix",
+      "Medium",
+      "O(r*c) build, O(1) query / O(r*c)",
+      "Zero border and four signs"
+    ],
+    [
+      "LC 739 Daily Temperatures",
+      "Monotonic stack",
+      "Medium",
+      "O(n) / O(n)",
+      "Equal is not warmer; return distances"
+    ],
+    [
+      "LC 42 Trapping Rain Water",
+      "Two-pointer maxima",
+      "Hard",
+      "O(n) / O(1)",
+      "Not container maximum area"
+    ],
+    [
+      "LC 239 Sliding Window Maximum",
+      "Monotonic deque",
+      "Hard",
+      "O(n) / O(k) + output",
+      "Expire indices, not just values"
+    ],
+    [
+      "LC 41 First Missing Positive",
+      "Cyclic placement",
+      "Hard",
+      "O(n) / O(1)",
+      "Guard duplicates and out-of-range values"
+    ]
+  ],
+  "id": "arrays",
+  "title": "Arrays",
+  "subtitle": "Random access is cheap; choose state and an invariant that avoid repeatedly scanning contiguous data.",
+  "variables": "n = input length; m = second input/pattern length; k = requested window/top-k/budget as specified locally; u = distinct symbols/values; N = total characters; L = longest word; r,c = grid dimensions; q = updates; R = integer range. Standard-library Python 3.10+, CPython list implementation notes where stated. Costs count scalar operations; arbitrary-precision integer arithmetic scales with bit length. Hash table bounds are expected, not worst-case; hashing a new length-L string costs O(L). Auxiliary space excludes returned output only when explicitly stated; sorting, slices and recursion are counted.",
+  "sources": [
+    {
+      "title": "Public Recall benchmark baseline",
+      "url": "https://github.com/Chamanthi000/Chamanthi000.github.io/blob/main/leetcode-revision/array-interview-guide.js",
+      "note": "Read from the actual local repository checkout; correct original explanations retained and independently reviewed. Public educational reference only; no personal notes."
+    },
+    {
+      "title": "Python sequence and string documentation",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "note": "Official API reference; complexity annotations here are original analysis, not a Python language guarantee."
+    },
+    {
+      "title": "Python collections documentation",
+      "url": "https://docs.python.org/3/library/collections.html",
+      "note": "Counter and deque API reference; standard library only."
+    },
+    {
+      "title": "AlgoMonster public flowchart",
+      "url": "https://algo.monster/flowchart",
+      "note": "Public high-level pattern reference verified by project research. Both supplied foundation-course URL forms returned 404; no course-specific coverage claim."
+    },
+    {
+      "title": "Research limits",
+      "url": "https://neetcode.io/practice",
+      "note": "No claim of exact NeetCode list coverage or access to paid Grokking material. Explanations and code are original synthesis; no private notes inspected."
+    }
+  ],
+  "decisionProcess": [
+    "0–30 seconds: restate output, empty/no-answer convention, indices versus values, mutation permission, input size and alphabet/value constraints.",
+    "30–60 seconds: separate contiguous ranges from subsequences or combinations; state brute-force repeated work and a concrete counterexample.",
+    "60–120 seconds: choose a family from the recognition cues; say its invariant and prerequisites aloud, rejecting a pattern whose prerequisite fails.",
+    "120–180 seconds: dry-run ordinary, boundary and assumption-breaking inputs; count copies, sorting, hashing, recursion and output before committing.",
+    "Mastery check: reconstruct the template without hints, justify each update with the invariant, test one counterexample to a tempting alternative, and explain a changed-constraint follow-up."
+  ],
+  "operationExamples": [
+    {
+      "code": [
+        "a=[10,20,30]; result=(a[0],a[-1])",
+        "assert result == (10, 30)"
+      ],
+      "result": "(10, 30)",
+      "use": "Read value Interview reminder: Negative index counts from the right; invalid index raises IndexError.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[1,2]; a[0]=9; result=a",
+        "assert result == [9, 2]"
+      ],
+      "result": "[9, 2]",
+      "use": "Replace value Interview reminder: Mutates original.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,2,3]; result=len(a)",
+        "assert result == 3"
+      ],
+      "result": "3",
+      "use": "Length Interview reminder: Python lists track length.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[1,2,3,4]; result=a[1:3]",
+        "assert result == [2, 3]"
+      ],
+      "result": "[2, 3]",
+      "use": "Half-open slice Interview reminder: Copies k elements, excluding r.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[0,1,2,3,4]; result=a[::2]",
+        "assert result == [0, 2, 4]"
+      ],
+      "result": "[0, 2, 4]",
+      "use": "Strided slice Interview reminder: Creates another list.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[1,2,3]; result=a[::-1]",
+        "assert result == [3, 2, 1]"
+      ],
+      "result": "[3, 2, 1]",
+      "use": "Reverse copy Interview reminder: Does not mutate a.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[[1]]; b=a.copy(); b[0].append(2); result=(a,b is a)",
+        "assert result == ([[1, 2]], False)"
+      ],
+      "result": "([[1, 2]], False)",
+      "use": "Shallow copy Interview reminder: Nested elements are shared references.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=[1,2]==[1,2]",
+        "assert result == True"
+      ],
+      "result": "True",
+      "use": "Equality comparison Interview reminder: Element equality may itself have a cost.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[1]; a.append(2); result=a",
+        "assert result == [1, 2]"
+      ],
+      "result": "[1, 2]",
+      "use": "Append Interview reminder: A resize can cost O(n) once.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1]; a.extend([2,3]); result=a",
+        "assert result == [1, 2, 3]"
+      ],
+      "result": "[1, 2, 3]",
+      "use": "Append m items Interview reminder: m is the length of b.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,3]; a.insert(1,2); result=a",
+        "assert result == [1, 2, 3]"
+      ],
+      "result": "[1, 2, 3]",
+      "use": "Insert at index Interview reminder: Shifts trailing values.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,2]; x=a.pop(); result=(x,a)",
+        "assert result == (2, [1])"
+      ],
+      "result": "(2, [1])",
+      "use": "Remove last Interview reminder: Empty raises IndexError; occasional CPython capacity shrink can reallocate.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,2,3]; x=a.pop(1); result=(x,a)",
+        "assert result == (2, [1, 3])"
+      ],
+      "result": "(2, [1, 3])",
+      "use": "Remove by index Interview reminder: Shifts after i; pop(0) is slow.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[2,1,2]; a.remove(2); result=a",
+        "assert result == [1, 2]"
+      ],
+      "result": "[1, 2]",
+      "use": "Remove first equal value Interview reminder: Value, NOT index; missing value raises ValueError.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,2,3]; del a[1]; result=a",
+        "assert result == [1, 3]"
+      ],
+      "result": "[1, 3]",
+      "use": "Delete index Interview reminder: May shift elements.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,2,3,4]; del a[1:3]; result=a",
+        "assert result == [1, 4]"
+      ],
+      "result": "[1, 4]",
+      "use": "Delete slice Interview reminder: CPython keeps deleted references temporarily while shifting/releasing; k = deleted slice length. Not strict O(1) auxiliary.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,2,3]; a[1:2]=[8,9]; result=a",
+        "assert result == [1, 8, 9, 3]"
+      ],
+      "result": "[1, 8, 9, 3]",
+      "use": "Slice replacement Interview reminder: k removed and m replacement references; self-assignment and resizing need temporary storage.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,2]; alias=a; a.clear(); result=(a,alias)",
+        "assert result == ([], [])"
+      ],
+      "result": "([], [])",
+      "use": "Clear all Interview reminder: Same object is emptied.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "result=3 in [1,3]",
+        "assert result == True"
+      ],
+      "result": "True",
+      "use": "Membership Interview reminder: Repeated queries? Use a set.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=[4,7,4].index(4)",
+        "assert result == 0"
+      ],
+      "result": "0",
+      "use": "Find first index Interview reminder: Raises ValueError if missing.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=[4,7,4].count(4)",
+        "assert result == 2"
+      ],
+      "result": "2",
+      "use": "Count occurrences Interview reminder: Counter helps for all frequencies.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "from bisect import bisect_left; result=bisect_left([1,3,3],3)",
+        "assert result == 1"
+      ],
+      "result": "1",
+      "use": "Sorted lower bound Interview reminder: Requires sorted list; result may be len(a).",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "from bisect import bisect_right; result=bisect_right([1,3,3],3)",
+        "assert result == 3"
+      ],
+      "result": "3",
+      "use": "Right insertion boundary Interview reminder: Sorted input; returns position just after equal values.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "from bisect import insort; a=[1,3]; insort(a,2); result=a",
+        "assert result == [1, 2, 3]"
+      ],
+      "result": "[1, 2, 3]",
+      "use": "Sorted insertion Interview reminder: Binary search is O(log n), shift is O(n).",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[3,1,2]; returned=a.sort(); result=(a,returned)",
+        "assert result == ([1, 2, 3], None)"
+      ],
+      "result": "([1, 2, 3], None)",
+      "use": "In-place stable sort Interview reminder: Returns None.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[3,1]; result=(sorted(a),a)",
+        "assert result == ([1, 3], [3, 1])"
+      ],
+      "result": "([1, 3], [3, 1])",
+      "use": "Sorted copy Interview reminder: Original unchanged.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[(2,'b'),(1,'x'),(2,'a')]; a.sort(key=lambda p:p[0],reverse=True); result=a",
+        "assert result == [(2, 'b'), (2, 'a'), (1, 'x')]"
+      ],
+      "result": "[(2, 'b'), (2, 'a'), (1, 'x')]",
+      "use": "Custom stable sort Interview reminder: Ties keep previous ordering.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1,2]; returned=a.reverse(); result=(a,returned)",
+        "assert result == ([2, 1], None)"
+      ],
+      "result": "([2, 1], None)",
+      "use": "Reverse in-place Interview reminder: Returns None.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "a=[1]; result=a+[2]",
+        "assert result == [1, 2]"
+      ],
+      "result": "[1, 2]",
+      "use": "Concatenate Interview reminder: Makes new list.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[1]; alias=a; a += [2]; result=alias",
+        "assert result == [1, 2]"
+      ],
+      "result": "[1, 2]",
+      "use": "Extend in place Interview reminder: Mutates original a rather than making a new list.",
+      "mutation": "Mutates the list; aliases observe changes."
+    },
+    {
+      "code": [
+        "row=[0]; a=[row]*2; a[0][0]=7; result=a",
+        "assert result == [[7], [7]]"
+      ],
+      "result": "[[7], [7]]",
+      "use": "Repeat references Interview reminder: Danger with nested mutable rows.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "a=[1,2,3]; result=[x*x for x in a]",
+        "assert result == [1, 4, 9]"
+      ],
+      "result": "[1, 4, 9]",
+      "use": "Comprehension Interview reminder: Does new allocation.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=list(reversed([1,2,3]))",
+        "assert result == [3, 2, 1]"
+      ],
+      "result": "[3, 2, 1]",
+      "use": "Reverse iterator materialized Interview reminder: reversed(a) alone O(1) setup.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=[(i,x) for i,x in enumerate([7,8])]",
+        "assert result == [(0, 7), (1, 8)]"
+      ],
+      "result": "[(0, 7), (1, 8)]",
+      "use": "Index + value Interview reminder: Avoid a.index(x) during iteration.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=[(x,y) for x,y in zip([1,2],[9])]",
+        "assert result == [(1, 9)]"
+      ],
+      "result": "[(1, 9)]",
+      "use": "Parallel iteration Interview reminder: Stops at shorter input.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=sum([1,-2,4])",
+        "assert result == 3"
+      ],
+      "result": "3",
+      "use": "Total Interview reminder: For numeric types.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=(min([],default=0),max([1,3]))",
+        "assert result == (0, 3)"
+      ],
+      "result": "(0, 3)",
+      "use": "Extrema Interview reminder: Empty list needs default.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=(any([]),all([]),any([0,2]))",
+        "assert result == (False, True, True)"
+      ],
+      "result": "(False, True, True)",
+      "use": "Boolean checks Interview reminder: Short-circuit.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "from collections import Counter; result=dict(Counter([2,2,3]))",
+        "assert result == {2: 2, 3: 1}"
+      ],
+      "result": "{2: 2, 3: 1}",
+      "use": "Frequency dictionary Interview reminder: u distinct hashable values.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "result=sorted(set([3,1,3]))",
+        "assert result == [1, 3]"
+      ],
+      "result": "[1, 3]",
+      "use": "Unique values Interview reminder: Does not retain original index information.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    },
+    {
+      "code": [
+        "from itertools import accumulate; result=list(accumulate([2,3],initial=0))",
+        "assert result == [0, 2, 5]"
+      ],
+      "result": "[0, 2, 5]",
+      "use": "Prefix running totals Interview reminder: Use initial=0 for leading zero.",
+      "mutation": "Reads input or returns a separate container; shallow copies still share element references."
+    }
+  ],
+  "fundamentalDetails": [
+    {
+      "why": "A boundary guard avoids exceptions before an algorithm can start.",
+      "use": "Read first/last or validate a candidate index.",
+      "result": "prints 30",
+      "edge": "Empty list has no valid first/last element.",
+      "takeaway": "Check range before indexing, not after."
+    },
+    {
+      "why": "Index and value belong together; reverse loops must still visit zero.",
+      "use": "Forward scans and suffix processing.",
+      "result": "prints 0 4; 1 7; 2 9; then 9,7,4",
+      "edge": "range(n-1,-1,-1) works when n=0.",
+      "takeaway": "enumerate avoids an accidental O(n) index lookup."
+    },
+    {
+      "why": "Capacity growth explains occasional expensive appends.",
+      "use": "Build outputs at the end rather than repeated prepends.",
+      "result": "nums=[0,1,2,3], last=4",
+      "edge": "Pop on empty raises; individual resize may be linear.",
+      "takeaway": "Amortized bounds describe sequences, not every call."
+    },
+    {
+      "why": "Half-open bounds compose cleanly and represent empty ranges.",
+      "use": "Extract examples, not inner-loop binary search ranges.",
+      "result": "middle=[4,6,8], reverse_copy=[10,8,6,4,2]; a unchanged",
+      "edge": "a[2:2] is []; out-of-range slice bounds clamp.",
+      "takeaway": "Each proper slice generally allocates."
+    },
+    {
+      "why": "A list is a contiguous reference array; middle edits shift.",
+      "use": "Occasional edits or stable compaction instead of repeated remove.",
+      "result": "a=[1,4], removed=2",
+      "edge": "Missing value raises ValueError; empty pop raises IndexError.",
+      "takeaway": "Value removal and index removal are different contracts."
+    },
+    {
+      "why": "Aliasing affects correctness even if values initially match.",
+      "use": "Independent grid rows and snapshot semantics.",
+      "result": "a=[[9],[2,3]]; independent has separate row objects",
+      "edge": "Deeply nested objects still need a deeper copy policy.",
+      "takeaway": "Outer copies do not isolate nested mutations."
+    },
+    {
+      "why": "Stability preserves tie order without extra tie-breaking logic.",
+      "use": "Sort records by a derived key.",
+      "result": "ordered=[(1,x),(2,b),(2,a)], nums=[1,2,3]",
+      "edge": "Empty sort returns None; expensive key/comparison costs add.",
+      "takeaway": "In-place sort can still use O(n) workspace."
+    },
+    {
+      "why": "Binary search discards a half only because the predicate is ordered.",
+      "use": "Many queries on already sorted values.",
+      "result": "i=1, found=True",
+      "edge": "Target above maximum returns len(a), not a valid index.",
+      "takeaway": "Boundary search returns a position, not proof of membership."
+    },
+    {
+      "why": "Store the information repeated scans would rediscover.",
+      "use": "Dedup, counts, index complements.",
+      "result": "freq={2:2,5:1,7:1}; prints duplicate 2",
+      "edge": "Unhashable elements cannot be dict/set keys.",
+      "takeaway": "Presence, multiplicity and positions need different structures."
+    },
+    {
+      "why": "Contiguity determines whether windows are meaningful.",
+      "use": "Translate wording into the right search space.",
+      "result": "subarray=[2,3], subsequence=[1,3], subset={1,4}",
+      "edge": "A subsequence may be empty or skip gaps.",
+      "takeaway": "Do not use contiguous algorithms for arbitrary skipping."
+    },
+    {
+      "why": "Independent axes prevent square-grid assumptions.",
+      "use": "Four-neighbor traversals with explicit bounds.",
+      "result": "grid=[[0,1,2,3],[1,2,3,4],[2,3,4,5]]",
+      "edge": "[] and [[]] contain zero cells; ragged inputs need policy.",
+      "takeaway": "Rows and columns are different variables."
+    },
+    {
+      "why": "Leading zero makes ranges starting at zero ordinary.",
+      "use": "Static repeated sum queries, including negative entries.",
+      "result": "prefix=[0,3,2,6,8], answer=3",
+      "edge": "Empty range l=r gives zero.",
+      "takeaway": "Subtract two boundaries, not two included endpoints."
+    },
+    {
+      "why": "A write prefix lets retained items move without shifting every deletion.",
+      "use": "Stable filtering and Move Zeroes.",
+      "result": "a=[1,3,12,0,0]",
+      "edge": "All removed means write=0; trailing content must have explicit policy.",
+      "takeaway": "Never overwrite unread data; write never exceeds read."
+    },
+    {
+      "why": "Total progress, not indentation depth, proves amortized linear time.",
+      "use": "Nonnegative sum windows and monotonic scans.",
+      "result": "left=3, total=1 after the final item",
+      "edge": "Mixed signs can make a discarded window useful later.",
+      "takeaway": "State an invariant and count all pointer moves."
+    }
+  ],
+  "patternDetails": [
+    {
+      "steps": [
+        "Create seen map of value to earlier index.",
+        "Look up target-x before inserting x; return distinct positions on hit."
+      ],
+      "templates": [
+        "Two Sum — unsorted"
+      ],
+      "related": "Sorted opposite scan trades mutation/index preservation for lower memory.",
+      "variations": "Presence set; value-to-index map; frequency map; all-pairs lists."
+    },
+    {
+      "steps": [
+        "Set endpoints on sorted input.",
+        "If sum is too small advance left; too large retreat right; fix an outer index for 3Sum and skip duplicates."
+      ],
+      "templates": [
+        "Pair sum — sorted",
+        "3Sum with duplicate skipping"
+      ],
+      "related": "3Sum fixes an outer value; container area needs a height-based proof.",
+      "variations": "3Sum outer loop; kSum; container pointers use different elimination proof."
+    },
+    {
+      "steps": [
+        "Initialize write=0.",
+        "Read every original element; copy retained elements to write and advance it; return logical length."
+      ],
+      "templates": [
+        "Stable compact — in-place"
+      ],
+      "related": "Dutch National Flag reorders; write compaction preserves retained order.",
+      "variations": "Remove value; sorted dedup; stable nonzero prefix then zero-fill."
+    },
+    {
+      "steps": [
+        "Reject invalid width or apply documented empty policy.",
+        "Build first k sum; add entering and subtract leaving on each shift."
+      ],
+      "templates": [
+        "Fixed max-window sum"
+      ],
+      "related": "Deque windows generalize sum to max/min.",
+      "variations": "Fixed average; rolling counts; rolling XOR."
+    },
+    {
+      "steps": [
+        "Require positive values and positive target.",
+        "Expand right; while sum meets target update shortest length and remove left."
+      ],
+      "templates": [
+        "Shortest window with positive values"
+      ],
+      "related": "Prefix sums handle exact signed sums; prefix-deque methods handle shortest signed thresholds.",
+      "variations": "Shortest positive target; longest bounded budget; signed targets need different solver."
+    },
+    {
+      "steps": [
+        "Seed zero prefix frequency to 1.",
+        "Add x, count prior prefix-k, then record this new prefix."
+      ],
+      "templates": [
+        "Count sum-k subarrays"
+      ],
+      "related": "Plain prefix handles known query endpoints; frequencies count unknown starts.",
+      "variations": "Count exact sums; longest exact sum uses earliest boundary; divisibility uses remainder states."
+    },
+    {
+      "steps": [
+        "Write each left-exclusive product into output.",
+        "Traverse backward multiplying right-exclusive products, avoiding division."
+      ],
+      "templates": [
+        "Product except self"
+      ],
+      "related": "2D prefix uses inclusion-exclusion; zero-containing products cannot divide.",
+      "variations": "Products except self; prefix/suffix maxima; leading-zero range-sum table."
+    },
+    {
+      "steps": [
+        "Start [lo,hi)=[0,n).",
+        "Keep first element >=target inside boundary interval until lo=hi."
+      ],
+      "templates": [
+        "Lower bound"
+      ],
+      "related": "First-feasible replaces array comparison with monotone predicate.",
+      "variations": "Lower bound; upper bound; first/last occurrence."
+    },
+    {
+      "steps": [
+        "Prove integer predicate false-then-true and feasible hi.",
+        "Check midpoint, replacing hi on true and lo=mid+1 on false."
+      ],
+      "templates": [
+        "First feasible answer"
+      ],
+      "related": "Boundary search is special case; feasible upper bound must be proved.",
+      "variations": "Minimum capacity/speed; maximum feasible with reversed predicate."
+    },
+    {
+      "steps": [
+        "Use inclusive endpoints and distinct values.",
+        "Check mid, identify sorted half, keep half whose value bounds can contain target."
+      ],
+      "templates": [
+        "Rotated sorted search (distinct)"
+      ],
+      "related": "Duplicates can hide sorted half and force linear degradation.",
+      "variations": "Rotated minimum; duplicate-safe rotated search may degrade."
+    },
+    {
+      "steps": [
+        "Sort intervals by start without mutating caller.",
+        "Append disjoint range; otherwise extend current end; clarify touching convention."
+      ],
+      "templates": [
+        "Merge closed intervals"
+      ],
+      "related": "Difference arrays combine contributions instead of unioning intervals.",
+      "variations": "Closed-range union; half-open touching policy; insert interval."
+    },
+    {
+      "steps": [
+        "At index i compute x-1 only for valid 1..n values.",
+        "Swap if target does not already hold x; otherwise advance to avoid duplicate loops."
+      ],
+      "templates": [
+        "Cyclic placement in range 1..n"
+      ],
+      "related": "Floyd avoids mutation but requires exact range constraints.",
+      "variations": "First missing positive; all missing IDs; duplicate guard."
+    },
+    {
+      "steps": [
+        "Initialize best and end from first value.",
+        "Choose start-new x or extend end+x; update global best."
+      ],
+      "templates": [
+        "Kadane nonempty maximum"
+      ],
+      "related": "Product DP needs both extremes; robber allows noncontiguous choices.",
+      "variations": "Maximum sum boundaries; circular sum with all-negative guard."
+    },
+    {
+      "steps": [
+        "Store unresolved indices.",
+        "Pop smaller values when current value resolves their next greater; leave equal values unresolved."
+      ],
+      "templates": [
+        "Next strictly greater to right"
+      ],
+      "related": "Deque adds front expiration; stack resolves nearest relations.",
+      "variations": "Next smaller; previous greater; circular next greater; histogram stack."
+    },
+    {
+      "steps": [
+        "Expire indices before current window start.",
+        "Pop dominated tail candidates, append current index, emit front when width reached."
+      ],
+      "templates": [
+        "Sliding window maximum"
+      ],
+      "related": "Deque retains best candidates; rolling sum uses subtraction.",
+      "variations": "Sliding minimum; bounded max-minus-min; signed threshold prefix deque."
+    },
+    {
+      "steps": [
+        "Allocate n+1 deltas for inclusive updates.",
+        "Add at left and subtract at right+1; prefix-accumulate to materialize result."
+      ],
+      "templates": [
+        "Difference array: inclusive range additions"
+      ],
+      "related": "Sparse sweep avoids huge coordinate arrays.",
+      "variations": "Sparse sweep events; dense additions; 2D difference corners."
+    },
+    {
+      "steps": [
+        "Use a min-heap of up to k candidates.",
+        "Replace root only for a better value; heap result is not sorted."
+      ],
+      "templates": [
+        "Top k largest as heap"
+      ],
+      "related": "Quickselect is static/mutating; bounded heap supports streaming.",
+      "variations": "Kth largest; sorted final top-k; streaming best-k."
+    },
+    {
+      "steps": [
+        "Choose random pivot inside active interval.",
+        "Partition into less/equal/greater bands; restrict to target rank band or return pivot."
+      ],
+      "templates": [
+        "Quickselect Kth largest (random pivot)"
+      ],
+      "related": "Three-way partition handles equal pivots; heap gives comparison worst-case bound.",
+      "variations": "Kth smallest; custom keys; 3-way equal pivots."
+    },
+    {
+      "steps": [
+        "Track farthest index reachable.",
+        "Fail if current index exceeds frontier; otherwise extend frontier by i+jump."
+      ],
+      "templates": [
+        "Reachability greedy frontier"
+      ],
+      "related": "Minimum jumps tracks layers; weighted jumps need shortest paths.",
+      "variations": "Jump reachability; gas-station reset requires total feasibility proof."
+    },
+    {
+      "steps": [
+        "Scan for unvisited land.",
+        "Mark when enqueuing and traverse four valid neighbors; each launch starts one component."
+      ],
+      "templates": [
+        "Grid connected components BFS"
+      ],
+      "related": "Graph BFS has same discovery invariant with general neighbors.",
+      "variations": "Component count; flood fill; BFS distance with extra state."
+    },
+    {
+      "steps": [
+        "Build zero-bordered table using cell+up+left-diagonal.",
+        "Query half-open rectangle with four boundary terms."
+      ],
+      "templates": [
+        "2D rectangle prefix sum"
+      ],
+      "related": "1D prefix is boundary subtraction; dynamic updates need tree structures.",
+      "variations": "Integral image; static rectangles; 2D difference updates."
+    },
+    {
+      "steps": [
+        "Define prefix optimum allowing choose-none.",
+        "Compare skipping previous optimum with taking value plus two-prefix optimum."
+      ],
+      "templates": [
+        "House robber rolling prefix DP"
+      ],
+      "related": "Kadane is contiguous DP; robber is nonadjacent selection.",
+      "variations": "House robber; circular robber split; counting changes transition."
+    },
+    {
+      "steps": [
+        "Keep current path and index.",
+        "Branch skip/take, copy at leaf, undo each append."
+      ],
+      "templates": [
+        "Subsets choose and undo"
+      ],
+      "related": "DP counts/decides without exponential output.",
+      "variations": "Subsets; permutations with used flags; start-index combinations."
+    },
+    {
+      "steps": [
+        "Initialize XOR identity zero.",
+        "XOR every value; paired occurrences cancel under exact frequency premise."
+      ],
+      "templates": [
+        "Single unpaired value XOR"
+      ],
+      "related": "Parity masks generalize XOR state but need correct frequency premises.",
+      "variations": "Two unpaired values via splitting bit; parity prefix masks."
+    },
+    {
+      "steps": [
+        "Initialize zero/one/unknown/two partitions.",
+        "On high swap do not advance mid until incoming value is classified."
+      ],
+      "templates": [
+        "Dutch National Flag (0/1/2)"
+      ],
+      "related": "Quickselect partitions by pivot rather than fixed 0/1/2 categories.",
+      "variations": "General pivot less/equal/greater; exactly three categories."
+    },
+    {
+      "steps": [
+        "Compare remaining largest values.",
+        "Fill nums1 backward, exhausting nums2 without overwriting unread prefix."
+      ],
+      "templates": [
+        "Merge sorted arrays from the back"
+      ],
+      "related": "Write compaction also protects unread values; merge needs spare capacity.",
+      "variations": "Forward output merge; backward spare-space merge; heap k-way merge."
+    },
+    {
+      "steps": [
+        "Deduplicate into a set.",
+        "Only expand x when x-1 is absent, so each run is scanned once."
+      ],
+      "templates": [
+        "Longest consecutive sequence"
+      ],
+      "related": "LIS preserves order, numeric consecutive ignores it.",
+      "variations": "Consecutive range bounds; start-only scan; updates may justify DSU."
+    },
+    {
+      "steps": [
+        "Cancel pairs of unequal candidates using vote count.",
+        "If guarantee absent, verify candidate occurrences in a second pass."
+      ],
+      "templates": [
+        "Majority vote (>n/2 guaranteed)"
+      ],
+      "related": "Frequency count verifies majority candidate when not guaranteed.",
+      "variations": "Verified majority; >n/3 needs two candidates and verification."
+    },
+    {
+      "steps": [
+        "Map index to nums[index] under exact range constraints.",
+        "Find meeting with Floyd; reset one to nums[0] and advance both to entrance."
+      ],
+      "templates": [
+        "Find duplicate with Floyd cycle"
+      ],
+      "related": "Linked Floyd uses node identity; array Floyd uses constrained numeric mapping.",
+      "variations": "Linked-list cycle entrance; duplicate by value-count binary search."
+    },
+    {
+      "steps": [
+        "Count values and allocate buckets indexed by frequency.",
+        "Scan frequencies descending until k values selected; state tie policy."
+      ],
+      "templates": [
+        "Top K frequent with buckets"
+      ],
+      "related": "Heap top-k reduces candidate storage but adds logarithmic updates.",
+      "variations": "Top K words requires lexical ties; heap alternative."
+    },
+    {
+      "steps": [
+        "Check bounded integer range fits memory.",
+        "Count shifted values and emit each its multiplicity."
+      ],
+      "templates": [
+        "Counting sort bounded integers"
+      ],
+      "related": "Frequency buckets order by count; counting sort orders by key.",
+      "variations": "Stable record counting sort; negative offsets; cumulative placements."
+    },
+    {
+      "steps": [
+        "Maintain smallest possible tail at every length.",
+        "bisect_left replaces first tail >=x; append if none; return length not tail sequence."
+      ],
+      "templates": [
+        "Longest increasing subsequence length"
+      ],
+      "related": "Quadratic LIS DP reconstructs more directly than tails-only length.",
+      "variations": "Nondecreasing via bisect_right; actual LIS via predecessor links."
+    },
+    {
+      "steps": [
+        "Find rightmost ascent and smallest greater successor in descending suffix.",
+        "Swap then reverse suffix; no ascent means reverse entire list."
+      ],
+      "templates": [
+        "Next permutation in-place"
+      ],
+      "related": "Backtracking enumerates permutations; pivot moves one lexicographic step.",
+      "variations": "Previous permutation reverses comparisons; next combination differs."
+    },
+    {
+      "steps": [
+        "Keep left/right maxima and process smaller current boundary.",
+        "Water at processed bar is confirmed max minus height; advance that side."
+      ],
+      "templates": [
+        "Trapping rainwater (two-pointer)"
+      ],
+      "related": "Prefix/suffix maxima trade O(n) storage for simple water formula.",
+      "variations": "Prefix/suffix water maxima; monotonic-stack water; 2D needs heap."
+    },
+    {
+      "steps": [
+        "Interpret reachable interval as BFS level.",
+        "Extend farthest; commit jump at level end and reject stalled level."
+      ],
+      "templates": [
+        "Jump Game II minimum jumps"
+      ],
+      "related": "Boolean reachability needs farthest; minimum jumps also needs layer end.",
+      "variations": "Unreachable -1; path reconstruction needs parents."
+    },
+    {
+      "steps": [
+        "Keep minimum and maximum product ending here.",
+        "Swap extremes for negative x, update with x or extension, then update best."
+      ],
+      "templates": [
+        "Maximum product subarray"
+      ],
+      "related": "Kadane needs one sum extreme; negatives reverse product extrema.",
+      "variations": "Maximum product boundaries; minimum product; bit costs scale."
+    }
+  ],
+  "templateDetails": [
+    {
+      "pattern": "Hash map / set",
+      "preconditions": "Unsorted hashable numeric values; two distinct zero-based indices or []; no mutation. Lookup before insert; adapt all pairs with multiplicity-aware lists.",
+      "observation": "seen contains only earlier indices Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Opposite-direction two pointers",
+      "preconditions": "Sorted nondecreasing numbers; zero-based pair tuple or None; no mutation. Sorting first adds O(n log n)/O(n) copy and loses original indices.",
+      "observation": "Discarded endpoint cannot form a better target pair under sorted monotonicity Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Same-direction / write pointers",
+      "preconditions": "Mutates a stably; returns logical retained length; tail unspecified. Slicing a[:write] afterward allocates.",
+      "observation": "a[:write] is the stable retained prefix of values read so far Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Fixed sliding window",
+      "preconditions": "Exactly k consecutive values; invalid k returns None. Negative values supported; no mutation.",
+      "observation": "running equals sum of exactly the current k values Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Variable sliding window",
+      "preconditions": "All values strictly positive and target>0; returns shortest length or 0, no mutation. Preconditions not runtime-validated; negatives invalidate proof.",
+      "observation": "Positive values ensure removing left decreases sum Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Prefix sum + hashmap",
+      "preconditions": "Any signed numeric sums; returns count including overlaps; empty 0; no mutation. Lookup before insert excludes empty ranges.",
+      "observation": "freq counts earlier prefix boundaries only Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Prefix/suffix aggregation",
+      "preconditions": "Return products excluding self, no division/mutation; []->[], singleton->[1]. Count O(n) output and big-integer arithmetic separately.",
+      "observation": "Output holds left products before right products are multiplied Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Binary search boundary",
+      "preconditions": "Sorted a; first position >=target in [0,n] including absent; no mutation. For upper bound compare <= instead.",
+      "observation": "First valid insertion position stays within [lo,hi] Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Binary search on answer",
+      "preconditions": "Integer lo<=hi, check false-then-true and check(hi) true; first feasible inclusive integer. Caller supplies predicate; no feasible answer outside contract.",
+      "observation": "First feasible answer remains in inclusive bounds; hi is feasible Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Merge intervals",
+      "preconditions": "Valid closed intervals start<=end; new sorted merged lists; touching merges; no input mutation. Half-open touching requires changing > to >=.",
+      "observation": "Output is sorted disjoint union of processed intervals Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Kadane",
+      "preconditions": "Best nonempty sum; empty None, all-negative greatest element; no mutation. Allow empty optimum only with changed initialization.",
+      "observation": "end is best nonempty sum ending here; best is best encountered Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Monotonic stack",
+      "preconditions": "Next strictly greater VALUE or -1 per index; no mutation. Equality does not resolve; adapt assignment for indices/distances.",
+      "observation": "Stack holds unresolved indices in nonincreasing value order Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Monotonic deque",
+      "preconditions": "Width 1..n; invalid []; returns every window max; no mutation. Indices enable expiration; output space separate.",
+      "observation": "Deque contains only live candidates in decreasing value order Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Cyclic sort / index placement",
+      "preconditions": "Mutates bounded integers into matching x-1 positions; invalid/duplicate values skipped; same list returned. Missing IDs are mismatches.",
+      "observation": "Each successful swap places a valid value in its final index Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Heap / Top K",
+      "preconditions": "Largest min(k,n) values in heap order, duplicates allowed; k<=0 []; no input mutation. O(min(k,n)) heap; ordered output needs sort.",
+      "observation": "Heap contains min(k,processed) largest values seen Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "2D prefix sums",
+      "preconditions": "Rectangular numeric grid including []/[[]]; prefix table and half-open rectangle query, no mutation. Empty rectangle 0; invalid/ragged raises ValueError.",
+      "observation": "p[i][j] sums g[:i][:j] by inclusion-exclusion Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Dutch National Flag / 3-way partition",
+      "preconditions": "Values exactly 0,1,2; mutates/returns same list; empty unchanged. Other values outside contract. Adapt predicates for generalized three-way partition.",
+      "observation": "Before low are zeros; low..mid-1 ones; after high twos Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Merge two sorted arrays",
+      "preconditions": "nums1 length m+n with first m sorted, nums2 first n sorted; nonaliasing and valid sizes. Mutates nums1 backward; returns it.",
+      "observation": "Slots after w are final; unread inputs end at i,j Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Longest consecutive sequence",
+      "preconditions": "Integer values, longest +1 run ignoring order/duplicates; empty 0; no mutation. Scan starts from deduplicated set.",
+      "observation": "Only predecessor-free values launch a run; each distinct value visited once Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Boyer–Moore majority voting",
+      "preconditions": "Nonempty strict majority guaranteed; returns candidate, empty None; no mutation. Otherwise second-pass verification mandatory.",
+      "observation": "Cancelled unequal pairs cannot remove a strict majority Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Fast/slow cycle in array indices",
+      "preconditions": "len=n+1, each value 1..n, exactly one repeated distinct value; no mutation. Empty/out-of-range outside contract.",
+      "observation": "Functional graph has reachable cycle caused by the repeated value Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Opposite-direction two pointers",
+      "preconditions": "Unique value triplets totaling zero, not indices; sorted copy keeps input unchanged. Too-short returns []; skip equal endpoints.",
+      "observation": "Discarded endpoint cannot form a better target pair under sorted monotonicity Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Rotated binary search",
+      "preconditions": "Distinct rotated ascending values; target index or -1, empty -1; no mutation. Duplicates need additional handling and may force O(n).",
+      "observation": "A distinct sorted half lets each step discard a region Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Difference array / sweep line",
+      "preconditions": "n>=0; inclusive update triples 0<=left<=right<n. Materialized output; n=0 with no updates gives []; invalid bounds outside contract.",
+      "observation": "Accumulated boundary deltas equal all updates active at this index Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Frequency buckets / bucket sort",
+      "preconditions": "Hashable values, k>=0; up to min(k,u) frequent values, arbitrary ties; empty/k=0 []; no mutation. Buckets allocate O(n).",
+      "observation": "Bucket[f] contains all values with exact frequency f Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Longest Increasing Subsequence (LIS)",
+      "preconditions": "Strict increasing subsequence LENGTH; empty 0; no mutation. bisect_right gives nondecreasing variant; reconstruction needs links.",
+      "observation": "tails[j] is minimum possible tail for length j+1 Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Maximum product subarray (dual extremes)",
+      "preconditions": "Largest nonempty contiguous product; empty None; negatives/zeros valid; no mutation. Old extremes drive both transitions; bit cost matters.",
+      "observation": "high/low are extreme products ending here; best is global maximum Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Next permutation / lexicographic pivot",
+      "preconditions": "Next lexicographic ordering in place, wrap maximal to smallest; empty/singleton unchanged. Swap reverse avoids suffix allocation.",
+      "observation": "Suffix is maximal descending; smallest greater successor increases minimally Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Trapping rainwater two pointers",
+      "preconditions": "Nonnegative heights; trapped water; empty/singleton 0; no mutation. Different objective from container area.",
+      "observation": "Lower confirmed boundary determines water at the processed endpoint Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Minimum jumps / greedy levels",
+      "preconditions": "Nonnegative forward jump bounds; minimum jumps or -1 if unreachable; empty/singleton 0; no mutation. Weighted jumps need a different solver.",
+      "observation": "end delimits indices reachable in jumps moves; farthest is next layer Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Quickselect",
+      "preconditions": "Mutates a; returns kth largest including duplicates, None for invalid k. Three-way partition makes all-equal data one pass. Random pivots give expected linear time, not worst-case linear.",
+      "observation": "Target rank lies in active partition; equal pivot band can terminate Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Greedy array scan",
+      "preconditions": "Nonnegative integer jumps, no mutation; empty input returns True by vacuous reachability convention. Adapt to minimum jumps with greedy layers, not this boolean alone.",
+      "observation": "Every index no greater than farthest is reachable Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "2D traversal / grid search",
+      "preconditions": "Rectangular grid of string cells 0/1; four-neighbor adjacency; no mutation, empty grid returns 0. Adapt the predicate and directions explicitly. Iterative BFS avoids recursion-depth failure.",
+      "observation": "Each queued cell is marked once and connected to its component root Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "1D DP",
+      "preconditions": "Return maximum sum of nonadjacent values, allowing choose-none (so negatives/empty return 0); no mutation. Reconstruction needs retained decisions.",
+      "observation": "prev1/prev2 solve the preceding two independent-set prefixes Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Backtracking",
+      "preconditions": "Distinct input values; returns every positional subset, [[]] for empty. Duplicate values need sorted same-depth skipping. Recursion depth n: use iterative enumeration for deep inputs; output already exponential.",
+      "observation": "path is exactly the choices for the current DFS prefix Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "XOR / bitwise",
+      "preconditions": "Exactly one value appears once and every other value twice; integers. Empty returns identity 0 but is outside uniqueness guarantee. Python XOR scales with integer bit length.",
+      "observation": "XOR of processed values cancels every even multiplicity Reconstruct state and update rule before revealing code."
+    },
+    {
+      "pattern": "Counting sort for bounded integers",
+      "preconditions": "Integer bounds low<=high, range fits memory; returns sorted copy without mutation. Values outside range raise ValueError; adapt to stable record sorting with cumulative offsets.",
+      "observation": "Counts store all occurrences; reconstruction emits sorted multiplicities Reconstruct state and update rule before revealing code."
+    }
+  ],
+  "practiceDetails": [
+    {
+      "insight": "Complements remove the inner search.",
+      "secondary": "Distinct-index contract"
+    },
+    {
+      "insight": "Presence alone answers an existence question.",
+      "secondary": "Early exit"
+    },
+    {
+      "insight": "Write a retained prefix, then fill zeros without a slice.",
+      "secondary": "Stable compaction"
+    },
+    {
+      "insight": "The largest remaining element belongs in the last free slot.",
+      "secondary": "Opposite pointers"
+    },
+    {
+      "insight": "Cancellation preserves a strict majority candidate.",
+      "secondary": "Candidate verification"
+    },
+    {
+      "insight": "Each price only needs the cheapest earlier price.",
+      "secondary": "Greedy prefix summary"
+    },
+    {
+      "insight": "Max average at fixed k is max sum divided by k.",
+      "secondary": "Rolling sum"
+    },
+    {
+      "insight": "Four zones classify each value once.",
+      "secondary": "Three-way partition"
+    },
+    {
+      "insight": "Multiply independent left and right contributions.",
+      "secondary": "Output as workspace"
+    },
+    {
+      "insight": "Only best sum ending here can extend.",
+      "secondary": "1D DP"
+    },
+    {
+      "insight": "Track both extremes because sign flips ordering.",
+      "secondary": "1D DP"
+    },
+    {
+      "insight": "Positive values make each left removal monotone.",
+      "secondary": "Variable window"
+    },
+    {
+      "insight": "Every earlier prefix-k defines one valid start.",
+      "secondary": "Hash counting"
+    },
+    {
+      "insight": "Discard lower wall after accounting current area.",
+      "secondary": "Greedy elimination"
+    },
+    {
+      "insight": "Fix one value and solve sorted pair search with duplicate skips.",
+      "secondary": "Sorting"
+    },
+    {
+      "insight": "One half remains ordered and can exclude target.",
+      "secondary": "Boundary reasoning"
+    },
+    {
+      "insight": "Processed union can be summarized by the last interval.",
+      "secondary": "Sweep line"
+    },
+    {
+      "insight": "Only update boundaries; integrate once at the end.",
+      "secondary": "Prefix integration"
+    },
+    {
+      "insight": "Repeated value is the reachable functional-cycle entrance.",
+      "secondary": "Functional graph"
+    },
+    {
+      "insight": "Only predecessor-free values launch a run.",
+      "secondary": "Hash set"
+    },
+    {
+      "insight": "Frequencies are bounded by n, enabling buckets.",
+      "secondary": "Counter"
+    },
+    {
+      "insight": "Partition equal band and keep only target rank region.",
+      "secondary": "Bounded heap alternative"
+    },
+    {
+      "insight": "Smallest tail dominates larger tails of equal length.",
+      "secondary": "DP dominance"
+    },
+    {
+      "insight": "Rightmost ascent is the least-significant improvable position.",
+      "secondary": "Lexicographic greedy"
+    },
+    {
+      "insight": "Reachability of all earlier indices is summarized by farthest.",
+      "secondary": "Interval frontier"
+    },
+    {
+      "insight": "Each reach interval is one BFS layer.",
+      "secondary": "BFS analogy"
+    },
+    {
+      "insight": "Reuse first row/column as marker storage after preserving their status.",
+      "secondary": "In-place state encoding"
+    },
+    {
+      "insight": "Rectangle sums follow inclusion-exclusion.",
+      "secondary": "Static query preprocessing"
+    },
+    {
+      "insight": "Unresolved colder days are solved when a warmer day arrives.",
+      "secondary": "Amortized stack"
+    },
+    {
+      "insight": "Lower confirmed boundary fixes water on one side.",
+      "secondary": "Prefix/suffix alternative"
+    },
+    {
+      "insight": "Dominated candidates can never win a future live window.",
+      "secondary": "Fixed window"
+    },
+    {
+      "insight": "Use each index as a slot for its positive ID.",
+      "secondary": "In-place hashing"
+    }
+  ]
+}

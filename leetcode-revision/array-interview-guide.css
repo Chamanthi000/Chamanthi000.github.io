@@ -1,7 +1,6 @@
 /* Shared read-only DSA guide styling, scoped to the revision notebooks. */
 body.rev-index #dataStructureRevision .ag{color:#284638;font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.73;min-width:0;overflow-wrap:anywhere}
 body.rev-index #dataStructureRevision .ag *{box-sizing:border-box}
-body.rev-index #dataStructureRevision .dg-private-text{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:10px 0}
 body.rev-index #dataStructureRevision .ag .ag-hero{padding:clamp(18px,3.5vw,30px);background:linear-gradient(140deg,#eff7ee,#f9fcf9 62%,#eef4ee);border:1px solid #dceadc;border-radius:18px;margin:0 0 14px}
 body.rev-index #dataStructureRevision .ag .ag-hero-label,.ag .ag-kicker{font:800 11px/1.35 'Plus Jakarta Sans',system-ui,sans-serif;letter-spacing:.095em;color:#477a5c;text-transform:uppercase}
 body.rev-index #dataStructureRevision .ag .ag-hero h2{font:800 clamp(19px,2.3vw,28px)/1.35 'Plus Jakarta Sans',system-ui,sans-serif;letter-spacing:-.035em;max-width:750px;margin:11px 0;color:#254935}
@@ -204,3 +203,22 @@ body.rev-index #dataStructureRevision .ag .ag-raw-archive pre{
  padding:14px!important;margin:0!important;background:#f9fbf8!important;
  border:0!important;color:#354d3c!important;font:13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace!important
 }
+
+/* Shared enriched public guides: isolated from editable/private records. */
+body.rev-index #dataStructureRevision .dg-private-text{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:0}
+body.rev-index #dataStructureRevision .dg .ag-op-item{padding:0;align-self:start}
+body.rev-index #dataStructureRevision .dg .ag-op-item>summary{flex-wrap:wrap;justify-content:space-between}
+body.rev-index #dataStructureRevision .dg .ag-op-item summary code{font:600 12px/1.6 ui-monospace,monospace;min-width:0;overflow-wrap:anywhere}
+body.rev-index #dataStructureRevision .dg .dg-recall{min-width:0;border:1px dashed #bfd3c3;border-radius:9px;margin:9px 0;overflow:hidden}
+body.rev-index #dataStructureRevision .dg .dg-recall>summary{font-size:13px;font-weight:700;color:#315b40}
+body.rev-index #dataStructureRevision .dg .dg-template-links{display:flex;flex-wrap:wrap;gap:8px}
+body.rev-index #dataStructureRevision .dg .dg-template-links button{max-width:100%;text-align:left;overflow-wrap:anywhere;border:1px solid #b8d1bd;background:#eef7ee;color:#245636;border-radius:9px;padding:10px 12px;min-height:44px;font:700 13px/1.5 inherit;cursor:pointer}
+body.rev-index #dataStructureRevision .dg .dg-mastery{border:1px solid #c9ddcd;background:#f3f8f0;padding:15px;border-radius:12px;margin-bottom:16px}
+body.rev-index #dataStructureRevision .dg .ag-practice>li>span{min-width:0;display:block}
+body.rev-index #dataStructureRevision .dg .ag-memory{min-width:0}
+body.rev-index #dataStructureRevision .ag summary:focus-visible,body.rev-index #dataStructureRevision .ag button:focus-visible{outline:3px solid #35744c!important;outline-offset:2px}
+body.rev-index #dataStructureRevision .dg .ag-sources{overflow-wrap:anywhere}
+@media(max-width:760px){body.rev-index #dataStructureRevision .dg .ag-practice>li{display:flex;flex-direction:column;align-items:stretch}body.rev-index #dataStructureRevision .dg .dg-template-links button{width:100%}}
+@media(prefers-reduced-motion:reduce){#dataStructureRevision *,#dataStructureRevision *::before,#dataStructureRevision *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+body.rev-index #dataStructureRevision .dg .ag-pattern{align-self:start}

@@ -8,12 +8,12 @@ A mobile-first, local-first revision and goal-tracking app hosted on GitHub Page
 
 - **Coding:** Save LeetCode problems with title/number suggestions, difficulty, patterns, complexity, notes, mistakes, solution links, flashcards, and review history.
 - **SQL:** Track SQL interview questions, browse DataLemur and StrataScratch tutorials, review the SQL 50, and study 14 interview patterns with interactive recall prompts.
-- **Data Structures:** All 11 topics have structured interview guides matching Arrays’ eight-chapter layout, with public reference content separate from editable private notes and individual recall ratings. The nine additional guides contain 170 operation entries, 99 fundamentals, 125 patterns with invariants and limitations, 119 executable Python templates, and 180 ordered practice entries. See [DSA guide maintenance](DSA_GUIDES.md).
-- **Strings FAANG reference:** Eight independently collapsible learning chapters: 53 Python operations, 18 fundamentals, 33 patterns, 39 copyable Python templates and 44 interview problems. Navigation, copy controls, mobile layouts, and personal-note review are shared with the Arrays guide.
+- **Data Structures:** All eleven canonical topics, Arrays through Union Find:275 operations,131 fundamentals,207 patterns,233 executable Python templates and260 practice entries, plus editable private notes and individual recall ratings.
+- **Strings FAANG reference:** Eight independently collapsible learning chapters: 53 Python operations, 18 fundamentals, 33 patterns, 44 copyable Python templates and 44 interview problems. Navigation, copy controls, mobile layouts, and personal-note review are shared with the Arrays guide.
 - **Complexity reference:** Pattern recognition, time complexity, and space complexity.
 - **Goals & Habits:** Editable daily plans, habit streaks (daily/weekday/weekly), future to-dos, monthly goals, and a compact Settings panel for cloud sync and backups.
 
-DSA Revision intentionally ends at **Union Find**. Older extra notebooks are hidden from the topic list, navigation, search and counts, but their private notes and sync/backup records are preserved. Refresh the website on each device to load this shared display rule; an already-open or offline page may still show an older version.
+DSA Revision intentionally ends at **Union Find**. Older extra notebooks are hidden from the topic list, navigation, search and counts, but their private notes, metadata, tombstones and sync/backup records are preserved. Add/delete notebook controls are not offered. Refresh every device to load the shared display rule; an already-open/offline page may retain an older interface.
 
 ### Understanding progress numbers
 
@@ -55,6 +55,10 @@ Open a Data Structure notebook or the SQL pattern guide and choose **Need practi
 5. The public learning-guide code updates across all devices after GitHub Pages deploys. Personal notes are **not** stored in the public GitHub repository, and view-only preferences are not necessarily synced.
 
 **Limits:** The website cannot guarantee instantaneous off-device saves while offline, or permanent survival of every failure scenario. Automatic IndexedDB snapshots live on the current device; private Firebase keeps the latest server copy plus bounded history when Google sign-in is connected. A downloaded external backup remains the best independent safety copy.
+
+## Public DSA playbooks
+
+All eleven existing topic notebooks use original Python-first public guides with eight independent chapters: operations, fundamentals, applicable patterns, recognition, revealing tests, interview pitfalls, active-recall templates, and deliberate practice. Individual operations/concepts/patterns/templates are collapsible; pattern links open the exact template; chapter navigation and open preferences stay topic-scoped. Public content lives in `data/dsa`, separately from unchanged private notebook record identities. Original Arrays/Strings reference scripts remain fallback APIs. See [DSA_GUIDES.md](DSA_GUIDES.md) for source schema, rebuild/test commands, provenance and verification limits. No private-note migration is performed by a guide update.
 
 ## Automated tests
 

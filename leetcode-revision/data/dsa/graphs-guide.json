@@ -2,7 +2,7 @@
   "id": "graphs",
   "title": "Graphs",
   "subtitle": "Model relationships as vertices and edges, then choose a frontier or ordering whose invariant matches the question.",
-  "variables": "V = number of vertices, E = number of input edges (undirected adjacency stores 2E entries), R*C = grid cells, K = number of states per vertex, W = maximum edge weight, Q = queries; S = number of supplied BFS sources. Unless specified, vertices are integer IDs 0..V-1 and adjacency endpoints are valid; inputs are not mutated. Adjacency-list traversal is O(V+E), matrix traversal O(V²). Hash-table costs are expected; long string labels cost O(label length) to hash initially and compare in the worst case, so map to integer IDs for repeated work. Python integers are arbitrary precision: stated arithmetic bounds use a unit-cost bounded-word model. Auxiliary space includes stacks/queues and algorithm state, excludes input and separately identified output. Heap bounds refer to lazy heapq implementations and count duplicate entries. H = heap size; B = allowed edge budget for bounded relaxation. heapq sift work is logarithmic, but CPython list resize can make a single heap operation linear; sequence bounds use amortization. Exact path-count DP may hold exponentially large integers; modulus bounds bit costs.",
+  "variables": "V = number of vertices, E = number of input edges (undirected adjacency stores 2E entries), R*C = grid cells, K = number of states per vertex, W = maximum edge weight, Q = queries; S = number of supplied BFS sources. Unless specified, vertices are integer IDs 0..V-1 and adjacency endpoints are valid; inputs are not mutated. Adjacency-list traversal is O(V+E), matrix traversal O(V²). Hash-table costs are expected; long string labels cost O(label length) to hash initially and compare in the worst case, so map to integer IDs for repeated work. Python integers are arbitrary precision: stated arithmetic bounds use a unit-cost bounded-word model. Auxiliary space includes stacks/queues and algorithm state, excludes input and separately identified output. Heap bounds refer to lazy heapq implementations and count duplicate entries. H = heap size; B = allowed edge budget for bounded relaxation. heapq sift work is logarithmic, but CPython list resize can make a single heap operation linear; sequence bounds use amortization. Exact path-count DP may hold exponentially large integers; modulus bounds bit costs. Hash expectations are not adversarial guarantees: many colliding keys can make a lookup linear in table size. For empty strings an O(L) walk means O(1+L) including fixed call/root work. Python list append/pop may resize linearly on a single call; amortized bounds apply over sequences.",
   "operations": [
     [
       "Representation",
@@ -175,7 +175,8 @@
         "n = len(states)",
         "adj = [[] for _ in range(n)]",
         "for u, v in edges:",
-        "    adj[u].append(v)"
+        "    adj[u].append(v)",
+        "assert adj == [[1], []]"
       ],
       "O(V+E) build",
       "O(V+E) representation",
@@ -191,7 +192,8 @@
         "for u, v in [(0, 1), (1, 2)]:",
         "    directed[u].append(v)",
         "    undirected[u].append(v)",
-        "    undirected[v].append(u)"
+        "    undirected[v].append(u)",
+        "assert directed == [[1],[2],[]] and undirected == [[1],[0,2],[1]]"
       ],
       "O(V+E)",
       "O(V+E)",
@@ -206,7 +208,8 @@
         "matrix = [[False]*n for _ in range(n)]",
         "for u, neighbors in enumerate(adj):",
         "    for v in neighbors:",
-        "        matrix[u][v] = True"
+        "        matrix[u][v] = True",
+        "assert matrix == [[False,True,False],[False,False,True],[False,False,False]]"
       ],
       "O(V²+E)",
       "O(V²)",
@@ -226,7 +229,8 @@
         "    for v in adj[u]:",
         "        if dist[v] == -1:",
         "            dist[v] = dist[u] + 1",
-        "            q.append(v)"
+        "            q.append(v)",
+        "assert dist == [0,1,1]"
       ],
       "O(V+E)",
       "O(V)",
@@ -244,7 +248,8 @@
         "    for v in adj[u]:",
         "        if v not in seen:",
         "            seen.add(v)",
-        "            stack.append(v)"
+        "            stack.append(v)",
+        "assert seen == {0,1,2,3}"
       ],
       "O(V+E) expected",
       "O(V)",
@@ -268,7 +273,8 @@
         "        for v in adj[u]:",
         "            if v not in seen:",
         "                seen.add(v)",
-        "                stack.append(v)"
+        "                stack.append(v)",
+        "assert components == 2"
       ],
       "O(V+E) expected",
       "O(V)",
@@ -284,7 +290,8 @@
         "color[1] = GRAY",
         "back_edge = color[0] == GRAY",
         "color[1] = BLACK",
-        "cross_edge_is_not_cycle_proof = color[1] == BLACK"
+        "cross_edge_is_not_cycle_proof = color[1] == BLACK",
+        "assert back_edge and cross_edge_is_not_cycle_proof"
       ],
       "O(1) per color operation",
       "O(V)",
@@ -309,7 +316,8 @@
         "        degree[v] -= 1",
         "        if degree[v] == 0:",
         "            q.append(v)",
-        "is_dag = len(order) == len(adj)"
+        "is_dag = len(order) == len(adj)",
+        "assert order == [0,1,2] and is_dag"
       ],
       "O(V+E)",
       "O(V)",
@@ -323,7 +331,8 @@
         "binary_weights = [0, 1]",
         "nonnegative_weights = [2, 7]",
         "negative_possible = [-3, 2]",
-        "can_use_dijkstra = all(w >= 0 for w in nonnegative_weights)"
+        "can_use_dijkstra = all(w >= 0 for w in nonnegative_weights)",
+        "assert can_use_dijkstra and min(negative_possible) < 0"
       ],
       "O(E) to inspect weights",
       "O(1) auxiliary",
@@ -339,7 +348,8 @@
         "for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):",
         "    nr, nc = r+dr, c+dc",
         "    if 0 <= nr < rows and 0 <= nc < cols:",
-        "        neighbors.append((nr, nc))"
+        "        neighbors.append((nr, nc))",
+        "assert neighbors == [(1,1),(0,2),(0,0)]"
       ],
       "O(1) per cell neighbor enumeration",
       "O(1) here",
@@ -355,7 +365,8 @@
         "while target is not None:",
         "    path.append(target)",
         "    target = parent[target]",
-        "path.reverse()"
+        "path.reverse()",
+        "assert path == [0,1,2]"
       ],
       "O(path length)",
       "O(path length) output",
@@ -377,7 +388,8 @@
         "        stack.pop()",
         "    elif v not in seen:",
         "        seen.add(v)",
-        "        stack.append((v, iter(adj[v])))"
+        "        stack.append((v, iter(adj[v])))",
+        "assert finish == [2,1,0]"
       ],
       "O(V+E) expected for reached subgraph",
       "O(V)",
@@ -576,93 +588,110 @@
       "Reaching some terminal is insufficient: every possible path must terminate.",
       "Removed vertices have no outgoing edge to a still-unsafe vertex.",
       "Existential reachability queries; use ordinary traversal instead."
+    ],
+    [
+      "Graph cloning by identity",
+      "IMPORTANT",
+      "Copy a cyclic graph with repeated or duplicate-valued nodes",
+      "Map each original object to exactly one newly allocated copy; traverse once and wire cloned neighbors.",
+      "O(V+E) expected reachable work",
+      "O(V) auxiliary plus O(V+E) output",
+      "133 Clone Graph",
+      "Mapping by node value merges different equal-valued vertices.",
+      "Every discovered original has exactly one allocated clone before any outgoing clone edges are added.",
+      "A shallow list copy or general mutable payload deep-copy contract without further work."
     ]
   ],
   "recognize": [
     [
       "Fewest moves with equal costs",
       "BFS",
-      "A move is one edge; diagonal moves alter the graph."
+      "Why: FIFO layers settle unit-edge counts. Exception / constraint: A move is one edge; diagonal moves alter the graph."
     ],
     [
       "Distance to any hospital/source",
       "Multi-source BFS",
-      "All sources begin together; weighted roads need multi-source Dijkstra."
+      "Why: A shared zero-distance frontier computes a minimum over sources. Exception / constraint: All sources begin together; weighted roads need multi-source Dijkstra."
     ],
     [
       "Count islands or provinces",
       "Component DFS/BFS",
-      "Connectivity is undirected; land cell is a vertex."
+      "Why: Every unseen undirected region contributes one group. Exception / constraint: Connectivity is undirected; land cell is a vertex."
     ],
     [
       "Dependencies can finish?",
       "Kahn / directed color DFS",
-      "A visited cross edge alone is not a cycle."
+      "Why: Dependencies are feasible exactly when directed cycles are absent. Exception / constraint: A visited cross edge alone is not a cycle."
     ],
     [
       "Return a valid course order",
       "Topological order",
-      "Many orders may satisfy prerequisites."
+      "Why: Removing prerequisite-free vertices constructs a legal order. Exception / constraint: Many orders may satisfy prerequisites."
     ],
     [
       "Two teams with rival pairs",
       "Bipartite coloring",
-      "An odd cycle, including a self-loop, is impossible."
+      "Why: Two colors express opposite-group constraints on every edge. Exception / constraint: An odd cycle, including a self-loop, is impossible."
     ],
     [
       "Cheapest roads, costs nonnegative",
       "Dijkstra",
-      "A direct expensive edge can lose to a longer cheap path."
+      "Why: A nonnegative extension cannot improve an already minimal settled prefix. Exception / constraint: A direct expensive edge can lose to a longer cheap path."
     ],
     [
       "Pay 0 or 1 per transition",
       "0–1 BFS",
-      "Arbitrary positive integers invalidate deque ordering."
+      "Why: Deque ends preserve the two adjacent cost layers. Exception / constraint: Arbitrary positive integers invalidate deque ordering."
     ],
     [
       "Negative edge discounts",
       "Bellman–Ford or DAG relaxation",
-      "Report reachable negative cycles instead of finite distances."
+      "Why: Repeated relaxation does not assume nonnegative extensions. Exception / constraint: Report reachable negative cycles instead of finite distances."
     ],
     [
       "At most k stops",
       "Layered Bellman–Ford / state shortest path",
-      "k stops means at most k+1 edges; snapshot each round."
+      "Why: Snapshots enforce an explicit edge-count dimension. Exception / constraint: k stops means at most k+1 edges; snapshot each round."
     ],
     [
       "All pairs and small vertex count",
       "Floyd–Warshall",
-      "V³ must fit constraints."
+      "Why: Dynamic programming shares each intermediate vertex among all pairs. Exception / constraint: V³ must fit constraints."
     ],
     [
       "Connect everything cheaply",
       "MST",
-      "Shortest-path tree minimizes source distances, not total tree weight."
+      "Why: The MST cut property minimizes total connecting-tree cost. Exception / constraint: Shortest-path tree minimizes source distances, not total tree weight."
     ],
     [
       "Mutually reachable directed groups",
       "SCC",
-      "One-way paths do not merge components."
+      "Why: Mutual reachability, not one-way reachability, defines the equivalence classes. Exception / constraint: One-way paths do not merge components."
     ],
     [
       "Remove one edge disconnects network",
       "Bridge low-link",
-      "Assumes undirected; preserve parallel-edge identities."
+      "Why: Low-link detects absence of an alternate ancestor escape. Exception / constraint: Assumes undirected; preserve parallel-edge identities."
     ],
     [
       "Same cell but different keys/budget",
       "Expanded-state search",
-      "Do not collapse states unless dominance is proved."
+      "Why: Future-relevant resources change legal continuations. Exception / constraint: Do not collapse states unless dominance is proved."
     ],
     [
       "Every possible walk eventually terminates",
       "Reverse terminal elimination",
-      "Existence of one safe route is weaker."
+      "Why: Safe terminals can certify all of their predecessors’ remaining exits. Exception / constraint: Existence of one safe route is weaker."
     ],
     [
       "Count or optimize paths in a DAG",
       "Topological DP",
-      "Enumerating actual paths may require exponential output."
+      "Why: Topological order finalizes all incoming contributions. Exception / constraint: Enumerating actual paths may require exponential output."
+    ],
+    [
+      "Copy nodes linked by cycles or repeated references",
+      "Graph cloning by identity",
+      "Why: one original→copy map preserves sharing and terminates cycles. Exception / constraint: value-based keys merge distinct equal-valued objects; payload deep-copying is a separate contract."
     ]
   ],
   "contrasts": [
@@ -705,84 +734,89 @@
   ],
   "edges": [
     [
-      "Empty graph",
+      "Universal contract: Empty graph",
       "adj=[]",
-      "Whole-graph routines return empty results or zero components; source-based routines reject missing source."
+      "Whole-graph routines return empty results or zero components; source-based routines reject missing source. Exposes: source-indexing an empty graph."
     ],
     [
-      "Isolated source",
+      "Algorithm-specific: Isolated source",
       "adj=[[], []], source=0",
-      "dist=[0,-1] for BFS; unreachable parent/path remains absent."
+      "dist=[0,-1] for BFS; unreachable parent/path remains absent. Exposes: using zero as both unreachable and source distance."
     ],
     [
-      "Self-loop",
-      "edge (0,0)",
-      "Cycle true, bipartite false, never a bridge; nonnegative shortest distance to self remains zero."
+      "Algorithm-specific: Self-loop",
+      "adj=[[0]]; undirected edge list [(0,0)]",
+      "Cycle true, bipartite false, never a bridge; nonnegative shortest distance to self remains zero. Exposes: ignoring self-loops in cycle/two-color checks."
     ],
     [
-      "Parallel edges",
-      "two undirected edges between 0 and 1",
-      "Neither edge is a bridge; Kahn counts/decrements directed duplicates consistently."
+      "Algorithm-specific: Parallel edges",
+      "n=2, undirected edges=[(0,1),(0,1)]",
+      "Neither edge is a bridge; Kahn counts/decrements directed duplicates consistently. Exposes: skipping all parent-vertex edges in bridge DFS."
     ],
     [
-      "Disconnected graph",
+      "Universal contract: Disconnected graph",
       "0—1 and isolated 2",
-      "Traverse all components; MST routine must report disconnection."
+      "Traverse all components; MST routine must report disconnection. Exposes: assuming one source covers the entire graph or returning a forest as an MST."
     ],
     [
-      "Diamond cross edge",
+      "Algorithm-specific: Diamond cross edge",
       "0→1,0→2,1→3,2→3",
-      "No directed cycle; do not flag every seen neighbor."
+      "No directed cycle; do not flag every seen neighbor. Exposes: treating every visited neighbor as an active ancestor."
     ],
     [
-      "Zero-weight cycle",
+      "Algorithm-specific: Zero-weight cycle",
       "0→1 cost 0,1→0 cost 0",
-      "Strict relaxation terminates and distance stays zero."
+      "Strict relaxation terminates and distance stays zero. Exposes: relaxing on <= and repeatedly scheduling equal distances."
     ],
     [
-      "Negative edge without cycle",
+      "Algorithm-specific: Negative edge without cycle",
       "0→1 cost 2,0→2 cost 5,2→1 cost -4",
-      "Dijkstra precondition fails; Bellman–Ford gives distance 1 to vertex 1."
+      "Dijkstra precondition fails; Bellman–Ford gives distance 1 to vertex 1. Exposes: using Dijkstra outside its nonnegative domain."
     ],
     [
-      "Reachable negative cycle",
+      "Algorithm-specific: Reachable negative cycle",
       "0→1 cost 0,1→1 cost -1",
-      "Return cycle indicator or reject finite shortest-path result."
+      "Return cycle indicator or reject finite shortest-path result. Exposes: claiming finite unrestricted distances through a reachable negative cycle."
     ],
     [
-      "Unreachable negative cycle",
+      "Algorithm-specific: Unreachable negative cycle",
       "source 0 isolated,1→1 cost -1",
-      "Single-source Bellman–Ford should not report it as source-reachable."
+      "Single-source Bellman–Ford should not report it as source-reachable. Exposes: reporting any disconnected negative cycle as source-reachable."
     ],
     [
-      "Deep chain",
+      "Universal contract: Deep chain",
       "5000 vertices in a path",
-      "Iterative algorithms succeed without changing recursion limit."
+      "Iterative algorithms succeed without changing recursion limit. Exposes: recursive traversal on adversarial depth."
     ],
     [
-      "Grid shape",
+      "Universal contract: Grid shape",
       "[],[[]],[[0,0,0]],ragged rows",
-      "Empty grid yields empty distance output; ragged shape raises ValueError in grid templates."
+      "nearest_sources([],[]) returns []; nearest_sources([[]],[]) returns [[]]; shortest_with_eliminations([],0) returns -1; ragged grids raise ValueError. Exposes premature grid[0] indexing and ambiguous empty-output contracts."
     ],
     [
-      "Duplicate sources",
-      "sources=[0,0,1]",
-      "Each source should enter once at distance zero."
+      "Algorithm-specific: Duplicate sources",
+      "grid=[[0,0]], sources=[(0,0),(0,0),(0,1)]",
+      "dist=[[0,0]], each source enters once. Exposes duplicate-source scheduling and treating one source after another."
     ],
     [
-      "State dominance",
+      "Algorithm-specific: State dominance",
       "Same cell reached with 0 or 2 eliminations remaining",
-      "Keep richer state, or prove later arrival cannot be useful before pruning."
+      "Keep richer state, or prove later arrival cannot be useful before pruning. Exposes: collapsing remaining resources into position-only visited."
     ],
     [
-      "Tied weights",
+      "Algorithm-specific: Tied weights",
       "Many equal-cost routes",
-      "Return any optimum unless deterministic path tie-breaking is required."
+      "Return any optimum unless deterministic path tie-breaking is required. Exposes: requiring a particular optimum without a specified tie rule."
     ],
     [
-      "Integer node IDs",
+      "Universal contract: Integer node IDs",
       "endpoint -1 or V",
-      "Out-of-range IDs are invalid; never let Python negative indexing silently define vertices."
+      "Out-of-range IDs are invalid; never let Python negative indexing silently define vertices. Exposes: allowing negative indexing to silently alias a vertex."
+    ],
+    [
+      "Algorithm-specific: clone identity",
+      "a and b are distinct nodes both value=7; a.neighbors=[a,b,b]",
+      "Clone has a self-loop and two references to the same separate cloned b; exposes value-keyed maps and copying a node more than once."
     ]
   ],
   "mistakes": [
@@ -849,6 +883,10 @@
     [
       "Assuming tree algorithms apply",
       "Graphs can have cycles, parallel edges, disconnected vertices and multiple parents."
+    ],
+    [
+      "Copying a complete path into each queue entry",
+      "Keep one parent per state and reconstruct once; copying O(depth) prefixes into many entries may produce quadratic work or much larger frontier memory."
     ]
   ],
   "impress": [
@@ -891,6 +929,10 @@
     [
       "Check scale before choosing advanced tools",
       "Compare V³ all-pairs or V*E relaxation with sparse heap processing."
+    ],
+    [
+      "Offer a reasoned follow-up",
+      "After the baseline proof, discuss bidirectional search for reversible unit edges, a parent array for one route, modulus for large counts, or online/offline updates. Explain what invariant and costs change."
     ]
   ],
   "memory": [
@@ -963,6 +1005,16 @@
       "Expanded states",
       "state = (vertex, future-relevant resource)",
       "State count multiplies traversal cost."
+    ],
+    [
+      "Budgeted relaxation",
+      "next = old.copy(); relax only from old",
+      "One round spends one extra edge; copying adds O(BV) time over B rounds."
+    ],
+    [
+      "Minimax extension",
+      "candidate = max(best[u], edge_cost)",
+      "This differs from sum-based shortest paths and from total-weight MST."
     ]
   ],
   "templates": [
@@ -1406,8 +1458,8 @@
       [
         "from collections import deque",
         "def shortest_with_eliminations(grid, k):",
-        "    if k < 0:",
-        "        raise ValueError('negative budget')",
+        "    if not isinstance(k, int) or k < 0:",
+        "        raise ValueError('budget must be a nonnegative integer')",
         "    rows = len(grid)",
         "    cols = len(grid[0]) if rows else 0",
         "    if any(len(row) != cols for row in grid):",
@@ -1580,6 +1632,34 @@
         "    return count"
       ],
       "Directed DAG with valid integer IDs; returns number of source-to-each-vertex paths, counting the empty source path once and parallel edges as distinct choices. Rejects any cycle, including unreachable ones. No mutation; optional positive modulus bounds count sizes. Without modulus path counts may be exponential in value, so integer bit time/storage exceed unit-cost O(V+E)/O(V)."
+    ],
+    [
+      "Clone an object graph by identity with BFS",
+      "O(V+E) expected over reachable objects",
+      "O(V) mapping/frontier auxiliary plus O(V+E) cloned output",
+      [
+        "from collections import deque",
+        "class GraphNode:",
+        "    def __init__(self, value, neighbors=None):",
+        "        self.value = value",
+        "        self.neighbors = [] if neighbors is None else list(neighbors)",
+        "",
+        "def clone_graph(start):",
+        "    if start is None:",
+        "        return None",
+        "    clones = {start: GraphNode(start.value)}",
+        "    q = deque([start])",
+        "    while q:",
+        "        original = q.popleft()",
+        "        copied = clones[original]",
+        "        for neighbor in original.neighbors:",
+        "            if neighbor not in clones:",
+        "                clones[neighbor] = GraphNode(neighbor.value)",
+        "                q.append(neighbor)",
+        "            copied.neighbors.append(clones[neighbor])",
+        "    return clones[start]"
+      ],
+      "Reachable graph of GraphNode objects with default identity hashing/equality, directed or symmetric undirected neighbor lists. None returns None. Allocates a structurally independent clone of reachable nodes and neighbor lists; values are shared references, not deep-copied payloads. Preserves neighbor order, parallel edges and self-loops. Distinct original nodes may share equal values and must remain distinct. No original mutation; custom value-based equality requires an identity-keyed adaptation."
     ]
   ],
   "practice": [
@@ -1610,6 +1690,13 @@
       "Medium",
       "O(V²) time, O(V) auxiliary",
       "Input is a matrix; list complexity does not apply."
+    ],
+    [
+      "133 Clone Graph",
+      "Identity map plus BFS",
+      "Medium",
+      "O(V+E) expected time, O(V) auxiliary plus O(V+E) output",
+      "Duplicate values must not merge; preserve self-loops, repeated neighbors, and source graph."
     ],
     [
       "994 Rotting Oranges",
@@ -1737,5 +1824,758 @@
       "O(26(V+E)) time, O(26V+E) space",
       "Any directed cycle forces -1, even outside one chosen source."
     ]
+  ],
+  "operationExamples": [
+    {
+      "code": [
+        "n=3",
+        "adj=[[] for _ in range(n)]",
+        "adj[0].append(1)",
+        "print(adj)"
+      ],
+      "result": "[[1], [], []]",
+      "use": "Build sparse graph without shared-row aliasing.",
+      "mutation": "Allocates independent rows; only row 0 mutates."
+    },
+    {
+      "code": [
+        "adj=[[],[]]",
+        "adj[0].append(1)",
+        "print(adj)"
+      ],
+      "result": "[[1], []]",
+      "use": "Build prerequisite→dependent edges.",
+      "mutation": "Mutates row 0; no automatic reverse edge."
+    },
+    {
+      "code": [
+        "adj=[[],[]]",
+        "adj[0].append((1,7))",
+        "print(adj)"
+      ],
+      "result": "[[(1, 7)], []]",
+      "use": "Build weighted input for Dijkstra.",
+      "mutation": "Appends one tuple reference and grows outgoing row."
+    },
+    {
+      "code": [
+        "adj=[[],[]]",
+        "u,v=0,1",
+        "adj[u].append(v); adj[v].append(u)",
+        "print(adj)"
+      ],
+      "result": "[[1], [0]]",
+      "use": "Represent reversible road connectivity.",
+      "mutation": "Mutates both endpoint rows; self-loop appends twice."
+    },
+    {
+      "code": [
+        "n=2",
+        "matrix=[[False]*n for _ in range(n)]",
+        "matrix[0][1]=True",
+        "print(matrix)"
+      ],
+      "result": "[[False, True], [False, False]]",
+      "use": "Constant-time adjacency checks on small dense input.",
+      "mutation": "Allocates Θ(V²) cells; changing one row does not alias others."
+    },
+    {
+      "code": [
+        "adj=[[1,2],[],[]]",
+        "out=[]",
+        "for v in adj[0]:",
+        "    out.append(v)",
+        "print(out)"
+      ],
+      "result": "[1, 2]",
+      "use": "Scan actual neighbors instead of every vertex.",
+      "mutation": "Input unchanged; example allocates output list."
+    },
+    {
+      "code": [
+        "adj=[[1,2],[],[]]",
+        "print(2 in adj[0], 0 in adj[0])"
+      ],
+      "result": "True False",
+      "use": "Understand cost of repeated list membership queries.",
+      "mutation": "Read only; no container allocation beyond expression temporaries."
+    },
+    {
+      "code": [
+        "neighbor_sets=[{1,2},set(),set()]",
+        "print(2 in neighbor_sets[0])"
+      ],
+      "result": "True",
+      "use": "Use expected constant-time membership when multiplicity is irrelevant.",
+      "mutation": "Query read only; constructing sets allocates and deduplicates."
+    },
+    {
+      "code": [
+        "matrix=[[False,True],[False,False]]",
+        "print(matrix[0][1])"
+      ],
+      "result": "True",
+      "use": "Answer dense edge-existence query.",
+      "mutation": "Read only; matrix was previously allocated."
+    },
+    {
+      "code": [
+        "adj=[[0,0,1],[0]]",
+        "print(len(adj[0]))"
+      ],
+      "result": "3",
+      "use": "Check degree parity with undirected self-loops counted twice.",
+      "mutation": "Read only; len is not a traversal."
+    },
+    {
+      "code": [
+        "indegree=[0]*3",
+        "for u,v in [(0,2),(1,2)]:",
+        "    indegree[v]+=1",
+        "print(indegree)"
+      ],
+      "result": "[0, 0, 2]",
+      "use": "Initialize residual prerequisite counts for Kahn.",
+      "mutation": "Allocates and mutates counters, not edge sequence."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "source=0",
+        "q=deque([source])",
+        "print(list(q))"
+      ],
+      "result": "[0]",
+      "use": "Seed unweighted FIFO frontier after marking source.",
+      "mutation": "Allocates new deque; source object unchanged."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q=deque([0])",
+        "q.append(1)",
+        "u=q.popleft()",
+        "print(u,list(q))"
+      ],
+      "result": "0 [1]",
+      "use": "FIFO preserves BFS layer order.",
+      "mutation": "Mutates deque at opposite ends."
+    },
+    {
+      "code": [
+        "stack=[0]",
+        "stack.append(1)",
+        "u=stack.pop()",
+        "print(u,stack)"
+      ],
+      "result": "1 [0]",
+      "use": "Iterative reachability without recursion depth risk.",
+      "mutation": "Mutates list in place; append/pop are amortized constant time."
+    },
+    {
+      "code": [
+        "import heapq",
+        "heap=[(4,0)]",
+        "heapq.heappush(heap,(2,1))",
+        "print(heap[0])"
+      ],
+      "result": "(2, 1)",
+      "use": "Schedule cheapest tentative path; integer IDs break ties.",
+      "mutation": "Mutates heap list; tuple entry allocated."
+    },
+    {
+      "code": [
+        "import heapq",
+        "heap=[(2,1),(4,0)]",
+        "print(heapq.heappop(heap),heap)"
+      ],
+      "result": "(2, 1) [(4, 0)]",
+      "use": "Settle current minimum only after stale-entry check.",
+      "mutation": "Removes from and reorders heap; does not mutate graph."
+    },
+    {
+      "code": [
+        "n=3",
+        "dist=[float(\"inf\")]*n",
+        "dist[0]=0",
+        "print(dist)"
+      ],
+      "result": "[0, inf, inf]",
+      "use": "Keep unreachable distinct from zero-distance source.",
+      "mutation": "Allocates array; float infinity is immutable and safe to repeat."
+    },
+    {
+      "code": [
+        "dist=[0,9]",
+        "u,v,w=0,1,4",
+        "if dist[u]+w < dist[v]:",
+        "    dist[v]=dist[u]+w",
+        "print(dist)"
+      ],
+      "result": "[0, 4]",
+      "use": "Relax only strict improvements to terminate zero cycles.",
+      "mutation": "Updates one distance slot, not input edges."
+    },
+    {
+      "code": [
+        "adj=[[1,2],[2],[]]",
+        "rev=[[] for _ in adj]",
+        "for u,row in enumerate(adj):",
+        "    for v in row:",
+        "        rev[v].append(u)",
+        "print(rev)"
+      ],
+      "result": "[[], [0], [0, 1]]",
+      "use": "Build transpose for SCC or reverse terminal elimination.",
+      "mutation": "Allocates new representation; original adjacency unchanged."
+    },
+    {
+      "code": [
+        "path=[2,1,0]",
+        "returned=path.reverse()",
+        "print(path,returned)"
+      ],
+      "result": "[0, 1, 2] None",
+      "use": "Reverse predecessor chain once rather than prepend repeatedly.",
+      "mutation": "Reverses in place; returns None, no new path list."
+    }
+  ],
+  "fundamentalDetails": [
+    {
+      "why": "Choosing states before code prevents an apparently efficient search from merging different futures.",
+      "use": "Model obstacle budgets, key sets or board positions before choosing adjacency.",
+      "result": "adj is [[1], []]: state 0 may move to state 1, not backward.",
+      "edge": "Two equal positions with different remaining resources may need distinct vertices.",
+      "takeaway": "A vertex is a complete future-relevant state."
+    },
+    {
+      "why": "Direction encodes a logical permission; reversing a prerequisite changes the question.",
+      "use": "Course prerequisites versus reversible roads.",
+      "result": "directed=[[1],[2],[]]; undirected=[[1],[0,2],[1]].",
+      "edge": "A self-loop remains a self-loop; an undirected builder may store it twice.",
+      "takeaway": "Only add reverse entries when movement is reversible."
+    },
+    {
+      "why": "The representation determines actual scan cost, not just notation.",
+      "use": "Sparse traversals use lists; dense repeated existence checks may use a matrix.",
+      "result": "matrix[0][1] and matrix[1][2] are True; reverse entries are False.",
+      "edge": "An empty matrix costs zero; V isolated vertices still require V list rows.",
+      "takeaway": "Count neighbor scans, not just visited vertices."
+    },
+    {
+      "why": "FIFO layers prove first discovery is shortest in edge count.",
+      "use": "Shortest moves in an unweighted graph.",
+      "result": "dist=[0,1,1], with vertex 2 enqueued once despite two incoming routes.",
+      "edge": "First enqueue is not final for weighted Dijkstra or 0–1 BFS.",
+      "takeaway": "Unweighted discovery fixes distance."
+    },
+    {
+      "why": "A traversal ordering is not an optimization objective.",
+      "use": "Use DFS for feasibility or components; BFS for shortest edge count.",
+      "result": "seen={0,1,2,3}; this snippet returns reachability, not a shortest path.",
+      "edge": "On a graph with a direct shortcut and a long detour DFS may find the detour first.",
+      "takeaway": "Reachability and shortest distance are different contracts."
+    },
+    {
+      "why": "Vertices with no incoming or outgoing edge still belong to the universe.",
+      "use": "Count islands of undirected connectivity including isolated objects.",
+      "result": "components=2: {0,1} and {2}.",
+      "edge": "Using one source misses disconnected components; directed reachability components are not SCCs.",
+      "takeaway": "Whole-graph questions need an outer vertex loop."
+    },
+    {
+      "why": "Visited alone loses whether an edge closes the current directed path.",
+      "use": "Detect directed cycles without rejecting a diamond DAG.",
+      "result": "back_edge and cross_edge_is_not_cycle_proof are both True.",
+      "edge": "An active-looking sibling in an incorrectly simulated DFS is not necessarily an ancestor.",
+      "takeaway": "GRAY must mean active ancestor, not merely scheduled."
+    },
+    {
+      "why": "A topological order exists exactly when all dependency vertices can be peeled.",
+      "use": "Schedule prerequisites or propagate DAG DP.",
+      "result": "order=[0,1,2] and is_dag=True.",
+      "edge": "Cycles in disconnected components still invalidate a global topological order.",
+      "takeaway": "Processed count, not queue exhaustion alone, certifies a DAG."
+    },
+    {
+      "why": "Shortest-path proofs depend on edge costs and path aggregation.",
+      "use": "Choose the lightest correct frontier before implementing.",
+      "result": "can_use_dijkstra=True for [2,7]; the negative list violates its precondition.",
+      "edge": "A finite negative edge in a DAG is fine; reachable negative cycles invalidate unrestricted finite minima.",
+      "takeaway": "Weights choose frontier; output chooses state."
+    },
+    {
+      "why": "Implicit transitions avoid storing a bounded-degree grid graph.",
+      "use": "Nearest facilities, rotting oranges, wall-constrained movement.",
+      "result": "neighbors=[(1,1),(0,2),(0,0)] in this direction order.",
+      "edge": "Four directions exclude diagonals; blocked cells require another eligibility check.",
+      "takeaway": "Generate local neighbors; seed all simultaneous sources together."
+    },
+    {
+      "why": "Parent pointers preserve one certificate without copying full paths into every frontier entry.",
+      "use": "Return one shortest route after BFS.",
+      "result": "path=[0,1,2] after one reverse.",
+      "edge": "Unreachable target has no chain; source==target returns one vertex and zero edges.",
+      "takeaway": "One parent per state, one reconstruction at the end."
+    },
+    {
+      "why": "DFS algorithms requiring exit work need each frame to resume its neighbor iterator.",
+      "use": "SCC finishing order, bridges, postorder aggregation.",
+      "result": "finish=[2,1,0], with descendants exiting before ancestors.",
+      "edge": "A 5000-vertex chain fits an explicit stack; recursive DFS may raise RecursionError.",
+      "takeaway": "Simulate call frames, not just a bag of pending vertices."
+    }
+  ],
+  "patternDetails": [
+    {
+      "steps": [
+        "Mark source with distance zero and no parent.",
+        "Pop FIFO, discover each unseen neighbor with distance+1 and parent.",
+        "Reconstruct target chain only if reached; distinguish edges from visited cells."
+      ],
+      "templates": [
+        "BFS distances and one shortest path"
+      ],
+      "related": "Multi-source BFS; Expanded-state BFS",
+      "variations": "Bidirectional BFS may reduce explored volume with reversible transitions and correct layer meeting; it is not guaranteed sublinear. Grid neighbors are implicit; eight-direction tasks change adjacency."
+    },
+    {
+      "steps": [
+        "Allocate an unseen/label array for every vertex, including isolates.",
+        "For each unseen start assign a fresh component label and mark on push.",
+        "Pop stack and mark/push unseen neighbors; increment component count per start."
+      ],
+      "templates": [
+        "Undirected connected-component labels"
+      ],
+      "related": "Strongly connected components; Minimum spanning tree",
+      "variations": "Flood fill adapts the vertex universe to cells. Graph cloning additionally maps original object identity to newly allocated nodes; DFS alone does not create copies."
+    },
+    {
+      "steps": [
+        "Initialize every valid source at distance zero before expansion.",
+        "Ignore duplicate sources and leave walls unreachable.",
+        "Use normal FIFO first-discovery relaxation from the shared frontier."
+      ],
+      "templates": [
+        "Multi-source grid BFS with walls"
+      ],
+      "related": "Unweighted BFS; Reverse graph elimination",
+      "variations": "For spread time, track reachable fresh cells and maximum layer. Unequal source start times require initial distances plus a weighted frontier."
+    },
+    {
+      "steps": [
+        "Start an uncolored component at color zero.",
+        "Each edge requires the neighbor to have the opposite color.",
+        "Reject conflicting/self-loop edges; restart for all components."
+      ],
+      "templates": [
+        "Bipartite coloring over all components"
+      ],
+      "related": "DFS / connected components; Directed cycle detection",
+      "variations": "For a certificate store parents and construct an odd cycle. Online additions can use parity DSU; k-coloring is not solved by two-color BFS."
+    },
+    {
+      "steps": [
+        "Use WHITE/GRAY/BLACK and iterator frames, not a generic seen set.",
+        "Mark GRAY when entering; a GRAY outgoing neighbor closes a directed cycle.",
+        "Mark BLACK only after its iterator is exhausted; start all components."
+      ],
+      "templates": [
+        "Directed cycle detection with active DFS frames",
+        "Kahn topological order"
+      ],
+      "related": "Topological sorting; Strongly connected components",
+      "variations": "Kahn processed count is a simpler boolean alternative. To return a cycle retain active-path positions; undirected cycles instead need parent edge IDs."
+    },
+    {
+      "steps": [
+        "Count every prerequisite edge into residual indegree.",
+        "Queue all zero-indegree vertices, remove one and decrement its outgoing neighbors.",
+        "Return full order only if processed count equals V; else reject the cycle."
+      ],
+      "templates": [
+        "Kahn topological order"
+      ],
+      "related": "Directed cycle detection; DAG dynamic programming",
+      "variations": "A min-heap over ready IDs returns lexicographically smallest order at O((V+E) log V) upper bound. Alien Dictionary also validates the longer-before-prefix impossibility."
+    },
+    {
+      "steps": [
+        "Verify a global topological order exists.",
+        "Initialize source value (0 distance or 1 empty path); unreachable states have neutral/sentinel values.",
+        "Propagate edge contributions once in topological order using min, max, count or a state vector."
+      ],
+      "templates": [
+        "DAG shortest paths with negative edges",
+        "Count directed DAG paths without enumerating them"
+      ],
+      "related": "Topological sorting; Bellman–Ford",
+      "variations": "Negative DAG edges are valid. Counting paths is not listing them; parallel edges may count as distinct routes. Color-value DP stores 26 counters per vertex."
+    },
+    {
+      "steps": [
+        "Check nonnegative additive edges, or prove monotone minimax extension.",
+        "Keep best distances and a min-heap of tentative labels; discard stale popped labels.",
+        "Relax with sum for additive cost or max for bottleneck cost; settle target only on a current pop."
+      ],
+      "templates": [
+        "Lazy-heap Dijkstra",
+        "Minimax Dijkstra on grid heights"
+      ],
+      "related": "0–1 BFS; Bellman–Ford; Minimum spanning tree",
+      "variations": "For path reconstruction keep parents on strict improvement. For object nodes use a counter tie-breaker. Returning early still requires input-validation cost if validation scans the entire graph."
+    },
+    {
+      "steps": [
+        "Initialize source distance zero and deque with its current label.",
+        "Discard stale popped entries.",
+        "A zero-edge improvement goes left; a one-edge improvement goes right."
+      ],
+      "templates": [
+        "0–1 BFS with stale-entry protection"
+      ],
+      "related": "Unweighted BFS; Dijkstra",
+      "variations": "For weights in a small bounded integer range, bucket methods are possible but require their own bounds; ordinary FIFO BFS is wrong for mixed 0/1 costs."
+    },
+    {
+      "steps": [
+        "For unrestricted shortest paths, make up to V−1 full relaxation passes with early exit.",
+        "Check one additional pass for source-reachable negative-cycle improvement.",
+        "For a bounded edge count instead read a prior-round snapshot and write a copied next-round array."
+      ],
+      "templates": [
+        "Bellman–Ford with reachable-cycle rejection",
+        "Snapshot relaxation with an edge budget"
+      ],
+      "related": "Dijkstra; DAG dynamic programming",
+      "variations": "A K-stop budget permits K+1 edges. Snapshot copying adds O(BV). A negative cycle is fatal only for reachable unrestricted targets, not a fixed finite edge budget."
+    },
+    {
+      "steps": [
+        "Initialize diagonal zero, unreachable infinity and parallel edges to minimum weight.",
+        "For each intermediate k, update every i,j via dist[i][k]+dist[k][j].",
+        "Reject negative diagonal if requiring meaningful finite answers for all pairs."
+      ],
+      "templates": [
+        "Floyd–Warshall all pairs"
+      ],
+      "related": "Bellman–Ford; Dijkstra",
+      "variations": "Predecessor/next matrices reconstruct routes at extra O(V²) storage. Repeated Dijkstra can beat cubic work on sparse nonnegative inputs."
+    },
+    {
+      "steps": [
+        "Specify undirected edge weights and whether the graph is connected.",
+        "Prim repeatedly accepts the cheapest crossing edge into the tree.",
+        "Use dense array scans for implicit complete Manhattan edges; report disconnection for sparse input."
+      ],
+      "templates": [
+        "Prim minimum spanning tree weight",
+        "Dense implicit Prim for Manhattan points"
+      ],
+      "related": "Dijkstra; DFS / connected components",
+      "variations": "Kruskal plus DSU is the complementary sorted-edge method in the Union-Find guide. Minimum spanning forest differs from a shortest-path tree; negative weights are fine."
+    },
+    {
+      "steps": [
+        "Record actual DFS exit order using suspended neighbor iterators.",
+        "Build transpose without discarding isolated vertices.",
+        "Traverse transpose in reverse finish order, assigning one label per traversal."
+      ],
+      "templates": [
+        "Iterative Kosaraju strongly connected components"
+      ],
+      "related": "Directed cycle detection; DAG dynamic programming",
+      "variations": "Condensing SCCs yields a DAG. Tarjan is another linear SCC algorithm but needs separate active-stack low-link rules; do not reuse undirected bridge low-link mechanically."
+    },
+    {
+      "steps": [
+        "Build undirected adjacency entries carrying original edge IDs.",
+        "On entering a vertex set discovery and low time; skip only the exact parent edge.",
+        "On child exit propagate low and emit parent edge iff low[child]>tin[parent]."
+      ],
+      "templates": [
+        "Iterative bridges with edge IDs"
+      ],
+      "related": "DFS / connected components; Strongly connected components",
+      "variations": "Articulation points use low[child]≥tin[parent] for nonroot vertices plus a separate DFS-root child-count rule. Parallel edges prevent bridges."
+    },
+    {
+      "steps": [
+        "Define state as (row,column,remaining budget), including start-cell cost.",
+        "Seed a FIFO search and mark each complete state at discovery.",
+        "Spend budget on entering a blocked cell and stop when goal state is popped."
+      ],
+      "templates": [
+        "Obstacle-elimination expanded-state BFS"
+      ],
+      "related": "Unweighted BFS; Multi-source BFS",
+      "variations": "Visit-all uses (vertex,mask) and multi-source seeds. Dominance may prune some resource states only with a distance/resource proof, not position-only visited."
+    },
+    {
+      "steps": [
+        "Count each vertex’s outgoing edges and build reversed adjacency.",
+        "Queue every terminal vertex with outdegree zero.",
+        "Remove safe terminals and decrement predecessor outdegrees; emit vertices eventually removed."
+      ],
+      "templates": [
+        "Reverse terminal elimination for eventual safety"
+      ],
+      "related": "Topological sorting; Directed cycle detection",
+      "variations": "Equivalent characterization: unsafe vertices can reach a directed cycle. Merely finding one path to a terminal is existential and does not establish safety."
+    },
+    {
+      "steps": [
+        "Allocate and memoize source clone before traversing outgoing links.",
+        "Discover unseen neighbor originals by identity and enqueue them once.",
+        "Append mapped neighbor copies, preserving adjacency order/multiplicity."
+      ],
+      "templates": [
+        "Clone an object graph by identity with BFS"
+      ],
+      "related": "Unweighted BFS; DFS / connected components",
+      "variations": "Memoized DFS is equivalent but recursive depth may fail. Clone all disconnected roots by sharing one map across an input collection; this template clones only the source-reachable subgraph."
+    }
+  ],
+  "templateDetails": [
+    {
+      "pattern": "Unweighted BFS",
+      "preconditions": "Unweighted directed or undirected adjacency lists, valid integer endpoints. Returns complete distance array (-1 unreachable) and any shortest source→target vertex path; source==target gives [source]. No input mutation. Empty graph has no valid source and raises ValueError.",
+      "observation": "Distance is fixed on first enqueue, not on arbitrary first encounter."
+    },
+    {
+      "pattern": "DFS / connected components",
+      "preconditions": "Symmetric unweighted undirected adjacency lists with valid IDs. Returns (number of components, component label for each vertex), including isolated vertices; []→(0,[]). Parallel edges/self-loops allowed; no mutation. Not SCC for directed input.",
+      "observation": "An outer loop accounts for isolates without adding special edge cases."
+    },
+    {
+      "pattern": "Multi-source BFS",
+      "preconditions": "Grid entries 0=open, nonzero=wall, four-direction moves. S integer-coordinate source pairs consumed once; duplicate sources ignored. Returns nearest-source edge distances, -1 for walls/unreachable. Empty shapes supported if sources empty; bad shape/source raises ValueError. Input unchanged.",
+      "observation": "One shared frontier computes distance to the nearest of all sources."
+    },
+    {
+      "pattern": "Directed cycle detection",
+      "preconditions": "Directed integer-ID adjacency; None is not a vertex ID. Returns bool, []→False. Iterator frames preserve the actual active ancestor chain without recursion. Input unchanged; parallel forward edges do not by themselves form a cycle.",
+      "observation": "The suspended iterator makes GRAY exactly the active ancestor chain."
+    },
+    {
+      "pattern": "Directed cycle detection",
+      "preconditions": "Directed valid-ID adjacency; edges prerequisite→dependent. Returns one topological order, None on a cycle, [] for no vertices. Parallel edges counted consistently. No mutation; queue order is not lexicographically minimal.",
+      "observation": "Queue exhaustion is not success unless every vertex was removed."
+    },
+    {
+      "pattern": "Bipartite coloring",
+      "preconditions": "Symmetric undirected adjacency, valid IDs. Returns 0/1 colors, None when impossible (including self-loop), [] on empty. For one-way inequality constraints first symmetrize edges. Does not mutate input.",
+      "observation": "An odd cycle forces a same-color edge somewhere, even in a disconnected component."
+    },
+    {
+      "pattern": "Dijkstra",
+      "preconditions": "Weighted directed or symmetric undirected adjacency as (neighbor, nonnegative finite numeric weight). Integer IDs make heap ties orderable. Returns distances, infinity for unreachable. No mutation; invalid source, endpoint or negative weight raises ValueError. For arbitrary node objects add an itertools.count tie-breaker.",
+      "observation": "Only a current minimum pop settles a nonnegative distance."
+    },
+    {
+      "pattern": "0–1 BFS",
+      "preconditions": "Weighted directed or symmetric undirected adjacency; weights exactly 0/1. Returns distances with infinity unreachable. Checks source/endpoints/weights; no mutation. A first-enqueue visited flag would incorrectly suppress later zero-cost improvement.",
+      "observation": "Zero improvements belong before pending unit-cost layers."
+    },
+    {
+      "pattern": "Bellman–Ford",
+      "preconditions": "n vertices; reusable sequence edges of directed (u,v,finite numeric weight); negative edges allowed. Returns finite shortest distances or infinity unreachable, but rejects any source-reachable negative cycle instead of returning partially invalid answers. Unreachable negative cycles ignored. No mutation. For a stop budget use a copied next-round array, not this in-place unbounded-path variant.",
+      "observation": "V−1 passes suffice for simple paths; one extra reachable improvement signals a bad cycle."
+    },
+    {
+      "pattern": "DAG dynamic programming",
+      "preconditions": "Weighted directed DAG with valid integer endpoints and finite numeric weights, including negative ones. Rejects cycles anywhere, even unreachable components. Returns distance array; infinity for unreachable. No mutation; O(V+E) without a heap.",
+      "observation": "A topological order settles incoming dependencies even when edge weights are negative."
+    },
+    {
+      "pattern": "Floyd–Warshall",
+      "preconditions": "Directed edge iterable, finite numeric weights; add both directions for undirected input. Parallel edges use minimum weight; empty n=0 returns []. Any negative cycle anywhere raises ValueError rather than exposing invalid pair distances. No input mutation; negative undirected edges necessarily produce a negative closed walk.",
+      "observation": "The intermediate vertex loop must be outermost."
+    },
+    {
+      "pattern": "Minimum spanning tree",
+      "preconditions": "Symmetric undirected weighted adjacency, valid integer endpoints and finite numeric weights; negative weights/parallel edges allowed. Returns MST total, None if disconnected, 0 for empty or singleton. Self-loops ignored. Does not return chosen edges or mutate input; do not apply to directed graphs.",
+      "observation": "Prim accepts the cheapest crossing edge, not a shortest source path."
+    },
+    {
+      "pattern": "Strongly connected components",
+      "preconditions": "Directed valid integer-ID adjacency. Returns (SCC count, component label per vertex), []→(0,[]). Equal labels iff mutually reachable. Labels need not match another implementation’s numbering. True iterator-frame finishing order is essential; no recursion or input mutation.",
+      "observation": "True exit order, then reverse-graph traversal, isolates mutually reachable groups."
+    },
+    {
+      "pattern": "Bridges and low-link",
+      "preconditions": "Undirected edge iterable, valid n and endpoints checked. Returns input edge IDs whose removal increases component count, in DFS exit order (not sorted). Handles self-loops, parallel edges, disconnected and empty graphs. No recursion/mutation; IDs refer to enumerate(edges), so retain input if endpoint output is desired.",
+      "observation": "Skip one parent edge ID, not every neighbor equal to the parent."
+    },
+    {
+      "pattern": "Expanded-state BFS",
+      "preconditions": "Rectangular 0/1 grid, four directions, k nonnegative integer eliminations. Returns shortest edge count from top-left to bottom-right or -1, including empty grid. Entering a 1 costs one elimination, including starting cell. Input unchanged. Cap K=min(k,RC): a shortest feasible route can be simple, so more than RC eliminations cannot improve feasibility. State retains remaining budget; copy to adapt for keys or parity.",
+      "observation": "A cell and its remaining budget together determine future choices."
+    },
+    {
+      "pattern": "Reverse graph elimination",
+      "preconditions": "Directed valid-ID adjacency; returns sorted IDs from which every path eventually terminates. Parallel edges counted individually, self-loops unsafe, [] returns []. Does not mutate input. Nodes merely able to reach one terminal may still be unsafe.",
+      "observation": "Universal eventual safety means every outgoing successor is already safe."
+    },
+    {
+      "pattern": "Bellman–Ford",
+      "preconditions": "Directed finite numeric edge weights, possibly negative; B=max_edges≥0. Returns cheapest walk using at most B edges (not unrestricted shortest paths); bounded negative cycles are well-defined. Each round reads only the previous snapshot. A K-stop flight permits K+1 edges. Copies edge iterable; no caller mutation. O(BV) copying matters, so not simply O(BE).",
+      "observation": "Reading old distances prevents spending several edges in one budget round."
+    },
+    {
+      "pattern": "Dijkstra",
+      "preconditions": "Rectangular finite numeric heights, four directions. Returns minimum possible largest adjacent absolute difference, 0 on singleton and None for empty shapes. No input mutation. Monotone max-extension, not additive relaxation, justifies settling; negative heights themselves are fine.",
+      "observation": "A bottleneck extends by max, not addition."
+    },
+    {
+      "pattern": "Minimum spanning tree",
+      "preconditions": "Finite numeric coordinate pairs; implicit complete undirected graph with Manhattan weights. Returns MST total (0 on empty/singleton); duplicates produce valid zero edges. No input mutation or quadratic edge storage. Dense array scan beats heap overhead for this representation.",
+      "observation": "Complete implicit graphs can avoid storing a quadratic edge set."
+    },
+    {
+      "pattern": "DAG dynamic programming",
+      "preconditions": "Directed DAG with valid integer IDs; returns number of source-to-each-vertex paths, counting the empty source path once and parallel edges as distinct choices. Rejects any cycle, including unreachable ones. No mutation; optional positive modulus bounds count sizes. Without modulus path counts may be exponential in value, so integer bit time/storage exceed unit-cost O(V+E)/O(V).",
+      "observation": "Counting paths does not require enumerating them; exact counts may have many bits."
+    },
+    {
+      "pattern": "Graph cloning by identity",
+      "preconditions": "Reachable graph of GraphNode objects with default identity hashing/equality, directed or symmetric undirected neighbor lists. None returns None. Allocates a structurally independent clone of reachable nodes and neighbor lists; values are shared references, not deep-copied payloads. Preserves neighbor order, parallel edges and self-loops. Distinct original nodes may share equal values and must remain distinct. No original mutation; custom value-based equality requires an identity-keyed adaptation.",
+      "observation": "Memoize a new clone before following its edges, so cycles terminate and repeated references stay shared."
+    }
+  ],
+  "practiceDetails": [
+    {
+      "insight": "Foundation — A single reachability traversal is sufficient; DSU is an alternative when links arrive incrementally. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Start equals end; undirected edges.",
+      "secondary": "Union-Find; graph modeling"
+    },
+    {
+      "insight": "Foundation — The old color defines component membership; test identical replacement color before traversing. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: New color equals original; avoid repeated revisits.",
+      "secondary": "Implicit graph; mutation contract"
+    },
+    {
+      "insight": "Foundation — Each new unseen land start contributes one component; mark once to avoid repeated counts. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Four neighbors, not eight; mutation contract.",
+      "secondary": "Flood fill; connected components"
+    },
+    {
+      "insight": "Foundation — Matrix rows force V scans even if very few edges are true. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Input is a matrix; list complexity does not apply.",
+      "secondary": "DSU alternative; representation costs"
+    },
+    {
+      "insight": "Transfer — Allocate exactly one copy per original identity before wiring its edges. Mastery: reconstruct independently, prove memoization handles cycles, and test equal-valued distinct nodes plus a self-loop without mutating the original.",
+      "secondary": "Object identity; cyclic graph copying; BFS"
+    },
+    {
+      "insight": "Transfer — All rotten sources spread from time zero; unreachable fresh cells make completion impossible. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Count fresh cells and unreachable remainder.",
+      "secondary": "Multi-source layers; reachability"
+    },
+    {
+      "insight": "Transfer — Reverse the perspective: expand from every zero rather than BFS from each one. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Enqueue all zeros before expansion.",
+      "secondary": "Nearest-source transform"
+    },
+    {
+      "insight": "Transfer — Opposite colors propagate locally; one same-color edge certifies impossibility. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Disconnected components and self-loops.",
+      "secondary": "Odd-cycle reasoning; components"
+    },
+    {
+      "insight": "Transfer — The dependency graph is feasible iff no directed cycle remains. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Prerequisite edge direction.",
+      "secondary": "Active DFS; Kahn processed count"
+    },
+    {
+      "insight": "Transfer — Zero residual indegree means every prerequisite is already output. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Reject partial order on a cycle.",
+      "secondary": "Directed-cycle detection"
+    },
+    {
+      "insight": "Transfer — Every successor must be safe; remove terminals in reverse, not vertices with merely one terminal route. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: All outgoing routes must be safe.",
+      "secondary": "Reverse graph; topological peeling"
+    },
+    {
+      "insight": "Transfer — The answer counts visited cells, while ordinary BFS distances count edges. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Eight directions; answer counts cells.",
+      "secondary": "Eight-direction implicit graph"
+    },
+    {
+      "insight": "Transfer — Generate legal dictionary transitions rather than materialize a dense graph; string creation/hash costs add L. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: N words length L; neighbor generation and hashing are not free.",
+      "secondary": "Bidirectional BFS extension; string hashing"
+    },
+    {
+      "insight": "Transfer — The answer is the largest finite source distance, but any unreachable vertex makes it -1. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Unreachable destination means -1.",
+      "secondary": "Heap stale entries; weighted reachability"
+    },
+    {
+      "insight": "Transfer — Following the indicated arrow is a zero edge; every other chosen direction costs one. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Following an arrow costs zero; changing costs one.",
+      "secondary": "Deque ordering; implicit graph"
+    },
+    {
+      "insight": "Transfer — A path budget bounds edge count, so each round must read prior-round distances. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: A stop is not an edge; use copied next-round distances.",
+      "secondary": "Layered DP; snapshot Bellman–Ford"
+    },
+    {
+      "insight": "Transfer — All-pairs distances fit small V; count threshold neighbors and apply the larger-ID tie policy. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Tie favors larger city ID.",
+      "secondary": "Tie-breaking; repeated Dijkstra alternative"
+    },
+    {
+      "insight": "Transfer — The complete Manhattan graph is implicit; dense Prim avoids O(V²) stored edges. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Manhattan edges are implicit; heap is not always better.",
+      "secondary": "Cut property; Kruskal tradeoff"
+    },
+    {
+      "insight": "Transfer — The path cost is its maximum step, so replace addition by max in monotone relaxation. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Relax with max(current effort, edge difference), not sum.",
+      "secondary": "Binary search on threshold plus traversal"
+    },
+    {
+      "insight": "Stretch — A visited mask describes which future obligations remain, so vertex alone is not a state. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Visit mask is part of identity.",
+      "secondary": "Bitmask DP; multi-source BFS"
+    },
+    {
+      "insight": "Stretch — Arriving with more budget can unlock future moves; preserve remaining eliminations in identity. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: A longer arrival with more remaining budget can matter.",
+      "secondary": "Resource dominance proof"
+    },
+    {
+      "insight": "Stretch — Low-link escape is measured relative to the parent discovery time; parallel edges need IDs. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Skip edge ID, propagate low on exit.",
+      "secondary": "DFS exit frames; multigraph modeling"
+    },
+    {
+      "insight": "Stretch — Each vertex carries a 26-color best-prefix vector finalized by topological order. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Any directed cycle forces -1, even outside one chosen source.",
+      "secondary": "Vector DP; global cycle detection"
+    }
+  ],
+  "decisionProcess": [
+    "0–25 seconds — Define vertices and legal edges: directed or undirected, explicit lists/matrix or implicit moves, full state identity, parallel edges and self-loops. Ask boolean, distance, one path, count or all paths.",
+    "25–50 seconds — If only reachability/components, choose iterative DFS/BFS; directed mutual reachability means SCC. If prerequisites, choose Kahn/active-DFS, and DAG DP only after proving acyclicity.",
+    "50–85 seconds — For shortest paths inspect weights: equal→BFS; 0/1→0–1 BFS; nonnegative→Dijkstra; DAG even with negatives→topological relaxation; other negatives→Bellman–Ford. A bounded edge budget needs snapshots; all-pairs small V may justify Floyd.",
+    "85–110 seconds — Change state/frontier when required: simultaneous sources seed together; keys/budgets/masks enlarge identity; minimax costs use max relaxation. A cheap network connecting all vertices is MST, not shortest path.",
+    "110–145 seconds — State invariant and reject the tempting wrong tool: visited does not mean active, first Dijkstra insertion does not settle, position-only seen is unsafe with resources. Estimate V,E and expanded states before coding.",
+    "145–180 seconds — Quote representation + validation + frontier + output/bit costs; decide mutation/tie policy and iterative depth strategy. Trace empty/isolated/self-loop plus one algorithm-specific adversary (diamond, negative edge, parallel bridge or threshold tie)."
+  ],
+  "sources": [
+    {
+      "title": "Original guide synthesis and executable review",
+      "url": "https://docs.python.org/3/",
+      "note": "Explanations and Python examples are original synthesis, checked locally on 2026-11-13. API semantics are cross-checked against public Python documentation. No paid lessons, personal notes or course-complete attribution."
+    },
+    {
+      "title": "AlgoMonster public algorithm decision flowchart",
+      "url": "https://algo.monster/flowchart",
+      "note": "Public page verified HTTP 200 on 2026-11-13; broad decision guidance only. No assertion of exhaustive course coverage or copied lesson text."
+    },
+    {
+      "title": "AlgoMonster Foundation public introduction",
+      "url": "https://algo.monster/courses/foundation/foundation_course_intro",
+      "note": "Public introduction verified HTTP 200 on 2026-11-13; the originally supplied /courses/foundation/ URL returned 404. Introduction access does not verify all course contents."
+    },
+    {
+      "title": "Python deque documentation",
+      "url": "https://docs.python.org/3/library/collections.html#collections.deque",
+      "note": "Public API reference verified HTTP 200, 2026-11-13. FIFO operations and mutation; code targets Python 3.10+."
+    },
+    {
+      "title": "Python heapq documentation",
+      "url": "https://docs.python.org/3/library/heapq.html",
+      "note": "Public API reference verified HTTP 200, 2026-11-13. Lazy min-heaps and tie-breakers; newer max-heap APIs exist but are not required by these 3.10+-compatible templates."
+    },
+    {
+      "title": "CP-Algorithms breadth-first search",
+      "url": "https://cp-algorithms.com/graph/breadth-first-search.html",
+      "note": "Public reference verified HTTP 200, 2026-11-13; traversal invariants and linear adjacency-list bound. Python implementations and tests here are original."
+    }
   ]
 }

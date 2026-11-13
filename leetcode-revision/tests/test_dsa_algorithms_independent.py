@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 def load(topic, title):
-    data = json.loads((ROOT / (topic + '-guide.json')).read_text())
+    data = json.loads((ROOT / 'data/dsa' / (topic + '-guide.json')).read_text())
     row = next(row for row in data['templates'] if row[0] == title)
     namespace = {}
     exec(compile(chr(10).join(row[3]), title, 'exec'), namespace)

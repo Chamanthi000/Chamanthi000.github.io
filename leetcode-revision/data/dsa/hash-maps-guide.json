@@ -1,0 +1,2302 @@
+{
+  "id": "hash-maps",
+  "title": "Hash Maps & Sets",
+  "subtitle": "Trade repeated searches for a table of precisely the information a future step needs.",
+  "variables": "n and m = input lengths; u = distinct keys; k = requested count/window; L = total characters; R = number of returned items. Expected hash-table bounds assume well-distributed hashes, O(1) key hash/equality and fixed-size arithmetic; collisions can make a lookup O(u) and a build O(n²). Hashing a fresh length-l string/tuple costs O(l); Python may cache string hashes but equality still can scan characters. Python integers have bit-length-dependent costs. Space distinguishes auxiliary state from output; dict preserves insertion order, set has no ordering contract. a,b,c,d may denote independent population lengths for pair joins; u_t = distinct target symbols. Hash full-scan bounds are expected and can degrade quadratically with collisions. Count snapshots, buckets, composite keys and output slices. Templates here are iterative. u_a/u_b denote distinct keys in each input table. API costs assume CPython-like hash tables; capacities/tombstones can affect scans. Counter multiset arithmetic drops nonpositive results unlike signed balance updates. Operation table costs describe the named operation on preexisting state; executable examples also construct small fixtures and verify results, whose setup/assertion cost is not the operation cost.",
+  "operations": [
+    [
+      "Create",
+      "{}; dict(); set()",
+      "Empty map or set",
+      "O(1)",
+      "O(1)",
+      "{} is a dict, not an empty set."
+    ],
+    [
+      "Create",
+      "dict(pairs); set(values)",
+      "Build from n entries",
+      "O(n) expected",
+      "O(u)",
+      "Map retains last value for each equal key."
+    ],
+    [
+      "Lookup",
+      "key in d; key in s",
+      "Membership by key/value",
+      "O(1) expected; O(u) worst",
+      "O(1)",
+      "d membership checks keys, not values."
+    ],
+    [
+      "Lookup",
+      "d[key]",
+      "Read required value",
+      "O(1) expected",
+      "O(1)",
+      "Missing key raises KeyError."
+    ],
+    [
+      "Lookup",
+      "d.get(key, default)",
+      "Read optional value",
+      "O(1) expected",
+      "O(1)",
+      "Does not insert; default expression is evaluated eagerly."
+    ],
+    [
+      "Lookup",
+      "len(d); len(s)",
+      "Stored entry count",
+      "O(1)",
+      "O(1)",
+      "Counts keys, not total frequency."
+    ],
+    [
+      "Update",
+      "d[key] = value",
+      "Insert or overwrite",
+      "O(1) expected amortized",
+      "O(1) amortized growth",
+      "A resize can cost O(u); overwrite keeps insertion position."
+    ],
+    [
+      "Update",
+      "s.add(x)",
+      "Insert unique value",
+      "O(1) expected amortized",
+      "O(1) amortized growth",
+      "Equal values share an entry."
+    ],
+    [
+      "Update",
+      "d.setdefault(key, [])",
+      "Get existing or insert default",
+      "O(1) expected amortized",
+      "O(1) plus default",
+      "Default is created even if unused; defaultdict often clearer."
+    ],
+    [
+      "Update",
+      "d.update(other); s.update(values)",
+      "Bulk insert m entries",
+      "O(m) expected amortized",
+      "O(m) growth worst",
+      "Mutates; returns None."
+    ],
+    [
+      "Delete",
+      "del d[key]; d.pop(key)",
+      "Remove required key",
+      "O(1) expected",
+      "O(1)",
+      "Missing key raises KeyError."
+    ],
+    [
+      "Delete",
+      "d.pop(key, None)",
+      "Remove optional key",
+      "O(1) expected",
+      "O(1)",
+      "None can also be a stored value."
+    ],
+    [
+      "Delete",
+      "s.remove(x); s.discard(x)",
+      "Remove value",
+      "O(1) expected",
+      "O(1)",
+      "remove raises KeyError when missing; discard does not."
+    ],
+    [
+      "Delete",
+      "d.popitem()",
+      "Remove most recently inserted remaining item",
+      "O(1) amortized",
+      "O(1)",
+      "LIFO in Python 3.10+; not sorted maximum."
+    ],
+    [
+      "Delete",
+      "d.clear(); s.clear()",
+      "Release entries",
+      "O(u)",
+      "O(1) auxiliary",
+      "Aliases see the mutation."
+    ],
+    [
+      "Iteration",
+      "for key, value in d.items():",
+      "Scan live view",
+      "O(u)",
+      "O(1)",
+      "Do not add/delete keys during iteration."
+    ],
+    [
+      "Iteration",
+      "d.keys(); d.values(); d.items()",
+      "Create dynamic views",
+      "O(1)",
+      "O(1)",
+      "Views reflect future edits; list(view) costs O(u)."
+    ],
+    [
+      "Lookup",
+      "value in d.values()",
+      "Search values",
+      "O(u)",
+      "O(1)",
+      "Values are not indexed by hashing."
+    ],
+    [
+      "Copy",
+      "d.copy(); s.copy()",
+      "Shallow copy",
+      "O(u)",
+      "O(u)",
+      "Nested values remain shared."
+    ],
+    [
+      "Sets",
+      "a | b; a & b; a - b; a ^ b",
+      "Union/intersection/difference/symmetric difference",
+      "Expected O(n+m); intersection O(min(n,m)); difference O(n)",
+      "O(result size)",
+      "Here n,m are set sizes; arbitrary iterables can change bounds."
+    ],
+    [
+      "Sets",
+      "a <= b; a.isdisjoint(b)",
+      "Subset / no common element",
+      "O(n) / O(min(n,m)) expected worst scan",
+      "O(1)",
+      "a,b are sets; short-circuiting possible."
+    ],
+    [
+      "Counts",
+      "Counter(values)",
+      "Build multiset counts",
+      "O(n) expected",
+      "O(u)",
+      "from collections import Counter."
+    ],
+    [
+      "Counts",
+      "counts[x]",
+      "Read Counter frequency",
+      "O(1) expected",
+      "O(1)",
+      "Missing returns 0 without insertion; zero keys may remain after updates."
+    ],
+    [
+      "Ordering",
+      "sorted(d)",
+      "Sort map keys",
+      "O(u log u) comparisons",
+      "O(u)",
+      "Hashing alone cannot provide ordered predecessor/range queries."
+    ],
+    [
+      "Factories",
+      "defaultdict(list)[key]",
+      "Get/create independent group",
+      "O(1) expected amortized plus factory",
+      "O(1) plus factory output",
+      "get does not invoke factory."
+    ],
+    [
+      "Create",
+      "dict.fromkeys(keys,value)",
+      "Initialize with shared value",
+      "O(n) expected",
+      "O(u)",
+      "Mutable value aliases across keys."
+    ],
+    [
+      "Update",
+      "a | b; a |= b",
+      "Right-biased map union/update",
+      "O(n+m) expected / O(m) expected amortized",
+      "O(n+m) new / O(m) growth",
+      "Python 3.9+; not frequency addition."
+    ],
+    [
+      "Create",
+      "{key: value for ...}; {value for ...}",
+      "Dictionary/set comprehension",
+      "O(n) expected amortized plus expression cost",
+      "O(u)",
+      "Duplicate keys retain last value; expressions may allocate."
+    ],
+    [
+      "Create",
+      "frozenset(values)",
+      "Immutable hashable set key",
+      "O(n) expected construction; O(u) initial hash",
+      "O(u)",
+      "Nested elements must be hashable; first hash scans contents, later CPython hashes may be cached."
+    ],
+    [
+      "Delete",
+      "s.pop()",
+      "Remove an arbitrary remaining element",
+      "O(1) average; O(table capacity) worst scan",
+      "O(1)",
+      "Empty raises KeyError; arbitrary is not uniform random or sorted."
+    ],
+    [
+      "Sets",
+      "a |= b; a &= b; a -= b; a ^= b",
+      "In-place set algebra",
+      "Expected O(n+m) conservative; operation/size dependent",
+      "O(n+m) conservative temporary/growth upper bound",
+      "Intersection update may allocate temporary result; in-place does not mean O(1) auxiliary."
+    ],
+    [
+      "Counts",
+      "counts.update(values); counts.subtract(values)",
+      "Add/subtract multiplicity",
+      "O(m) expected amortized",
+      "O(new distinct keys) growth",
+      "Unlike dict.update this adds counts; subtract retains zero/negative keys."
+    ],
+    [
+      "Counts",
+      "counts.most_common(k)",
+      "Select k largest counts",
+      "O(u log(k+1)) for 0<k<u; all/u<=k uses O(u log u); k<=0 may return immediately",
+      "O(k) selection plus output; all O(u)",
+      "Equal counts use first encounter order; count update must precede ranking."
+    ],
+    [
+      "Counts",
+      "+counts; a & b; a | b; a + b; a - b",
+      "Positive-count filtering and multiset arithmetic",
+      "O(u_a+u_b) expected conservative",
+      "O(result support)",
+      "Counter & uses minimum, | maximum; binary results omit nonpositive counts; not signed-balance arithmetic."
+    ],
+    [
+      "Compare",
+      "a == b (dict or set)",
+      "Equality independent of insertion order",
+      "O(u) expected for equal-size tables; may short circuit",
+      "O(1) auxiliary excluding user equality",
+      "dict compares key/value pairs, set compares membership, nested equality costs can dominate."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "Keys represent equivalence classes",
+      "A key must be hashable and its hash/equality must remain stable while stored. Equal keys must have equal hashes; equal hashes need not mean equal keys.",
+      [
+        "a = {(1, 2): 'pair'}",
+        "key = frozenset({2, 1})",
+        "a[key] = 'unordered pair'",
+        "result = (a[(1,2)],a[frozenset({1,2})])",
+        "assert repr(result) == \"('pair', 'unordered pair')\""
+      ],
+      "O(key size) to hash composite keys",
+      "O(key size)",
+      "A tuple containing a list is still unhashable."
+    ],
+    [
+      "Presence is not truthiness",
+      "Check key membership when zero, False or None are meaningful stored values. get with a sentinel separates absent from present None.",
+      [
+        "d = {'a': 0, 'b': None}",
+        "missing = object()",
+        "assert 'a' in d",
+        "assert d.get('b', missing) is None",
+        "assert d.get('c', missing) is missing",
+        "result = (d['a'],d['b'],'c' in d)",
+        "assert repr(result) == \"(0, None, False)\""
+      ],
+      "O(1) expected",
+      "O(1)",
+      "if d.get(key) incorrectly treats stored zero as absent."
+    ],
+    [
+      "Set versus multiset",
+      "Sets answer presence; Counter stores multiplicity. A zero count is not automatically removed.",
+      [
+        "from collections import Counter",
+        "c = Counter([2, 2, 3])",
+        "c[2] -= 2",
+        "assert 2 in c and c[2] == 0",
+        "del c[2]",
+        "result = dict(c)",
+        "assert repr(result) == \"{3: 1}\""
+      ],
+      "O(n) expected build",
+      "O(u)",
+      "len(c) can include zero-count keys."
+    ],
+    [
+      "Information choice controls correctness",
+      "Store a prior index for pair existence, first index for longest distance, and frequency for number of pairs.",
+      [
+        "first = {0: -1}",
+        "prefix = 0",
+        "for i, x in enumerate([1, -1, 1]):",
+        "    prefix += x",
+        "    first.setdefault(prefix, i)",
+        "result = first",
+        "assert repr(result) == \"{0: -1, 1: 0}\""
+      ],
+      "O(n) expected",
+      "O(n)",
+      "Overwriting first occurrence loses longest-span candidates."
+    ],
+    [
+      "Lookup before publishing current state",
+      "At step i, only prior entries should match current i. This prevents self-pairs and empty subarray counts.",
+      [
+        "seen = {}",
+        "nums = [3, 3]",
+        "answer = []",
+        "for i, x in enumerate(nums):",
+        "    if 6-x in seen:",
+        "        answer = [seen[6-x], i]",
+        "        break",
+        "    seen[x] = i",
+        "result = answer",
+        "assert repr(result) == \"[0, 1]\""
+      ],
+      "O(n) expected",
+      "O(u)",
+      "Inserting before checking can reuse the same index."
+    ],
+    [
+      "Canonical keys",
+      "Encode equivalence without ambiguity. Sorting characters works for arbitrary characters; frequency tuples need a known alphabet.",
+      [
+        "from collections import defaultdict",
+        "groups = defaultdict(list)",
+        "for word in ['eat', 'tea', 'aet']:",
+        "    key = ''.join(sorted(word))",
+        "    groups[key].append(word)",
+        "result = dict(groups)",
+        "assert repr(result) == \"{'aet': ['eat', 'tea', 'aet']}\""
+      ],
+      "O(n + sum l log(l+1)) including empty words",
+      "O(L+n) keys and grouped references",
+      "A set of characters loses repetition, so ab and aab collide semantically."
+    ],
+    [
+      "Independent default values",
+      "defaultdict(list) invokes a factory for each missing key. fromkeys with one mutable list shares the exact same list.",
+      [
+        "from collections import defaultdict",
+        "groups = defaultdict(list)",
+        "groups['a'].append(1)",
+        "groups['b'].append(2)",
+        "assert groups['a'] is not groups['b']",
+        "result = dict(groups)",
+        "assert repr(result) == \"{'a': [1], 'b': [2]}\""
+      ],
+      "O(1) expected per append amortized",
+      "O(n)",
+      "Reading groups[missing] inserts; groups.get(missing) does not."
+    ],
+    [
+      "Safe iteration and mutation",
+      "Update values without changing key count, or iterate a snapshot when removing keys.",
+      [
+        "d = {'a': 0, 'b': 2}",
+        "for key in list(d):",
+        "    if d[key] == 0:",
+        "        del d[key]",
+        "result = d",
+        "assert repr(result) == \"{'b': 2}\""
+      ],
+      "O(u)",
+      "O(u) snapshot",
+      "Live views are not snapshots; structural mutation can raise RuntimeError."
+    ],
+    [
+      "Ordering is a separate contract",
+      "dict iteration follows insertion order, not sorted order. Reassigning does not move a key, deletion and reinsertion does.",
+      [
+        "d = {'b': 1, 'a': 2}",
+        "d['b'] = 3",
+        "assert list(d) == ['b', 'a']",
+        "del d['b']",
+        "d['b'] = 4",
+        "assert list(d) == ['a', 'b']",
+        "result = list(d)",
+        "assert repr(result) == \"['a', 'b']\""
+      ],
+      "O(1) expected amortized per edit",
+      "O(u) table",
+      "Do not derive a deterministic output order from a set."
+    ],
+    [
+      "Expected is not worst-case",
+      "Collision resolution compares candidate keys. Counting table operations is not enough if keys are long or custom equality is expensive.",
+      [
+        "class CollisionKey:",
+        "    def __init__(self, value): self.value = value",
+        "    def __hash__(self): return 0",
+        "    def __eq__(self, other):",
+        "        return isinstance(other, CollisionKey) and self.value == other.value",
+        "d = {CollisionKey(i): i for i in range(4)}",
+        "assert d[CollisionKey(3)] == 3",
+        "result = d[CollisionKey(3)]",
+        "assert repr(result) == \"3\""
+      ],
+      "O(n²) worst for this build",
+      "O(n)",
+      "Hash equality does not establish object equality."
+    ],
+    [
+      "Prefix states turn ranges into matches",
+      "For prefix sums P, sum of a[l:r] is P[r]-P[l]. Equal transformed states identify useful earlier boundaries.",
+      [
+        "freq = {0: 1}",
+        "prefix = count = 0",
+        "for x in [1, -1, 0]:",
+        "    prefix += x",
+        "    count += freq.get(prefix, 0)",
+        "    freq[prefix] = freq.get(prefix, 0) + 1",
+        "assert count == 3",
+        "result = count",
+        "assert repr(result) == \"3\""
+      ],
+      "O(n) expected",
+      "O(n)",
+      "The empty prefix is a boundary, not an extra array element."
+    ]
+  ],
+  "patterns": [
+    [
+      "Complement lookup",
+      "CORE",
+      "Unsorted pair summing to target",
+      "Scan once; query target-x in a map of earlier indices, then insert x.",
+      "O(n) expected",
+      "O(u)",
+      "1 Two Sum",
+      "Never reuse current index.",
+      "Before i the table contains only indices < i.",
+      "When sorted input permits O(1)-space two pointers or all pairs output is required."
+    ],
+    [
+      "Presence and duplicate detection",
+      "CORE",
+      "Have I seen this value?",
+      "Use a set; early-return on repeated membership.",
+      "O(n) expected",
+      "O(u)",
+      "217 Contains Duplicate",
+      "Hashability is required.",
+      "seen equals distinct processed values.",
+      "When multiplicity or position is needed."
+    ],
+    [
+      "Frequency accounting",
+      "CORE",
+      "Anagrams, inventory or equal multisets",
+      "Increment one population and decrement the other, or compare Counters.",
+      "O(n+m) expected",
+      "O(u)",
+      "242 Valid Anagram; 383 Ransom Note",
+      "Sets erase duplicate counts.",
+      "Each balance is supplied count minus consumed count.",
+      "When order determines matching."
+    ],
+    [
+      "Canonical grouping",
+      "CORE",
+      "Group objects under an equivalence relation",
+      "Map a collision-free semantic signature to a group; for words use sorted characters or alphabet counts.",
+      "O(n + sum l log(l+1))",
+      "O(L+n) including grouped output references",
+      "49 Group Anagrams",
+      "Do not concatenate ambiguous unseparated counts.",
+      "Two objects share a signature iff equivalent under the requested rule.",
+      "When normalization changes the specified equivalence."
+    ],
+    [
+      "Bidirectional mapping",
+      "IMPORTANT",
+      "One-to-one correspondence of symbols",
+      "Track both forward and reverse maps, rejecting either conflict.",
+      "O(n) expected",
+      "O(u)",
+      "205 Isomorphic Strings; 290 Word Pattern",
+      "A forward map alone allows two keys mapping to one value.",
+      "Both maps remain inverse on processed pairs.",
+      "For many-to-one mappings."
+    ],
+    [
+      "Prefix-frequency counting",
+      "CORE",
+      "Count exact-sum ranges with negatives",
+      "Seed {0:1}; add frequency of prefix-k before publishing current prefix.",
+      "O(n) expected",
+      "O(n)",
+      "560 Subarray Sum Equals K",
+      "Using a set counts distinct states rather than ranges.",
+      "freq records all earlier prefix boundaries with multiplicity.",
+      "For shortest/longest ranges where index information is needed instead."
+    ],
+    [
+      "Earliest prefix boundary",
+      "IMPORTANT",
+      "Longest range with target sum or equal classes",
+      "Store first index of each prefix state; compare current position to earliest compatible state.",
+      "O(n) expected",
+      "O(n)",
+      "525 Contiguous Array; 325 Maximum Size Subarray Sum Equals k",
+      "Do not overwrite first index.",
+      "Each stored index is the earliest boundary for its state.",
+      "For counting all ranges."
+    ],
+    [
+      "Remainder classes",
+      "IMPORTANT",
+      "Subarray sum divisible by k",
+      "For nonzero k group prefixes by sum % abs(k); equal remainders define divisible difference.",
+      "O(n) expected",
+      "O(min(n+1,abs(k)))",
+      "974 Subarray Sums Divisible by K",
+      "k=0 needs an explicit different contract.",
+      "Earlier remainder frequencies enumerate all valid left boundaries.",
+      "When modulus is zero; use exact zero-sum states if that is intended."
+    ],
+    [
+      "Last-seen sliding window",
+      "CORE",
+      "Longest substring with no repeated symbol",
+      "Jump left to max(left,last[x]+1), then update last seen.",
+      "O(n) expected",
+      "O(u)",
+      "3 Longest Substring Without Repeating Characters",
+      "Left must never move backward.",
+      "The active window contains unique values.",
+      "When arbitrary exact sums, not local repetition, determine validity."
+    ],
+    [
+      "Window frequency with distinct count",
+      "IMPORTANT",
+      "At most k distinct or count exactly-k-distinct ranges",
+      "Increment entering; shrink invalid window; delete keys whose count reaches zero.",
+      "O(n) expected",
+      "O(min(u,k+1)) live keys, k>=0",
+      "904 Fruit Into Baskets; 992 Subarrays with K Different Integers",
+      "Exactly-k counts use at_most(k)-at_most(k-1).",
+      "Map contains positive counts exactly for the active window.",
+      "For rules not repaired monotonically by removing left items."
+    ],
+    [
+      "Set start-only expansion",
+      "IMPORTANT",
+      "Longest numeric consecutive run ignoring order",
+      "Deduplicate; expand only from x where x-1 is absent.",
+      "O(n) expected",
+      "O(u)",
+      "128 Longest Consecutive Sequence",
+      "Iterate the set, not duplicate-heavy original values.",
+      "Every unique value belongs to exactly one scanned run.",
+      "For subsequences that must retain original index order."
+    ],
+    [
+      "Frequency buckets",
+      "IMPORTANT",
+      "Static top k frequent values",
+      "Count keys, bucket by frequency <= n, scan descending until k outputs.",
+      "O(n) expected",
+      "O(n) auxiliary plus O(k) output",
+      "347 Top K Frequent Elements",
+      "Specify tie order and k bounds.",
+      "Higher buckets are exhausted before lower buckets contribute.",
+      "For streaming frequency changes; use a maintained index/heap instead."
+    ],
+    [
+      "Set algebra",
+      "CORE",
+      "Unique overlap, exclusion or membership across collections",
+      "Build sets and intersect, subtract or union according to required semantics.",
+      "O(n+m) expected",
+      "O(u) plus output",
+      "349 Intersection of Two Arrays; 2215 Find the Difference of Two Arrays",
+      "Duplicates are discarded.",
+      "Membership in result exactly matches Boolean set condition.",
+      "When multiplicity is needed, e.g. intersection II."
+    ],
+    [
+      "Hash-indexed random access",
+      "ADVANCED",
+      "Insert/delete/getRandom all expected O(1)",
+      "Combine a list and value-to-index map; swap-delete the last value into a removed slot.",
+      "Expected amortized O(1) insert/remove; expected O(1) get_random under word/RNG model",
+      "O(u)",
+      "380 Insert Delete GetRandom O(1)",
+      "Update moved value index even when removing the last item.",
+      "position[items[i]] == i for every live slot.",
+      "When duplicates are allowed without adding index sets."
+    ],
+    [
+      "Pair-sum frequency join",
+      "IMPORTANT",
+      "Four populations, count zero-sum index quadruples",
+      "Count first-pair sums; query negated second-pair sums with multiplicity.",
+      "O(a+c+ab+cd) expected, including empty inner populations",
+      "O(1+ab) worst auxiliary",
+      "454 4Sum II",
+      "Sets undercount repeated pair sums.",
+      "Every queried pair contributes precisely its compatible first index pairs.",
+      "One-array 4Sum needs additional distinct-index and duplicate handling."
+    ],
+    [
+      "Demand-covering sliding window",
+      "IMPORTANT",
+      "Shortest substring covering target multiplicity",
+      "Track missing occurrences; expand until covered, shrink while covered, save endpoints.",
+      "O(n+m) expected",
+      "O(u_t) auxiliary plus O(R) output",
+      "76 Minimum Window Substring",
+      "Presence loses multiplicity; repeated slicing can be quadratic.",
+      "missing equals target occurrences not supplied by active window.",
+      "Subsequence matching and arbitrary exact sums do not obey this coverage rule."
+    ]
+  ],
+  "recognize": [
+    [
+      "Unsorted two-sum returning indices",
+      "Complement lookup",
+      "Why: Before i the table contains only indices < i. Boundary/exception: Check before inserting; duplicates can form a valid pair. Limit: When sorted input permits O(1)-space two pointers or all pairs output is required."
+    ],
+    [
+      "Need only existence of duplicates",
+      "Presence and duplicate detection",
+      "Why: seen equals distinct processed values. Boundary/exception: Counter only if counts are later required. Limit: When multiplicity or position is needed."
+    ],
+    [
+      "Permutation with repeated symbols",
+      "Frequency accounting",
+      "Why: Each balance is supplied count minus consumed count. Boundary/exception: Equal character sets are insufficient. Limit: When order determines matching."
+    ],
+    [
+      "Group equivalent words",
+      "Canonical grouping",
+      "Why: Two objects share a signature iff equivalent under the requested rule. Boundary/exception: Sorting is alphabet independent; count tuples need a fixed alphabet. Limit: When normalization changes the specified equivalence."
+    ],
+    [
+      "Every source symbol has a unique partner",
+      "Bidirectional mapping",
+      "Why: Both maps remain inverse on processed pairs. Boundary/exception: Check equal lengths and reverse collisions. Limit: For many-to-one mappings."
+    ],
+    [
+      "Exact range sum, negatives present",
+      "Prefix-frequency counting",
+      "Why: freq records all earlier prefix boundaries with multiplicity. Boundary/exception: Positive-only shrinking is invalid. Limit: For shortest/longest ranges where index information is needed instead."
+    ],
+    [
+      "Longest range with target sum",
+      "Earliest prefix boundary",
+      "Why: Each stored index is the earliest boundary for its state. Boundary/exception: Store first, not most recent, boundary. Limit: For counting all ranges."
+    ],
+    [
+      "Range sum divisible by k",
+      "Remainder classes",
+      "Why: Earlier remainder frequencies enumerate all valid left boundaries. Boundary/exception: Require k != 0 and normalize sign. Limit: When modulus is zero; use exact zero-sum states if that is intended."
+    ],
+    [
+      "Longest unique contiguous segment",
+      "Last-seen sliding window",
+      "Why: The active window contains unique values. Boundary/exception: max prevents backward left movement in abba. Limit: When arbitrary exact sums, not local repetition, determine validity."
+    ],
+    [
+      "At most k distinct values",
+      "Window frequency with distinct count",
+      "Why: Map contains positive counts exactly for the active window. Boundary/exception: Remove zero counts before checking dictionary length. Limit: For rules not repaired monotonically by removing left items."
+    ],
+    [
+      "Exactly k distinct subarrays",
+      "Window frequency with distinct count",
+      "Why: Map contains positive counts exactly for the active window. Boundary/exception: k must be a nonnegative integer; k=0 returns zero for nonempty ranges. Limit: For rules not repaired monotonically by removing left items."
+    ],
+    [
+      "Unordered consecutive integer run",
+      "Set start-only expansion",
+      "Why: Every unique value belongs to exactly one scanned run. Boundary/exception: Not LIS; duplicates should not restart long scans. Limit: For subsequences that must retain original index order."
+    ],
+    [
+      "Top k by frequency, static input",
+      "Frequency buckets",
+      "Why: Higher buckets are exhausted before lower buckets contribute. Boundary/exception: Heap may use less than O(n) bucket memory. Limit: For streaming frequency changes; use a maintained index/heap instead."
+    ],
+    [
+      "Unique overlap of collections",
+      "Set algebra",
+      "Why: Membership in result exactly matches Boolean set condition. Boundary/exception: For repeated overlap use minimum counts instead. Limit: When multiplicity is needed, e.g. intersection II."
+    ],
+    [
+      "Constant-time random collection updates",
+      "Hash-indexed random access",
+      "Why: position[items[i]] == i for every live slot. Boundary/exception: Only unique hashable values in this template. Limit: When duplicates are allowed without adding index sets."
+    ],
+    [
+      "Count four independent populations summing to zero",
+      "Pair-sum frequency join",
+      "Why: Every queried pair contributes precisely its compatible first index pairs. Boundary/exception: Count pair multiplicities; one-array 4Sum needs extra index constraints. Limit: One-array 4Sum needs additional distinct-index and duplicate handling."
+    ],
+    [
+      "Shortest substring covers target occurrences",
+      "Demand-covering sliding window",
+      "Why: missing equals target occurrences not supplied by active window. Boundary/exception: Shrink while covered; presence alone fails for repeated target symbols. Limit: Subsequence matching and arbitrary exact sums do not obey this coverage rule."
+    ]
+  ],
+  "contrasts": [
+    [
+      "dict vs set",
+      "dict associates payloads with keys; set stores presence only. Both require hashable stable values."
+    ],
+    [
+      "set vs Counter",
+      "set ignores repetition; Counter models multiplicity and may retain zero or negative counts."
+    ],
+    [
+      "get vs defaultdict indexing",
+      "get does not insert; defaultdict[key] invokes its factory and inserts on a miss."
+    ],
+    [
+      "first vs last vs frequency",
+      "First prefix index maximizes length, recent index can minimize compatible distance, frequency counts every occurrence."
+    ],
+    [
+      "Hashing vs sorting",
+      "Hashing is expected linear with extra memory; sorting gives deterministic O(n log n) comparison work but can lose original order/indices."
+    ],
+    [
+      "Signature vs raw hash",
+      "A semantic signature must preserve equivalence; hash(signature) alone can collide and cannot replace the full key."
+    ],
+    [
+      "Window vs prefix map",
+      "A window needs monotonic repair by left removal; prefix differences handle exact sums with arbitrary signs."
+    ],
+    [
+      "dict order vs sorted order",
+      "Insertion order supports stable grouping; it does not support sorted range lookup."
+    ],
+    [
+      "At-most support vs demand coverage",
+      "At-most windows shrink while invalid; minimum-cover windows shrink while valid. Both require monotone endpoint rules."
+    ]
+  ],
+  "edges": [
+    [
+      "Empty input",
+      "two_sum([],0); group_anagrams([])",
+      "Universal: Return [] consistently; exact range counts return 0. Reveals missing base case."
+    ],
+    [
+      "Single item",
+      "[3], target=6",
+      "Algorithm-specific (pair lookup): No self-pair. Reveals self-pairing."
+    ],
+    [
+      "Equal pair",
+      "[3,3], target=6",
+      "Algorithm-specific (pair lookup): Return two distinct indices. Reveals collapsed duplicates."
+    ],
+    [
+      "Zero payload",
+      "index 0, count 0, stored None",
+      "Universal: Use membership/sentinel, not truthiness. Reveals truthiness mistaken for absence."
+    ],
+    [
+      "Zero-sum abundance",
+      "[0,0,0], k=0",
+      "Algorithm-specific: Six nonempty zero-sum subarrays. Reveals set replacing frequency."
+    ],
+    [
+      "Negative values",
+      "[1,-1,1], target=1",
+      "Algorithm-specific: Prefix counting finds three ranges; positive-only window fails. Reveals positive-only window assumption."
+    ],
+    [
+      "Backward-window trap",
+      "abba",
+      "Algorithm-specific: Longest unique length 2, not 3. Reveals backward left jump."
+    ],
+    [
+      "Duplicate-heavy run",
+      "[1]*1000 + list(range(1000))",
+      "Algorithm-specific (consecutive runs): answer 1000. Iterating original repeated start values re-expands the same run; deduplicate before start-only expansion."
+    ],
+    [
+      "Repeated characters",
+      "ab vs aab",
+      "Algorithm-specific: Not anagrams. Reveals signature losing multiplicity."
+    ],
+    [
+      "Unicode keys",
+      "é vs e plus combining accent",
+      "Algorithm-specific: Distinct code-point sequences unless normalization explicitly requested. Reveals unstated normalization."
+    ],
+    [
+      "Nonhashable values",
+      "[[1],[1]]",
+      "Universal: Reject or canonicalize under a clearly specified equality model. Reveals unhashable keys."
+    ],
+    [
+      "Collision adversary",
+      "Distinct keys returning same hash",
+      "Universal: Equality preserves correctness; expected bound no longer applies. Reveals worst-case omitted."
+    ],
+    [
+      "Invalid k",
+      "top k=-1 or k>u; modulus 0",
+      "Algorithm-specific: Raise ValueError in the supplied templates. Reveals invalid parameters accepted."
+    ],
+    [
+      "Zero-count window entries",
+      "[1,2,2], at most 1 distinct",
+      "Algorithm-specific: Delete outgoing key at zero before len(counts). Reveals zero-count keys retained."
+    ],
+    [
+      "Tie outputs",
+      "Two keys with equal frequencies",
+      "Algorithm-specific: Template keeps first-appearance order within frequency. Reveals unstated tie ordering."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Worst-case claim",
+      "Say expected lookup and amortized expected insertion; include key hash/equality cost."
+    ],
+    [
+      "Checking values with in",
+      "x in d tests keys; d.values() membership is linear."
+    ],
+    [
+      "Self-pair",
+      "Query complement before inserting the current index."
+    ],
+    [
+      "Losing multiplicity",
+      "Use counts, not a set, for multiset equality or range counts."
+    ],
+    [
+      "Unhashable composite",
+      "Use tuples/frozensets only when nested members are themselves hashable."
+    ],
+    [
+      "Mutable equality/hash",
+      "Never change a key field that affects hash/equality while stored."
+    ],
+    [
+      "Forward-only bijection",
+      "Maintain reverse mapping as well."
+    ],
+    [
+      "Missing empty prefix",
+      "Seed sum 0 with one frequency or boundary -1."
+    ],
+    [
+      "Publishing prefix too early",
+      "Count compatible earlier prefixes before incrementing current state."
+    ],
+    [
+      "Overwriting earliest index",
+      "Use setdefault when maximizing range length."
+    ],
+    [
+      "Backward left jump",
+      "Use left=max(left,last[x]+1)."
+    ],
+    [
+      "Dead window keys",
+      "Delete zero counts; len(dict) measures entries not positive support."
+    ],
+    [
+      "Structural mutation during traversal",
+      "Iterate list(d) if deleting keys."
+    ],
+    [
+      "Repeated run scans",
+      "Iterate unique values and expand only without a predecessor."
+    ],
+    [
+      "Hash as signature",
+      "Store full canonical keys; raw hash collisions are possible."
+    ]
+  ],
+  "impress": [
+    [
+      "Name the stored information",
+      "Explain why this problem needs a set, earliest index, last index or frequency."
+    ],
+    [
+      "Define the temporal boundary",
+      "State whether the current item has been inserted yet."
+    ],
+    [
+      "Prove the transformation",
+      "Write P[r]-P[l]=k before choosing prefix-k lookup."
+    ],
+    [
+      "Discuss key costs",
+      "For anagrams include signature construction and string comparison cost."
+    ],
+    [
+      "Show a tempting failure",
+      "Use abba for backward jumps, [0,0] for prefix update order."
+    ],
+    [
+      "Separate assumptions",
+      "Distinguish hash expected-time assumptions from deterministic correctness."
+    ],
+    [
+      "Specify ties and order",
+      "Say whether any top-k order is acceptable or first appearance is required."
+    ],
+    [
+      "Audit state growth",
+      "Track distinct live keys versus all historical keys in a window."
+    ],
+    [
+      "Offer a tradeoff",
+      "Compare sorting or bounded-alphabet arrays when hash memory or worst-case bounds matter."
+    ]
+  ],
+  "memory": [
+    [
+      "Complement",
+      "need = target-x",
+      "Query earlier items before inserting x."
+    ],
+    [
+      "Prefix count",
+      "answer += freq[prefix-k]",
+      "Then publish prefix; seed {0:1}."
+    ],
+    [
+      "Longest target range",
+      "i-first[prefix-k]",
+      "Seed first={0:-1}; retain earliest occurrence."
+    ],
+    [
+      "Divisibility",
+      "P[r] % k == P[l] % k",
+      "Use abs(k), require nonzero modulus."
+    ],
+    [
+      "Window uniqueness",
+      "left=max(left,last[x]+1)",
+      "Never move left backward."
+    ],
+    [
+      "Distinct support",
+      "delete count[x] when zero",
+      "len(count) then equals live distinct values."
+    ],
+    [
+      "Exactly k",
+      "at_most(k)-at_most(k-1)",
+      "Counts nonempty ranges; at_most(-1)=0."
+    ],
+    [
+      "Run start",
+      "x-1 not in values",
+      "Each run expands once."
+    ],
+    [
+      "Multiset overlap",
+      "min(countA[x],countB[x])",
+      "Set intersection only records presence."
+    ],
+    [
+      "Bijection",
+      "forward[a]=b and reverse[b]=a",
+      "Both directions must agree."
+    ],
+    [
+      "Bucket domain",
+      "1 <= frequency <= n",
+      "n+1 buckets permit direct frequency indexing."
+    ],
+    [
+      "Swap-delete",
+      "move last into hole; repair its index",
+      "Then pop last list item and delete removed key."
+    ],
+    [
+      "Minimum cover",
+      "missing = unmatched target occurrences",
+      "Surplus may be negative; retain only target keys and save endpoints rather than candidate slices."
+    ]
+  ],
+  "templates": [
+    [
+      "Two Sum with prior indices",
+      "O(n) expected",
+      "O(u)",
+      [
+        "def two_sum(nums, target):",
+        "    seen = {}",
+        "    for i, x in enumerate(nums):",
+        "        if target-x in seen:",
+        "            return [seen[target-x], i]",
+        "        seen[x] = i",
+        "    return []"
+      ],
+      "Numeric sequence; return one pair of distinct indices or []; no input mutation. Most recent prior duplicate is retained."
+    ],
+    [
+      "Multiset equality",
+      "O(n+m) expected",
+      "O(u)",
+      [
+        "from collections import Counter",
+        "def same_multiset(a, b):",
+        "    return Counter(a) == Counter(b)"
+      ],
+      "Iterables of hashable values; returns bool, ignores order but preserves multiplicity; does not mutate inputs."
+    ],
+    [
+      "Group anagrams by sorted signature",
+      "O(n + sum l log(l+1))",
+      "O(L+n) including keys/grouped references",
+      [
+        "def group_anagrams(words):",
+        "    groups = {}",
+        "    for word in words:",
+        "        key = ''.join(sorted(word))",
+        "        groups.setdefault(key, []).append(word)",
+        "    return list(groups.values())"
+      ],
+      "Strings; Unicode code-point equality, no case folding/normalization. Stable first-group and word order; original strings reused, input unchanged."
+    ],
+    [
+      "Isomorphic sequences",
+      "O(n) expected",
+      "O(u)",
+      [
+        "def isomorphic(a, b):",
+        "    if len(a) != len(b):",
+        "        return False",
+        "    forward, reverse = {}, {}",
+        "    for x, y in zip(a, b):",
+        "        if x in forward and forward[x] != y:",
+        "            return False",
+        "        if y in reverse and reverse[y] != x:",
+        "            return False",
+        "        forward[x] = y",
+        "        reverse[y] = x",
+        "    return True"
+      ],
+      "Sized sequences of hashable symbols; tests a bijection between observed symbols without mutation."
+    ],
+    [
+      "Count exact-sum nonempty subarrays",
+      "O(n) expected",
+      "O(n)",
+      [
+        "def count_sum_k(nums, k):",
+        "    freq = {0: 1}",
+        "    prefix = answer = 0",
+        "    for x in nums:",
+        "        prefix += x",
+        "        answer += freq.get(prefix-k, 0)",
+        "        freq[prefix] = freq.get(prefix, 0) + 1",
+        "    return answer"
+      ],
+      "Integer iterable with arbitrary signs; returns count of nonempty contiguous ranges; empty returns 0, no mutation."
+    ],
+    [
+      "Longest exact-sum range length",
+      "O(n) expected",
+      "O(n)",
+      [
+        "def longest_sum_k(nums, k):",
+        "    first = {0: -1}",
+        "    prefix = best = 0",
+        "    for i, x in enumerate(nums):",
+        "        prefix += x",
+        "        if prefix-k in first:",
+        "            best = max(best, i-first[prefix-k])",
+        "        first.setdefault(prefix, i)",
+        "    return best"
+      ],
+      "Integer iterable, any signs; maximum nonempty range length or 0 if none; no mutation. For equal 0/1 counts map 0 to -1 and 1 to +1."
+    ],
+    [
+      "Count sums divisible by nonzero k",
+      "O(n) expected",
+      "O(min(n+1,abs(k)))",
+      [
+        "def count_divisible(nums, k):",
+        "    if k == 0:",
+        "        raise ValueError('k must be nonzero')",
+        "    k = abs(k)",
+        "    freq = {0: 1}",
+        "    remainder = answer = 0",
+        "    for x in nums:",
+        "        remainder = (remainder+x) % k",
+        "        answer += freq.get(remainder, 0)",
+        "        freq[remainder] = freq.get(remainder, 0) + 1",
+        "    return answer"
+      ],
+      "Integer iterable and integer nonzero k; counts nonempty divisible-sum ranges, including negative sums; no mutation."
+    ],
+    [
+      "Longest unique contiguous segment",
+      "O(n) expected",
+      "O(u)",
+      [
+        "def longest_unique(values):",
+        "    last = {}",
+        "    left = best = 0",
+        "    for right, x in enumerate(values):",
+        "        if x in last:",
+        "            left = max(left, last[x]+1)",
+        "        last[x] = right",
+        "        best = max(best, right-left+1)",
+        "    return best"
+      ],
+      "Iterable of hashable symbols; returns length, 0 when empty; map includes historical last positions, no mutation."
+    ],
+    [
+      "Exactly k distinct subarrays",
+      "O(n) expected",
+      "O(min(u,k+1)) live keys; sequential scans",
+      [
+        "def exactly_k_distinct(nums, k):",
+        "    if k < 0:",
+        "        raise ValueError('k must be nonnegative')",
+        "    def at_most(limit):",
+        "        if limit < 0:",
+        "            return 0",
+        "        counts = {}",
+        "        left = total = 0",
+        "        for right, x in enumerate(nums):",
+        "            counts[x] = counts.get(x, 0) + 1",
+        "            while len(counts) > limit:",
+        "                old = nums[left]",
+        "                counts[old] -= 1",
+        "                if counts[old] == 0:",
+        "                    del counts[old]",
+        "                left += 1",
+        "            total += right-left+1",
+        "        return total",
+        "    return at_most(k)-at_most(k-1)"
+      ],
+      "Indexable sequence of hashable values; integer k>=0; counts nonempty ranges, k=0 returns 0. Two scans require reusable sequence, not a one-shot iterator; no mutation."
+    ],
+    [
+      "Longest consecutive integer run",
+      "O(n) expected",
+      "O(u)",
+      [
+        "def longest_consecutive(nums):",
+        "    values = set(nums)",
+        "    best = 0",
+        "    for x in values:",
+        "        if x-1 not in values:",
+        "            end = x",
+        "            while end in values:",
+        "                end += 1",
+        "            best = max(best, end-x)",
+        "    return best"
+      ],
+      "Integer iterable; returns longest +1 run length irrespective of original order; duplicate-insensitive, empty 0; no mutation."
+    ],
+    [
+      "Top k frequent with stable frequency ties",
+      "O(n) expected",
+      "O(n) auxiliary plus O(k) output",
+      [
+        "from collections import Counter",
+        "def top_k_frequent(nums, k):",
+        "    counts = Counter(nums)",
+        "    if not 0 <= k <= len(counts):",
+        "        raise ValueError('k must lie between 0 and distinct count')",
+        "    if k == 0:",
+        "        return []",
+        "    buckets = [[] for _ in range(sum(counts.values())+1)]",
+        "    for x, count in counts.items():",
+        "        buckets[count].append(x)",
+        "    answer = []",
+        "    for count in range(len(buckets)-1, 0, -1):",
+        "        for x in buckets[count]:",
+        "            answer.append(x)",
+        "            if len(answer) == k:",
+        "                return answer"
+      ],
+      "Hashable iterable, integer k; frequency descending and first-appearance tie order. Invalid k raises ValueError, input unchanged. Counter consumes generators once."
+    ],
+    [
+      "Unique randomized set",
+      "Expected amortized O(1) insert/remove; expected O(1) get_random under word/RNG model",
+      "O(u)",
+      [
+        "from random import Random",
+        "class RandomizedSet:",
+        "    def __init__(self, seed=None):",
+        "        self.items = []",
+        "        self.position = {}",
+        "        self.rng = Random(seed)",
+        "    def insert(self, value):",
+        "        if value in self.position:",
+        "            return False",
+        "        self.position[value] = len(self.items)",
+        "        self.items.append(value)",
+        "        return True",
+        "    def remove(self, value):",
+        "        if value not in self.position:",
+        "            return False",
+        "        i = self.position[value]",
+        "        last = self.items[-1]",
+        "        self.items[i] = last",
+        "        self.position[last] = i",
+        "        self.items.pop()",
+        "        del self.position[value]",
+        "        return True",
+        "    def get_random(self):",
+        "        if not self.items:",
+        "            raise ValueError('empty collection')",
+        "        return self.items[self.rng.randrange(len(self.items))]"
+      ],
+      "Unique stable hashable values; methods mutate collection, remove/insert return success bool. Uniform choice over live positions; seeded RNG aids tests, not cryptographic use. Public storage is for illustration; do not mutate it externally."
+    ],
+    [
+      "Duplicate detection by presence",
+      "O(n) expected",
+      "O(u)",
+      [
+        "def contains_duplicate(values):",
+        "    seen = set()",
+        "    for x in values:",
+        "        if x in seen:",
+        "            return True",
+        "        seen.add(x)",
+        "    return False"
+      ],
+      "Stable hashable iterable; bool, empty False; no mutation."
+    ],
+    [
+      "Unique and multiset intersection",
+      "O(n+m) expected",
+      "O(u_b+R) unique / O(u_b) multiset auxiliary; O(R) output",
+      [
+        "from collections import Counter",
+        "def unique_intersection(a, b):",
+        "    right, emitted, result = set(b), set(), []",
+        "    for x in a:",
+        "        if x in right and x not in emitted:",
+        "            emitted.add(x)",
+        "            result.append(x)",
+        "    return result",
+        "def multiset_intersection(a, b):",
+        "    counts, result = Counter(b), []",
+        "    for x in a:",
+        "        if counts[x] > 0:",
+        "            result.append(x)",
+        "            counts[x] -= 1",
+        "    return result"
+      ],
+      "Hashable iterables consumed once, unchanged; new output in a encounter order. Unique emits once; multiset caps multiplicity at min counts."
+    ],
+    [
+      "Pair-sum frequency join",
+      "O(a+c+ab+cd) expected, including empty inner populations",
+      "O(1+ab) worst auxiliary",
+      [
+        "from collections import Counter",
+        "def four_sum_count(a, b, c, d):",
+        "    counts = Counter(x+y for x in a for y in b)",
+        "    return sum(counts.get(-(x+y), 0) for x in c for y in d)"
+      ],
+      "Reusable numeric sequences of lengths a,b,c,d; counts index quadruples across independent populations, not distinct value quadruples. Empty -> 0, no mutation; store smaller pair product when useful."
+    ],
+    [
+      "At-most distinct window length",
+      "O(n) expected",
+      "O(min(u,k+1)) live keys",
+      [
+        "def longest_at_most_k(values, k):",
+        "    if k < 0:",
+        "        raise ValueError('k must be nonnegative')",
+        "    counts = {}",
+        "    left = best = 0",
+        "    for right, x in enumerate(values):",
+        "        counts[x] = counts.get(x, 0)+1",
+        "        while len(counts) > k:",
+        "            old = values[left]",
+        "            counts[old] -= 1",
+        "            if counts[old] == 0:",
+        "                del counts[old]",
+        "            left += 1",
+        "        best = max(best, right-left+1)",
+        "    return best"
+      ],
+      "Indexable hashable sequence, integer k>=0; longest length, empty/k=0 -> 0, no mutation. For at-most counting accumulate right-left+1 instead."
+    ],
+    [
+      "Minimum demand-covering window",
+      "O(n+m) expected",
+      "O(u_t) auxiliary plus O(R) returned slice",
+      [
+        "from collections import Counter",
+        "def minimum_window(text, target):",
+        "    if not target:",
+        "        return ''",
+        "    need = Counter(target)",
+        "    missing, left = len(target), 0",
+        "    best_left, best_length = 0, len(text)+1",
+        "    for right, char in enumerate(text):",
+        "        if char in need:",
+        "            if need[char] > 0:",
+        "                missing -= 1",
+        "            need[char] -= 1",
+        "        while missing == 0:",
+        "            if right-left+1 < best_length:",
+        "                best_left, best_length = left, right-left+1",
+        "            old = text[left]",
+        "            if old in need:",
+        "                need[old] += 1",
+        "                if need[old] > 0:",
+        "                    missing += 1",
+        "            left += 1",
+        "    return '' if best_length > len(text) else text[best_left:best_left+best_length]"
+      ],
+      "Strings with code-point multiplicity; first shortest cover or empty if impossible/empty target. Negative need denotes surplus. Only target keys stored; one final slice, no mutation."
+    ]
+  ],
+  "practice": [
+    [
+      "217 Contains Duplicate",
+      "Presence set",
+      "Easy",
+      "O(n) expected time; O(u) space",
+      "Do not scan a list for each value."
+    ],
+    [
+      "242 Valid Anagram",
+      "Frequency accounting",
+      "Easy",
+      "O(n+m) expected; O(u)",
+      "Sets lose multiplicity."
+    ],
+    [
+      "383 Ransom Note",
+      "Inventory counts",
+      "Easy",
+      "O(n+m) expected; O(u)",
+      "Decrement supply, reject a deficit."
+    ],
+    [
+      "1 Two Sum",
+      "Complement lookup",
+      "Easy",
+      "O(n) expected; O(u)",
+      "Use two distinct indices."
+    ],
+    [
+      "349 Intersection of Two Arrays",
+      "Set algebra",
+      "Easy",
+      "O(n+m) expected; O(u)",
+      "Output uniqueness, not multiplicity."
+    ],
+    [
+      "350 Intersection of Two Arrays II",
+      "Multiset overlap",
+      "Easy",
+      "O(n+m) expected; O(u) auxiliary plus output",
+      "Consume counts to cap multiplicity."
+    ],
+    [
+      "205 Isomorphic Strings",
+      "Bijection maps",
+      "Easy",
+      "O(n) expected; O(u)",
+      "Forward map alone is insufficient."
+    ],
+    [
+      "290 Word Pattern",
+      "Bijection over tokens",
+      "Easy",
+      "O(L) expected; O(L) token storage",
+      "Token count must match pattern length."
+    ],
+    [
+      "49 Group Anagrams",
+      "Canonical grouping",
+      "Medium",
+      "O(n + sum l log(l+1)) time; O(L+n) space",
+      "Character-set signatures are wrong."
+    ],
+    [
+      "3 Longest Substring Without Repeating Characters",
+      "Last-seen window",
+      "Medium",
+      "O(n) expected; O(u)",
+      "Never move left backward."
+    ],
+    [
+      "904 Fruit Into Baskets",
+      "At-most-two window",
+      "Medium",
+      "O(n) expected; O(1) live keys",
+      "Erase zero-count keys."
+    ],
+    [
+      "560 Subarray Sum Equals K",
+      "Prefix frequencies",
+      "Medium",
+      "O(n) expected; O(n)",
+      "Seed {0:1}; query before insert."
+    ],
+    [
+      "525 Contiguous Array",
+      "Earliest balanced prefix",
+      "Medium",
+      "O(n) expected; O(n)",
+      "Keep earliest index for each state."
+    ],
+    [
+      "974 Subarray Sums Divisible by K",
+      "Remainder frequencies",
+      "Medium",
+      "O(n) expected; O(min(n,k))",
+      "Normalize negative remainders in languages that require it."
+    ],
+    [
+      "128 Longest Consecutive Sequence",
+      "Start-only set expansion",
+      "Medium",
+      "O(n) expected; O(u)",
+      "Do not restart each run from every occurrence."
+    ],
+    [
+      "347 Top K Frequent Elements",
+      "Frequency buckets",
+      "Medium",
+      "O(n) expected; O(n)",
+      "Clarify order among tied frequencies."
+    ],
+    [
+      "380 Insert Delete GetRandom O(1)",
+      "List + index map",
+      "Medium",
+      "Expected amortized O(1) updates and expected O(1) sampling; O(u) space",
+      "Repair the moved last element index."
+    ],
+    [
+      "454 4Sum II",
+      "Pair-sum frequency joins",
+      "Medium",
+      "O(n²) expected; O(n²)",
+      "Count multiplicity of equal pair sums."
+    ],
+    [
+      "992 Subarrays with K Different Integers",
+      "At-most difference",
+      "Hard",
+      "O(n) expected; O(u)",
+      "Subtract at_most(k-1), not two independent exact windows."
+    ],
+    [
+      "76 Minimum Window Substring",
+      "Demand-frequency window",
+      "Hard",
+      "O(n+m) expected; O(u)",
+      "Satisfied distinct requirements differ from matched character count."
+    ]
+  ],
+  "operationExamples": [
+    {
+      "code": [
+        "d = {}; s = set(); result = (len(d),len(s),type(d).__name__,type(s).__name__)",
+        "assert repr(result) == \"(0, 0, 'dict', 'set')\""
+      ],
+      "result": "(0, 0, 'dict', 'set')",
+      "use": "Initialize visited/payload tables.",
+      "mutation": "Allocates independent containers."
+    },
+    {
+      "code": [
+        "d = dict([('a',1),('a',2)]); s = set([1,1,2]); result = (d,sorted(s))",
+        "assert repr(result) == \"({'a': 2}, [1, 2])\""
+      ],
+      "result": "({'a': 2}, [1, 2])",
+      "use": "Deduplicate with last payload.",
+      "mutation": "Allocates, source unchanged."
+    },
+    {
+      "code": [
+        "d = {'a':0}; s = {'a'}; result = ('a' in d,0 in d,'a' in s)",
+        "assert repr(result) == \"(True, False, True)\""
+      ],
+      "result": "(True, False, True)",
+      "use": "Existence despite zero payload.",
+      "mutation": "Read only."
+    },
+    {
+      "code": [
+        "d = {'a':0}; result = d['a']",
+        "assert repr(result) == \"0\""
+      ],
+      "result": "0",
+      "use": "Read known prior index.",
+      "mutation": "Read only; missing raises KeyError."
+    },
+    {
+      "code": [
+        "d = {'a':None}; result = (d.get('a',9),d.get('b',9),len(d))",
+        "assert repr(result) == \"(None, 9, 1)\""
+      ],
+      "result": "(None, 9, 1)",
+      "use": "Optional complement lookup.",
+      "mutation": "No insertion; default evaluated eagerly."
+    },
+    {
+      "code": [
+        "d = {'a':3}; s = {1,2}; result = (len(d),len(s))",
+        "assert repr(result) == \"(1, 2)\""
+      ],
+      "result": "(1, 2)",
+      "use": "Measure distinct support.",
+      "mutation": "Read only; not sum of counts."
+    },
+    {
+      "code": [
+        "d = {'b':1,'a':2}; d['b']=9; d['c']=3; result = list(d.items())",
+        "assert repr(result) == \"[('b', 9), ('a', 2), ('c', 3)]\""
+      ],
+      "result": "[('b', 9), ('a', 2), ('c', 3)]",
+      "use": "Publish payload after querying.",
+      "mutation": "Mutates; overwrite keeps position."
+    },
+    {
+      "code": [
+        "s = {1}; s.add(1); s.add(2); result = sorted(s)",
+        "assert repr(result) == \"[1, 2]\""
+      ],
+      "result": "[1, 2]",
+      "use": "Mark seen.",
+      "mutation": "Mutates; duplicates do not grow."
+    },
+    {
+      "code": [
+        "d = {}; d.setdefault('a',[]).append(1); d.setdefault('a',[]).append(2); result = d",
+        "assert repr(result) == \"{'a': [1, 2]}\""
+      ],
+      "result": "{'a': [1, 2]}",
+      "use": "Group by signature.",
+      "mutation": "May insert; append changes stored list."
+    },
+    {
+      "code": [
+        "d={'a':1}; s={1}; x=d.update({'a':2,'b':3}); y=s.update([2,3]); result=(d,sorted(s),x,y)",
+        "assert repr(result) == \"({'a': 2, 'b': 3}, [1, 2, 3], None, None)\""
+      ],
+      "result": "({'a': 2, 'b': 3}, [1, 2, 3], None, None)",
+      "use": "Bulk payload merge.",
+      "mutation": "Mutates; returns None."
+    },
+    {
+      "code": [
+        "d={'a':1,'b':2}; del d['a']; value=d.pop('b'); result=(value,d)",
+        "assert repr(result) == \"(2, {})\""
+      ],
+      "result": "(2, {})",
+      "use": "Consume required entry.",
+      "mutation": "Deletes; missing raises."
+    },
+    {
+      "code": [
+        "d={'a':None}; result=(d.pop('a',None),d.pop('b',None),d)",
+        "assert repr(result) == \"(None, None, {})\""
+      ],
+      "result": "(None, None, {})",
+      "use": "Optional deletion.",
+      "mutation": "Mutates on presence; sentinel distinguishes None."
+    },
+    {
+      "code": [
+        "s={1,2}; s.remove(1); s.discard(9); result=sorted(s)",
+        "assert repr(result) == \"[2]\""
+      ],
+      "result": "[2]",
+      "use": "Remove expired membership.",
+      "mutation": "Mutates; discard tolerates absence."
+    },
+    {
+      "code": [
+        "d={'b':1,'a':2}; result=(d.popitem(),list(d))",
+        "assert repr(result) == \"(('a', 2), ['b'])\""
+      ],
+      "result": "(('a', 2), ['b'])",
+      "use": "LIFO consume insertion order.",
+      "mutation": "Deletes newest; empty raises KeyError."
+    },
+    {
+      "code": [
+        "d={'a':1}; alias=d; s={1}; d.clear(); s.clear(); result=(alias,len(s))",
+        "assert repr(result) == \"({}, 0)\""
+      ],
+      "result": "({}, 0)",
+      "use": "Reset preserving aliases.",
+      "mutation": "Mutates rather than rebinds."
+    },
+    {
+      "code": [
+        "d={'a':2,'b':3}",
+        "result=[]",
+        "for key,value in d.items():",
+        "    result.append((key,value*2))",
+        "assert repr(result) == \"[('a', 4), ('b', 6)]\""
+      ],
+      "result": "[('a', 4), ('b', 6)]",
+      "use": "Scan payload pairs once.",
+      "mutation": "Reads map; allocates output."
+    },
+    {
+      "code": [
+        "d={'a':1}; keys,values,items=d.keys(),d.values(),d.items(); d['b']=2; result=(list(keys),list(values),list(items))",
+        "assert repr(result) == \"(['a', 'b'], [1, 2], [('a', 1), ('b', 2)])\""
+      ],
+      "result": "(['a', 'b'], [1, 2], [('a', 1), ('b', 2)])",
+      "use": "Views versus snapshots.",
+      "mutation": "O(1) views, O(u) list copies."
+    },
+    {
+      "code": [
+        "d={'a':3,'b':4}; result=(4 in d.values(),9 in d.values())",
+        "assert repr(result) == \"(True, False)\""
+      ],
+      "result": "(True, False)",
+      "use": "Spot linear value lookup.",
+      "mutation": "Read only; values lack hash index."
+    },
+    {
+      "code": [
+        "d={'a':[]}; copy=d.copy(); copy['a'].append(1); s={1}; other=s.copy(); other.add(2); result=(d,copy,sorted(s),sorted(other))",
+        "assert repr(result) == \"({'a': [1]}, {'a': [1]}, [1], [1, 2])\""
+      ],
+      "result": "({'a': [1]}, {'a': [1]}, [1], [1, 2])",
+      "use": "Audit snapshot aliases.",
+      "mutation": "Shallow copies share nested values."
+    },
+    {
+      "code": [
+        "a,b={1,2},{2,3}; result=[sorted(x) for x in (a|b,a&b,a-b,a^b)]",
+        "assert repr(result) == \"[[1, 2, 3], [2], [1], [1, 3]]\""
+      ],
+      "result": "[[1, 2, 3], [2], [1], [1, 3]]",
+      "use": "Unique overlap/exclusion.",
+      "mutation": "New sets, inputs unchanged."
+    },
+    {
+      "code": [
+        "a,b={1},{1,2}; result=(a<=b,a.isdisjoint({2}),a.isdisjoint(b))",
+        "assert repr(result) == \"(True, True, False)\""
+      ],
+      "result": "(True, True, False)",
+      "use": "Inclusion/disjoint constraints.",
+      "mutation": "Read only, short-circuit possible."
+    },
+    {
+      "code": [
+        "from collections import Counter",
+        "c=Counter('aba'); result=dict(c)",
+        "assert repr(result) == \"{'a': 2, 'b': 1}\""
+      ],
+      "result": "{'a': 2, 'b': 1}",
+      "use": "Build inventory.",
+      "mutation": "Allocates Counter and result copy."
+    },
+    {
+      "code": [
+        "from collections import Counter",
+        "c=Counter('a'); result=(c['z'],len(c))",
+        "assert repr(result) == \"(0, 1)\""
+      ],
+      "result": "(0, 1)",
+      "use": "Read missing count.",
+      "mutation": "Missing read does not insert."
+    },
+    {
+      "code": [
+        "d={'b':2,'a':1}; result=(sorted(d),list(d))",
+        "assert repr(result) == \"(['a', 'b'], ['b', 'a'])\""
+      ],
+      "result": "(['a', 'b'], ['b', 'a'])",
+      "use": "Deterministic sorted reporting.",
+      "mutation": "Allocates list, map unchanged."
+    },
+    {
+      "code": [
+        "from collections import defaultdict",
+        "d=defaultdict(list); d['a'].append(1); result=(dict(d),d.get('z'),len(d))",
+        "assert repr(result) == \"({'a': [1]}, None, 1)\""
+      ],
+      "result": "({'a': [1]}, None, 1)",
+      "use": "Accumulate grouping lists.",
+      "mutation": "Missing indexing inserts factory value."
+    },
+    {
+      "code": [
+        "d=dict.fromkeys(['a','b'],[]); d['a'].append(1); result=(d,d['a'] is d['b'])",
+        "assert repr(result) == \"({'a': [1], 'b': [1]}, True)\""
+      ],
+      "result": "({'a': [1], 'b': [1]}, True)",
+      "use": "Recognize shared initialization bug.",
+      "mutation": "Allocates map, shares supplied value."
+    },
+    {
+      "code": [
+        "a,b={'a':1},{'a':2,'b':3}; copy=a|b; a|=b; result=(copy,a)",
+        "assert repr(result) == \"({'a': 2, 'b': 3}, {'a': 2, 'b': 3})\""
+      ],
+      "result": "({'a': 2, 'b': 3}, {'a': 2, 'b': 3})",
+      "use": "Combine overwrite-based metadata.",
+      "mutation": "| allocates; |= mutates."
+    },
+    {
+      "code": [
+        "d={x:x*x for x in [1,2,1]}; s={x%2 for x in [1,2,3]}; result=(d,sorted(s))",
+        "assert repr(result) == '({1: 1, 2: 4}, [0, 1])'"
+      ],
+      "result": "({1: 1, 2: 4}, [0, 1])",
+      "use": "Build transformed lookup tables.",
+      "mutation": "Allocates new containers; sources unchanged."
+    },
+    {
+      "code": [
+        "key=frozenset([2,1,1]); d={key:'pair'}; result=(d[frozenset({1,2})],sorted(key))",
+        "assert repr(result) == \"('pair', [1, 2])\""
+      ],
+      "result": "('pair', [1, 2])",
+      "use": "Unordered group signatures.",
+      "mutation": "Allocates immutable set; cannot add/remove in place."
+    },
+    {
+      "code": [
+        "s={9}; value=s.pop(); result=(value,len(s))",
+        "assert repr(result) == '(9, 0)'"
+      ],
+      "result": "(9, 0)",
+      "use": "Consume any pending unique item when ordering irrelevant.",
+      "mutation": "Mutates; do not use as getRandom implementation."
+    },
+    {
+      "code": [
+        "a={1,2}; alias=a; a|={3}; a&={2,3}; a-={2}; a^={4}; result=(sorted(a),alias is a)",
+        "assert repr(result) == '([3, 4], True)'"
+      ],
+      "result": "([3, 4], True)",
+      "use": "Update allowed candidates/visited state.",
+      "mutation": "Mutates existing set; aliases observe all changes."
+    },
+    {
+      "code": [
+        "from collections import Counter",
+        "c=Counter('a'); c.update('ab'); c.subtract('bbc'); result=dict(c)",
+        "assert repr(result) == \"{'a': 2, 'b': -1, 'c': -1}\""
+      ],
+      "result": "{'a': 2, 'b': -1, 'c': -1}",
+      "use": "Maintain inventory balances or sliding demand.",
+      "mutation": "Mutates Counter; negative and zero entries retained."
+    },
+    {
+      "code": [
+        "from collections import Counter",
+        "c=Counter('babaac'); result=(c.most_common(2),c.most_common(0))",
+        "assert repr(result) == \"([('a', 3), ('b', 2)], [])\""
+      ],
+      "result": "([('a', 3), ('b', 2)], [])",
+      "use": "Concise static top-k when heap/sort cost acceptable.",
+      "mutation": "Allocates ranked list; Counter unchanged."
+    },
+    {
+      "code": [
+        "from collections import Counter",
+        "a,b=Counter(a=2,b=0),Counter(a=1,c=3); result=(dict(+a),dict(a&b),dict(a|b),dict(a+b),dict(a-b))",
+        "assert repr(result) == \"({'a': 2}, {'a': 1}, {'a': 2, 'c': 3}, {'a': 3, 'c': 3}, {'a': 1})\""
+      ],
+      "result": "({'a': 2}, {'a': 1}, {'a': 2, 'c': 3}, {'a': 3, 'c': 3}, {'a': 1})",
+      "use": "Multiset intersection/union, filter exhausted inventory.",
+      "mutation": "Allocates new Counters; originals unchanged."
+    },
+    {
+      "code": [
+        "a={'x':1,'y':2}; b={'y':2,'x':1}; result=(a==b,{1,2}=={2,1})",
+        "assert repr(result) == '(True, True)'"
+      ],
+      "result": "(True, True)",
+      "use": "Compare counts or visited support without sorting.",
+      "mutation": "Read only; custom equality may have separate costs."
+    }
+  ],
+  "fundamentalDetails": [
+    {
+      "why": "Stable equivalence lets lookup find stored keys.",
+      "use": "Coordinates/unordered signatures.",
+      "result": "('pair', 'unordered pair')",
+      "edge": "Tuple containing [] raises TypeError.",
+      "takeaway": "Canonicalize meaning, not raw hash."
+    },
+    {
+      "why": "False-like payloads remain valid information.",
+      "use": "Caches with None/index zero.",
+      "result": "(0, None, False)",
+      "edge": "Zero index must count as present.",
+      "takeaway": "Membership is not truthiness."
+    },
+    {
+      "why": "Repetition changes counts without adding keys.",
+      "use": "Inventory and anagrams.",
+      "result": "{3: 1}",
+      "edge": "Zero Counter keys remain until deletion.",
+      "takeaway": "Choose presence versus multiplicity."
+    },
+    {
+      "why": "Payload determines optimization objective.",
+      "use": "Longest exact-sum span.",
+      "result": "{0: -1, 1: 0}",
+      "edge": "Overwriting zero loses longest span.",
+      "takeaway": "First maximizes length; frequency counts ways."
+    },
+    {
+      "why": "Current index cannot match itself.",
+      "use": "Two Sum/nonempty prefix ranges.",
+      "result": "[0, 1]",
+      "edge": "[3] cannot self-pair to 6.",
+      "takeaway": "Query past, then publish present."
+    },
+    {
+      "why": "Equivalent objects need identical full keys.",
+      "use": "Alphabet-independent anagrams.",
+      "result": "{'aet': ['eat', 'tea', 'aet']}",
+      "edge": "ab and aab break set signatures.",
+      "takeaway": "Preserve exactly requested equivalence."
+    },
+    {
+      "why": "Groups need separate mutable storage.",
+      "use": "Adjacency/grouping.",
+      "result": "{'a': [1], 'b': [2]}",
+      "edge": "fromkeys(keys,[]) shares a list.",
+      "takeaway": "Factory per missing key."
+    },
+    {
+      "why": "Key deletion changes live iteration structure.",
+      "use": "Filtering entries safely.",
+      "result": "{'b': 2}",
+      "edge": "Value updates differ from key insertion/deletion.",
+      "takeaway": "Snapshot keys and count allocation."
+    },
+    {
+      "why": "Insertion order is not sorted order.",
+      "use": "Stable grouped output.",
+      "result": "['a', 'b']",
+      "edge": "Set order remains unspecified.",
+      "takeaway": "Reassign stays; delete/reinsert moves."
+    },
+    {
+      "why": "Hash narrows candidates; equality resolves collisions.",
+      "use": "Adversarial complexity.",
+      "result": "3",
+      "edge": "All keys hash to zero; correctness survives.",
+      "takeaway": "Expected time is an assumption."
+    },
+    {
+      "why": "Two prefix boundaries identify every range once.",
+      "use": "Exact sums with arbitrary signs.",
+      "result": "3",
+      "edge": "Seed empty prefix for ranges starting at zero.",
+      "takeaway": "Count earlier states before publishing."
+    }
+  ],
+  "patternDetails": [
+    {
+      "steps": [
+        "Derive need=target-x.",
+        "Query earlier indices.",
+        "Return hit or publish current index."
+      ],
+      "templates": [
+        "Two Sum with prior indices"
+      ],
+      "related": "Sorted two pointers needs ordering.",
+      "variations": "All-pairs output needs lists of indices and output-sensitive costs."
+    },
+    {
+      "steps": [
+        "Initialize set.",
+        "Check before insert.",
+        "Early return on duplicate."
+      ],
+      "templates": [
+        "Duplicate detection by presence"
+      ],
+      "related": "Counts add multiplicity.",
+      "variations": "Nearby duplicates require last indices or eviction."
+    },
+    {
+      "steps": [
+        "Define multiplicities.",
+        "Build count balances.",
+        "Compare or consume supply."
+      ],
+      "templates": [
+        "Multiset equality",
+        "Unique and multiset intersection"
+      ],
+      "related": "Set algebra is presence-only.",
+      "variations": "Ransom Note rejects deficits; overlap emits minimum counts."
+    },
+    {
+      "steps": [
+        "Specify equivalence/normalization.",
+        "Construct full signature.",
+        "Append to signature group."
+      ],
+      "templates": [
+        "Group anagrams by sorted signature"
+      ],
+      "related": "Bijection models correspondence instead.",
+      "variations": "26-count tuples need validated lowercase alphabet."
+    },
+    {
+      "steps": [
+        "Reject unequal lengths.",
+        "Check both map directions.",
+        "Publish assignments after validation."
+      ],
+      "templates": [
+        "Isomorphic sequences"
+      ],
+      "related": "Grouping is many-to-one.",
+      "variations": "Word Pattern tokenizes and checks token count."
+    },
+    {
+      "steps": [
+        "Seed {0:1}.",
+        "Add freq[prefix-target].",
+        "Publish prefix afterward."
+      ],
+      "templates": [
+        "Count exact-sum nonempty subarrays"
+      ],
+      "related": "Earliest prefix stores index.",
+      "variations": "Pair joins lift complement counting to pairs."
+    },
+    {
+      "steps": [
+        "Seed {0:-1}.",
+        "Compare compatible earliest boundary.",
+        "Keep first occurrence only."
+      ],
+      "templates": [
+        "Longest exact-sum range length"
+      ],
+      "related": "Frequencies count ranges instead.",
+      "variations": "Map binary 0 to -1 and 1 to +1 for balance."
+    },
+    {
+      "steps": [
+        "Reject zero and normalize modulus.",
+        "Update remainder.",
+        "Count earlier equal states then publish."
+      ],
+      "templates": [
+        "Count sums divisible by nonzero k"
+      ],
+      "related": "Exact zero sums need full prefixes.",
+      "variations": "Minimum-length existence stores earliest remainder index."
+    },
+    {
+      "steps": [
+        "Track last positions.",
+        "Jump left with max.",
+        "Update last and maximize width."
+      ],
+      "templates": [
+        "Longest unique contiguous segment"
+      ],
+      "related": "Counts handle repeat budgets.",
+      "variations": "Return substring by saving endpoints and slicing once."
+    },
+    {
+      "steps": [
+        "Increment entering key.",
+        "Shrink invalid support; delete zero counts.",
+        "Maximize width or accumulate widths for counts."
+      ],
+      "templates": [
+        "Exactly k distinct subarrays",
+        "At-most distinct window length"
+      ],
+      "related": "Coverage shrinks while valid, not invalid.",
+      "variations": "Exactly k is atMost(k)-atMost(k-1)."
+    },
+    {
+      "steps": [
+        "Deduplicate.",
+        "Start only without predecessor.",
+        "Expand each run once."
+      ],
+      "templates": [
+        "Longest consecutive integer run"
+      ],
+      "related": "Sorting offers deterministic comparison work.",
+      "variations": "Not LIS: original order is discarded."
+    },
+    {
+      "steps": [
+        "Count.",
+        "Bucket by frequency.",
+        "Scan descending until k outputs."
+      ],
+      "templates": [
+        "Top k frequent with stable frequency ties"
+      ],
+      "related": "Heap can reduce bucket memory.",
+      "variations": "Stable ties use first encounter; dynamic counts need another index."
+    },
+    {
+      "steps": [
+        "Choose uniqueness/multiplicity.",
+        "Build right inventory.",
+        "Emit once or consume counts."
+      ],
+      "templates": [
+        "Unique and multiset intersection"
+      ],
+      "related": "Intersection II needs counts.",
+      "variations": "Union/difference/xor use different membership predicates."
+    },
+    {
+      "steps": [
+        "Maintain dense items plus inverse.",
+        "Append new values.",
+        "Swap-delete; repair moved index."
+      ],
+      "templates": [
+        "Unique randomized set"
+      ],
+      "related": "LRU maintains linked order.",
+      "variations": "Duplicates need per-value index sets."
+    },
+    {
+      "steps": [
+        "Split independent populations into pairs.",
+        "Count first-pair sums.",
+        "Join negated second-pair sums."
+      ],
+      "templates": [
+        "Pair-sum frequency join"
+      ],
+      "related": "Complement lookup over pairs.",
+      "variations": "Store smaller pair product; one-array 4Sum has distinct-index constraints."
+    },
+    {
+      "steps": [
+        "Count target demand/missing.",
+        "Expand, permitting negative surplus.",
+        "Save endpoints; shrink until coverage breaks."
+      ],
+      "templates": [
+        "Minimum demand-covering window"
+      ],
+      "related": "At-most support has opposite validity shrink.",
+      "variations": "Fixed-width anagrams/subsequence matching have different contracts."
+    }
+  ],
+  "decisionProcess": [
+    "0–20 seconds: Clarify output (existence, indices, ways, range length, groups), duplicates, ordering, hashability and mutation.",
+    "20–45 seconds: Choose minimal payload: presence -> set; ways -> frequency; farthest boundary -> first index; uniqueness -> last index; bijection -> two maps.",
+    "45–80 seconds: Derive prefix differences for ranges with arbitrary signs. Use windows only when left removal monotonically repairs validity; coverage and at-most support shrink in opposite situations.",
+    "80–120 seconds: State invariant, full signature and temporal boundary. Query past before publishing present; seed empty prefix when relevant.",
+    "120–180 seconds: Trace empty/self-pair/zero payload/negative sums/ties. Include expected hash and key costs, auxiliary versus output space, and sorting/bounded-alphabet alternatives."
+  ],
+  "practiceDetails": [
+    {
+      "insight": "One table replaces repeated search. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected time; O(u) space, and expose this trap: Do not scan a list for each value.",
+      "secondary": "Sorting; early exit"
+    },
+    {
+      "insight": "Count symbols, not support. Mastery: derive invariant unaided, implement the pattern, justify O(n+m) expected; O(u), and expose this trap: Sets lose multiplicity.",
+      "secondary": "Counter; bounded alphabet"
+    },
+    {
+      "insight": "Each occurrence consumes supply. Mastery: derive invariant unaided, implement the pattern, justify O(n+m) expected; O(u), and expose this trap: Decrement supply, reject a deficit.",
+      "secondary": "Deficit accounting"
+    },
+    {
+      "insight": "Only prior indices may match. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(u), and expose this trap: Use two distinct indices.",
+      "secondary": "Distinct positions"
+    },
+    {
+      "insight": "Emitted membership enforces uniqueness. Mastery: derive invariant unaided, implement the pattern, justify O(n+m) expected; O(u), and expose this trap: Output uniqueness, not multiplicity.",
+      "secondary": "Stable order"
+    },
+    {
+      "insight": "Consume counts to cap repetition. Mastery: derive invariant unaided, implement the pattern, justify O(n+m) expected; O(u) auxiliary plus output, and expose this trap: Consume counts to cap multiplicity.",
+      "secondary": "Inventory"
+    },
+    {
+      "insight": "Reverse collisions enforce injectivity. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(u), and expose this trap: Forward map alone is insufficient.",
+      "secondary": "Bijection"
+    },
+    {
+      "insight": "Tokenize before mapping. Mastery: derive invariant unaided, implement the pattern, justify O(L) expected; O(L) token storage, and expose this trap: Token count must match pattern length.",
+      "secondary": "Split allocation"
+    },
+    {
+      "insight": "Full sorted signatures retain multiplicity. Mastery: derive signature equivalence, implement grouping with stable output, justify O(n + sum l log(l+1)) including empty words and O(L+n) space, and exhibit why character sets fail on ab/aab.",
+      "secondary": "Alphabet-count tuple"
+    },
+    {
+      "insight": "Historical repeats cannot move left backward. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(u), and expose this trap: Never move left backward.",
+      "secondary": "Last-index max"
+    },
+    {
+      "insight": "Two live types permit monotone shrinking. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(1) live keys, and expose this trap: Erase zero-count keys.",
+      "secondary": "Distinct support"
+    },
+    {
+      "insight": "Each earlier compatible prefix is another range. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(n), and expose this trap: Seed {0:1}; query before insert.",
+      "secondary": "Prefix algebra"
+    },
+    {
+      "insight": "Earliest balanced state maximizes distance. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(n), and expose this trap: Keep earliest index for each state.",
+      "secondary": "Binary transform"
+    },
+    {
+      "insight": "Equal remainders define divisible differences. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(min(n,k)), and expose this trap: Normalize negative remainders in languages that require it.",
+      "secondary": "Modulo sign"
+    },
+    {
+      "insight": "Each run scans once from its start. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(u), and expose this trap: Do not restart each run from every occurrence.",
+      "secondary": "Deduplication"
+    },
+    {
+      "insight": "Frequency is bounded by n. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(n), and expose this trap: Clarify order among tied frequencies.",
+      "secondary": "Heap alternative"
+    },
+    {
+      "insight": "Dense positions allow uniform sampling. Mastery: derive invariant unaided, implement the pattern, justify Expected amortized O(1) updates; O(u), and expose this trap: Repair the moved last element index.",
+      "secondary": "Inverse index repair"
+    },
+    {
+      "insight": "Join pair counts instead of enumerating quartets. Mastery: derive invariant unaided, implement the pattern, justify O(n²) expected; O(n²), and expose this trap: Count multiplicity of equal pair sums.",
+      "secondary": "Meet-in-the-middle"
+    },
+    {
+      "insight": "Exactly k subtracts nested at-most families. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(u), and expose this trap: Subtract at_most(k-1), not two independent exact windows.",
+      "secondary": "Two scans"
+    },
+    {
+      "insight": "Missing counts occurrences, not distinct symbols. Mastery: derive invariant unaided, implement the pattern, justify O(n+m) expected; O(u), and expose this trap: Satisfied distinct requirements differ from matched character count.",
+      "secondary": "Shrink while covered"
+    }
+  ],
+  "templateDetails": [
+    {
+      "pattern": "Complement lookup",
+      "preconditions": "Numeric sequence; return one pair of distinct indices or []; no input mutation. Most recent prior duplicate is retained.",
+      "observation": "Reconstruct invariant: Before i the table contains only indices < i. Adaptation: All-pairs output needs lists of indices and output-sensitive costs."
+    },
+    {
+      "pattern": "Frequency accounting",
+      "preconditions": "Iterables of hashable values; returns bool, ignores order but preserves multiplicity; does not mutate inputs.",
+      "observation": "Reconstruct invariant: Each balance is supplied count minus consumed count. Adaptation: Ransom Note rejects deficits; overlap emits minimum counts."
+    },
+    {
+      "pattern": "Canonical grouping",
+      "preconditions": "Strings; Unicode code-point equality, no case folding/normalization. Stable first-group and word order; original strings reused, input unchanged.",
+      "observation": "Reconstruct invariant: Two objects share a signature iff equivalent under the requested rule. Adaptation: 26-count tuples need validated lowercase alphabet."
+    },
+    {
+      "pattern": "Bidirectional mapping",
+      "preconditions": "Sized sequences of hashable symbols; tests a bijection between observed symbols without mutation.",
+      "observation": "Reconstruct invariant: Both maps remain inverse on processed pairs. Adaptation: Word Pattern tokenizes and checks token count."
+    },
+    {
+      "pattern": "Prefix-frequency counting",
+      "preconditions": "Integer iterable with arbitrary signs; returns count of nonempty contiguous ranges; empty returns 0, no mutation.",
+      "observation": "Reconstruct invariant: freq records all earlier prefix boundaries with multiplicity. Adaptation: Pair joins lift complement counting to pairs."
+    },
+    {
+      "pattern": "Earliest prefix boundary",
+      "preconditions": "Integer iterable, any signs; maximum nonempty range length or 0 if none; no mutation. For equal 0/1 counts map 0 to -1 and 1 to +1.",
+      "observation": "Reconstruct invariant: Each stored index is the earliest boundary for its state. Adaptation: Map binary 0 to -1 and 1 to +1 for balance."
+    },
+    {
+      "pattern": "Remainder classes",
+      "preconditions": "Integer iterable and integer nonzero k; counts nonempty divisible-sum ranges, including negative sums; no mutation.",
+      "observation": "Reconstruct invariant: Earlier remainder frequencies enumerate all valid left boundaries. Adaptation: Minimum-length existence stores earliest remainder index."
+    },
+    {
+      "pattern": "Last-seen sliding window",
+      "preconditions": "Iterable of hashable symbols; returns length, 0 when empty; map includes historical last positions, no mutation.",
+      "observation": "Reconstruct invariant: The active window contains unique values. Adaptation: Return substring by saving endpoints and slicing once."
+    },
+    {
+      "pattern": "Window frequency with distinct count",
+      "preconditions": "Indexable sequence of hashable values; integer k>=0; counts nonempty ranges, k=0 returns 0. Two scans require reusable sequence, not a one-shot iterator; no mutation.",
+      "observation": "Reconstruct invariant: Map contains positive counts exactly for the active window. Adaptation: Exactly k is atMost(k)-atMost(k-1)."
+    },
+    {
+      "pattern": "Set start-only expansion",
+      "preconditions": "Integer iterable; returns longest +1 run length irrespective of original order; duplicate-insensitive, empty 0; no mutation.",
+      "observation": "Reconstruct invariant: Every unique value belongs to exactly one scanned run. Adaptation: Not LIS: original order is discarded."
+    },
+    {
+      "pattern": "Frequency buckets",
+      "preconditions": "Hashable iterable, integer k; frequency descending and first-appearance tie order. Invalid k raises ValueError, input unchanged. Counter consumes generators once.",
+      "observation": "Reconstruct invariant: Higher buckets are exhausted before lower buckets contribute. Adaptation: Stable ties use first encounter; dynamic counts need another index."
+    },
+    {
+      "pattern": "Hash-indexed random access",
+      "preconditions": "Unique stable hashable values; methods mutate collection, remove/insert return success bool. Uniform choice over live positions; seeded RNG aids tests, not cryptographic use. Public storage is for illustration; do not mutate it externally.",
+      "observation": "Reconstruct invariant: position[items[i]] == i for every live slot. Adaptation: Duplicates need per-value index sets."
+    },
+    {
+      "pattern": "Presence and duplicate detection",
+      "preconditions": "Stable hashable iterable; bool, empty False; no mutation.",
+      "observation": "Reconstruct invariant: seen equals distinct processed values. Adaptation: Nearby duplicates require last indices or eviction."
+    },
+    {
+      "pattern": "Frequency accounting",
+      "preconditions": "Hashable iterables consumed once, unchanged; new output in a encounter order. Unique emits once; multiset caps multiplicity at min counts.",
+      "observation": "Reconstruct invariant: Each balance is supplied count minus consumed count. Adaptation: Ransom Note rejects deficits; overlap emits minimum counts."
+    },
+    {
+      "pattern": "Pair-sum frequency join",
+      "preconditions": "Reusable numeric sequences of lengths a,b,c,d; counts index quadruples across independent populations, not distinct value quadruples. Empty -> 0, no mutation; store smaller pair product when useful.",
+      "observation": "Reconstruct invariant: Every queried pair contributes precisely its compatible first index pairs. Adaptation: Store smaller pair product; one-array 4Sum has distinct-index constraints."
+    },
+    {
+      "pattern": "Window frequency with distinct count",
+      "preconditions": "Indexable hashable sequence, integer k>=0; longest length, empty/k=0 -> 0, no mutation. For at-most counting accumulate right-left+1 instead.",
+      "observation": "Reconstruct invariant: Map contains positive counts exactly for the active window. Adaptation: Exactly k is atMost(k)-atMost(k-1)."
+    },
+    {
+      "pattern": "Demand-covering sliding window",
+      "preconditions": "Strings with code-point multiplicity; first shortest cover or empty if impossible/empty target. Negative need denotes surplus. Only target keys stored; one final slice, no mutation.",
+      "observation": "Reconstruct invariant: missing equals target occurrences not supplied by active window. Adaptation: Fixed-width anagrams/subsequence matching have different contracts."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Python dict/set reference",
+      "url": "https://docs.python.org/3/library/stdtypes.html#mapping-types-dict",
+      "note": "Fetched 2026-11-13, HTTP 200. Public API semantics; complexity annotations are original analysis under stated assumptions."
+    },
+    {
+      "title": "Python collections reference",
+      "url": "https://docs.python.org/3/library/collections.html",
+      "note": "Fetched 2026-11-13, HTTP 200. Counter/defaultdict semantics. Explanations/examples/tests are original synthesis. No exact AlgoMonster foundation, Grokking or rendered NeetCode coverage claim; unavailable course/list coverage remains unverified."
+    }
+  ]
+}

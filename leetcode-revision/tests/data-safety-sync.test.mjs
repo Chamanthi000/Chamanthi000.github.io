@@ -1,0 +1,245 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {browser,firebase,item,KEYS,empty,deferred,flush,source} from './data-safety-mocks.mjs';
+const path=id=>'users/account-A/coding/'+id;
+
+test('restoreAll rejects missing optimistic guard; every changed restored version has transaction history',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const a=item('a');f.store.set(path('a'),a);
+ await assert.rejects(f.cloud.restoreAll({coding:[item('a','import')]}),/prior versions/);
+ const options={expected:{coding:[a]},sessionToken:f.cloud.sessionToken,results:[]};
+ await f.cloud.restoreAll({coding:[item('a','import','2026-02-01')]},options);
+ const first=f.store.get(path('a'));
+ await f.cloud.restoreAll({coding:[item('a','second restore','2026-02-02')]},{...options,expected:{coding:[first]}});
+ const history=[...f.store.values()].find(x=>x.recordType==='syncBackup');
+ assert.deepEqual(history.versions.map(v=>v.value),[a,first]);
+ assert.ok(f.transactions.every(keys=>keys.includes(path('a'))&&keys.some(k=>k.includes('recall-history-'))));
+});
+
+test('exact guard rejects same-time divergent prior value and absent-record race without overwriting',async()=>{
+ for(const expected of [item('a','preview'),null]){
+  const b=browser(),f=await firebase(b);await f.auth();const remote=item('a','concurrent');f.store.set(path('a'),remote);const results=[];
+  const n=await f.cloud.restoreAll({coding:[item('a','import')]},{expected:{coding:expected?[expected]:[]},sessionToken:f.cloud.sessionToken,results});
+  assert.equal(n,0);assert.equal(results[0].result,'remote-newer');assert.deepEqual(f.store.get(path('a')),remote);assert.equal(b.rows('conflicts').length,1);
+ }
+});
+
+test('oversized predecessor cannot be silently overwritten when restore history cannot retain it',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const a=item('a','x'.repeat(460000));f.store.set(path('a'),a);
+ await assert.rejects(f.cloud.restoreAll({coding:[item('a','import')]},{expected:{coding:[a]},sessionToken:f.cloud.sessionToken}),/could not be archived/);
+ assert.deepEqual(f.store.get(path('a')),a);assert.equal(f.writes.length,0);
+});
+
+for(const failure of ['quota','silent','corrupt'])test('snapshot conflict archive '+failure+' retains exact device copy',async()=>{
+ const device=item('a','device'),cloud=item('a','server','2026-02-01'),b=browser({coding:[device]}),f=await firebase(b);await f.auth();f.store.set(path('a'),cloud);
+ if(failure==='quota')b.fault.set=k=>k===KEYS.conflicts;
+ if(failure==='silent')b.fault.silent=k=>k===KEYS.conflicts;
+ if(failure==='corrupt')b.values.set(KEYS.conflicts,'corrupt');
+ f.emit('coding');assert.deepEqual(b.rows('coding'),[device]);assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);assert.equal(f.writes.length,0);
+});
+
+test('failed conflict archive during pending write does not release or send the unarchived device version',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const device=item('a','device'),cloud=item('a','server','2026-02-01');
+ f.local('coding',[device]);f.store.set(path('a'),cloud);b.fault.set=k=>k===KEYS.conflicts;
+ await b.runTimers(180);assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[device]);assert.deepEqual(f.store.get(path('a')),cloud);
+ b.fault.set=null;b.window.dispatchEvent({type:'online'});await b.runTimers(0);
+ assert.equal(f.cloud.pendingCount,0);assert.equal(b.rows('conflicts')[0].device.notes,'device');assert.equal(b.rows('coding')[0].notes,'server');
+});
+
+test('same-time device conflicts keep distinct recoverable copies without evicting old entries',async()=>{
+ const b=browser({conflicts:Array.from({length:100},(_,i)=>({id:'old-'+i}))}),f=await firebase(b);await f.auth();f.store.set(path('a'),item('a','server','2026-03-01'));
+ f.local('coding',[item('a','device one')]);await b.runTimers(180);
+ f.local('coding',[item('a','device two')]);await b.runTimers(180);
+ assert.equal(b.rows('conflicts').length,102);assert.equal(b.rows('conflicts')[100].device.notes,'device one');assert.equal(b.rows('conflicts')[101].device.notes,'device two');
+});
+
+test('cached or locally pending snapshots cannot report cloud confirmed; server metadata can',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();
+ for(const k of ['coding','sql'])f.emit(k,{fromCache:true,hasPendingWrites:false});
+ assert.match(b.elements.firebaseStatus.textContent,/Waiting/);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+ for(const k of ['coding','sql'])f.emit(k,{fromCache:false,hasPendingWrites:true});
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+ for(const k of ['coding','sql'])f.emit(k,{fromCache:false,hasPendingWrites:false});
+ assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+});
+
+test('offline queues and online retries; acknowledgement is reported only after transaction completion',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();b.navigator.onLine=false;f.local('coding',[item('a')]);await b.runTimers(180);
+ assert.equal(f.cloud.pendingCount,1);assert.equal(f.writes.length,0);assert.match(b.elements.firebaseStatus.textContent,/Offline/);
+ const gate=deferred();f.controls.beforeGet=()=>gate.promise;b.navigator.onLine=true;b.window.dispatchEvent({type:'online'});
+ const running=b.runTimers(0);await flush();assert.match(b.elements.firebaseStatus.textContent,/Syncing/);assert.equal(f.writes.length,0);
+ gate.resolve();await running;assert.equal(f.cloud.pendingCount,0);assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+});
+
+test('transaction failure retains queued changes and retries successfully',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();f.controls.fail=true;f.local('coding',[item('a')]);await b.runTimers(180);
+ assert.equal(f.cloud.pendingCount,1);assert.match(b.elements.firebaseStatus.textContent,/Cloud save failed/);
+ f.controls.fail=false;await b.runTimers(60000);assert.equal(f.cloud.pendingCount,0);assert.ok(f.store.has(path('a')));
+});
+
+test('localStorage failure is never masked by success from another notebook or server acknowledgement',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();f.store.set(path('a'),item('a'));
+ b.fault.set=k=>k===KEYS.coding;f.emit('coding');f.emit('sql');
+ assert.match(b.elements.firebaseStatus.textContent,/Device save failed/);
+ assert.deepEqual(b.rows('coding'),[]);
+});
+
+test('newer edit queued during awaited transaction survives earlier completion',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();f.local('coding',[item('a','first')]);
+ const gate=deferred();f.controls.beforeGet=()=>gate.promise;const running=b.runTimers(180);await flush();
+ f.local('coding',[item('a','later','2026-02-01')]);gate.resolve();await running;
+ assert.equal(f.cloud.pendingCount,1);assert.equal(b.rows('coding')[0].notes,'later');
+ f.controls.beforeGet=null;await b.runTimers(180);assert.equal(f.cloud.pendingCount,0);assert.equal(f.store.get(path('a')).notes,'later');
+});
+
+test('account change inside transaction aborts later writes and old callbacks cannot affect new account',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const oldListener=f.listeners[0],a=item('a');f.store.set(path('a'),a);
+ const gate=deferred();f.controls.beforeGet=()=>gate.promise;
+ const restoring=f.cloud.restoreAll({coding:[item('a','import'),item('b')]},{expected:{coding:[a]},sessionToken:f.cloud.sessionToken});
+ await flush();await f.auth('account-B');const status=b.elements.firebaseStatus.textContent;
+ gate.resolve();await assert.rejects(restoring,/Account changed/);f.emitOld(oldListener);
+ assert.equal(f.writes.length,0);assert.equal(b.elements.firebaseStatus.textContent,status);
+ assert.match(status,/Automatic sync paused/);assert.deepEqual(b.rows('coding'),[]);
+});
+
+test('account switch after first committed restore never writes remaining imports to the new account',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();let switched=false;
+ f.controls.beforeCommit=async()=>{if(!switched){switched=true;await f.auth('account-B')}};
+ await assert.rejects(f.cloud.restoreAll({coding:[item('a'),item('b')]},{expected:empty(),sessionToken:f.cloud.sessionToken}),/Account changed/);
+ assert.deepEqual(f.writes.map(x=>x.key),[path('a')]);assert.ok(!f.store.has('users/account-B/coding/a'));assert.ok(!f.store.has('users/account-B/coding/b'));
+});
+
+test('server read and history export abort across auth change, with all paths pinned to original uid',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const gate=deferred(),paths=[];
+ f.controls.read=async path=>{paths.push(path);await gate.promise};const reading=f.cloud.readAll({serverOnly:true});
+ await flush();await f.auth('account-B');gate.resolve();await assert.rejects(reading,/Account changed/);
+ assert.ok(paths.every(p=>p.startsWith('users/account-A/')));assert.equal(b.downloads.length,0);
+});
+
+test('server-only export includes remote prior versions rather than pending local versions',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const remote=item('a','server');f.store.set(path('a'),remote);f.local('coding',[item('a','pending','2026-02-01')]);
+ assert.deepEqual((await f.cloud.readAll({serverOnly:true})).coding,[remote]);assert.equal((await f.cloud.readAll()).coding[0].notes,'pending');
+});
+
+test('unreadable persisted records are never replaced by a cloud event',async()=>{
+ const device=item('a','on disk'),b=browser({coding:[device]}),f=await firebase(b);await f.auth();
+ f.store.set(path('a'),item('a','cloud','2026-02-01'));b.values.set(KEYS.coding,'malformed private record');
+ // Simulate an app whose initial JSON load fell back to an empty in-memory list.
+ b.window.RecallLocal=()=>[];f.emit('coding');
+ assert.equal(b.values.get(KEYS.coding),'malformed private record');assert.match(b.elements.firebaseStatus.textContent,/Device save failed/);
+});
+
+test('disk changes missing from the in-memory accessor are retained or durably archived before dispatch',async()=>{
+ for(const stamp of ['2025-01-01','2027-01-01']){
+  const disk=item('a','edit from another tab',stamp),b=browser({coding:[disk]}),f=await firebase(b);await f.auth();
+  b.window.RecallLocal=()=>[];const cloud=item('a','server','2026-01-01');f.store.set(path('a'),cloud);
+  b.fault.set=k=>k===KEYS.conflicts;f.emit('coding');assert.deepEqual(b.rows('coding'),[disk]);
+ }
+});
+
+test('auth generation invalidates same-uid sign-out/sign-in continuations',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const gate=deferred();f.controls.read=()=>gate.promise;
+ const read=f.cloud.readAll();await flush();await f.auth(null);await f.auth('account-A');gate.resolve();await assert.rejects(read,/Account changed/);
+});
+
+test('device owner survives script reload and prevents automatic cross-account migration',async()=>{
+ const b=browser({coding:[item('a','account A device notes')]}),first=await firebase(b);await first.auth();
+ const reloaded=browser();reloaded.values.clear();for(const [key,value] of b.values)reloaded.values.set(key,value);
+ const second=await firebase(reloaded);await second.auth('account-B');second.local('coding',[item('a','attempted edit','2026-02-01')]);await reloaded.runTimers(180);
+ assert.equal(second.writes.length,0);assert.match(reloaded.elements.firebaseStatus.textContent,/Automatic sync paused/);
+});
+
+test('transaction callbacks can replay without duplicate history or bypassing exact restore guards',async()=>{
+ const a=item('a'),b=browser(),f=await firebase(b);await f.auth();f.store.set(path('a'),a);f.controls.replay=true;
+ await f.cloud.restoreAll({coding:[item('a','import')]},{expected:{coding:[a]},sessionToken:f.cloud.sessionToken});
+ const h=[...f.store.values()].find(x=>x.recordType==='syncBackup');assert.equal(h.versions.length,1);assert.deepEqual(h.versions[0].value,a);
+});
+
+test('history export and exact restore recovery read include all four cloud collections once',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();
+ for(const kind of ['coding','sql','goals','habits'])f.store.set('users/account-A/'+kind+'/history',{recordType:'syncBackup',originKind:kind,versions:[{value:item('saved-'+kind)}]});
+ const data=await f.cloud.readAll({serverOnly:true,includeHistory:true});assert.equal(data.history.length,4);
+ const blobs=[];b.execute('URL.createObjectURL=blob=>{blobs.push(blob);return "blob:synthetic"}',{blobs});
+ await f.cloud.downloadCloudHistory();assert.equal(JSON.parse(await blobs[0].text()).versions.length,4);
+ assert.match(b.elements.firebaseStatus.textContent,/download requested/);
+});
+
+test('history export discards results from an account that changed while reading',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const gate=deferred();f.controls.read=()=>gate.promise;
+ const downloading=f.cloud.downloadCloudHistory();await flush();await f.auth('account-B');gate.resolve();await downloading;
+ assert.equal(b.downloads.length,0);
+});
+
+test('existing conflict copies survive reload and stay visible in sync status',async()=>{
+ const b=browser({conflicts:[{id:'retained',kind:'coding',recordId:'a',device:item('a','device'),cloud:item('a','cloud')}]}),f=await firebase(b);await f.auth();
+ f.emit('coding');f.emit('sql');assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);assert.equal(b.rows('conflicts').length,1);
+});
+
+test('account marker storage failures report storage failure and never unlock sync on repeated auth callback',async()=>{
+ const b=browser({coding:[item('a')]}),f=await firebase(b);b.fault.silent=k=>k==='recall-device-owner-v1';await f.auth();
+ assert.match(b.elements.firebaseStatus.textContent,/Device account storage failed/);await f.auth();f.local('coding',[item('a','edit')]);await b.runTimers(180);
+ assert.equal(f.writes.length,0);assert.match(b.elements.firebaseStatus.textContent,/Automatic sync paused/);
+});
+
+test('optimistic guard compares nested fields literally while normalizing only the top-level type marker',async()=>{
+ const a={...item('a'),metadata:{recordType:'preview'}},b=browser(),f=await firebase(b);await f.auth();
+ const current={...a,metadata:{recordType:'changed'}};f.store.set(path('a'),current);const results=[];
+ await f.cloud.restoreAll({coding:[item('a','import')]},{expected:{coding:[a]},sessionToken:f.cloud.sessionToken,results});
+ assert.equal(results[0].result,'remote-newer');assert.deepEqual(f.store.get(path('a')),current);
+});
+
+async function actualConcepts(b){
+ b.document.querySelectorAll=()=>[];
+ b.execute(source('concept-revision.js'));
+ const f=await firebase(b);
+ // Keep the actual app's strictly-newer merge listener, not the mock's unconditional writer.
+ b.window.listeners['recall-cloud-data'].pop();
+ b.window.RecallLocal=kind=>kind==='concepts'?b.window.RecallConcepts():b.rows(kind);
+ return f;
+}
+
+test('actual concept listener retains tied device output and reports a conflict, not a failed save',async()=>{
+ const device={...item('ds:arrays','device'),recordType:'conceptReview'},remote={...item('ds:arrays','server'),recordType:'conceptReview'};
+ const b=browser({concepts:[device]}),f=await actualConcepts(b);await f.auth();
+ f.store.set(path('concept-ds:arrays'),remote);f.emit('coding');f.emit('sql');
+ assert.deepEqual(b.rows('concepts'),[device]);assert.deepEqual(b.window.RecallConcepts(),[device]);
+ const delivered=b.events.filter(e=>e.type==='recall-cloud-data'&&e.detail.kind==='concepts').at(-1);
+ assert.deepEqual(delivered.detail.items,[device]);
+ const copies=b.rows('conflicts');assert.equal(copies.length,1);
+ assert.deepEqual(copies[0].device,item('ds:arrays','device'));assert.deepEqual(copies[0].cloud,item('ds:arrays','server'));
+ assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Device save failed/);
+ assert.equal(f.cloud.pendingCount,0);assert.equal(f.writes.length,0);
+});
+
+test('actual concept listener write failure remains a device failure after a retained tie',async()=>{
+ const device={...item('ds:arrays','device'),recordType:'conceptReview'},b=browser({concepts:[device]}),f=await actualConcepts(b);await f.auth();
+ f.store.set(path('concept-ds:arrays'),{...device,notes:'tied server'});f.emit('coding');
+ b.fault.set=k=>k===KEYS.concepts;
+ f.store.set(path('concept-ds:arrays'),{...device,notes:'newer server',updatedAt:'2026-02-01'});f.emit('coding');f.emit('sql');
+ assert.deepEqual(b.rows('concepts'),[device]);assert.match(b.elements.firebaseStatus.textContent,/Device save failed/);
+ assert.equal(b.rows('conflicts').length,2);
+});
+
+test('terminal notebook error survives unrelated snapshots and successful writes until a fresh session',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();f.emit('coding');f.emit('sql');
+ const failed=f.listeners.find(l=>l.path.endsWith('/sql'));failed.error(new Error('synthetic permission-denied'));
+ const statuses=()=>b.events.filter(e=>e.type==='recall-cloud-status').map(e=>e.detail.message);
+ const start=statuses().length-1;
+ f.emit('coding');f.local('coding',[item('a','saved with SQL listener unavailable')]);await b.runTimers(180);
+ assert.equal(f.cloud.pendingCount,0);assert.equal(f.store.get(path('a')).notes,'saved with SQL listener unavailable');
+ for(const message of statuses().slice(start)){assert.match(message,/Cloud sync failed/);assert.match(message,/sql.*permission-denied/);assert.doesNotMatch(message,/Cloud confirmed/)}
+ // A terminal listener cannot revive itself through a stale callback.
+ f.emit('sql');assert.match(b.elements.firebaseStatus.textContent,/Cloud sync failed/);
+ await f.auth(null);const signedOut=b.elements.firebaseStatus.textContent;failed.error(new Error('stale callback'));
+ assert.equal(b.elements.firebaseStatus.textContent,signedOut);
+ await f.auth();f.emit('coding');f.emit('sql');
+ assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud sync failed/);
+});
+
+test('subscription failures remain per-kind and stale auth errors cannot poison a fresh session',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();f.emit('coding');f.emit('sql');
+ const sql=f.listeners.find(l=>l.path.endsWith('/sql')),concepts=f.listeners.at(-1);
+ sql.error(new Error('SQL denied'));concepts.error(new Error('concepts denied'));f.emit('coding');
+ assert.match(b.elements.firebaseStatus.textContent,/sql.*SQL denied/);assert.match(b.elements.firebaseStatus.textContent,/concepts.*concepts denied/);
+ await f.auth();sql.error(new Error('old SQL denied'));concepts.error(new Error('old concepts denied'));f.emit('coding');f.emit('sql');
+ assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/denied/);
+});

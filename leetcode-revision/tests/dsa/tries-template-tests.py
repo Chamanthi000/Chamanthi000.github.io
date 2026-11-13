@@ -240,5 +240,125 @@ class TrieTemplates(unittest.TestCase):
             self.assertEqual(set(out),expected)
             self.assertEqual(len(out),len(set(out)))
 
+
+class SupplementalContract(unittest.TestCase):
+    def test_aligned_metadata_and_executed_examples(self):
+        import contextlib
+        import io
+        aligned = {
+            'operations': ('operationExamples', ('code','result','use','mutation')),
+            'fundamentals': ('fundamentalDetails', ('why','use','result','edge','takeaway')),
+            'patterns': ('patternDetails', ('steps','templates','related','variations')),
+            'templates': ('templateDetails', ('pattern','preconditions','observation')),
+            'practice': ('practiceDetails', ('insight','secondary')),
+        }
+        names = {row[0] for row in DATA['templates']}
+        pattern_names = {row[0] for row in DATA['patterns']}
+        self.assertEqual(len(names), len(DATA['templates']))
+        covered = set()
+        for base,(supplement,fields) in aligned.items():
+            self.assertEqual(len(DATA[base]), len(DATA[supplement]), supplement)
+            for i,item in enumerate(DATA[supplement]):
+                for field in fields:
+                    self.assertIn(field,item,(supplement,i))
+                    self.assertTrue(item[field],(supplement,i,field))
+                if base == 'patterns':
+                    self.assertTrue(set(item['templates']) <= names)
+                    covered.update(item['templates'])
+                if base == 'templates':
+                    self.assertIn(item['pattern'], pattern_names)
+        self.assertEqual(covered,names)
+        for i,item in enumerate(DATA['operationExamples']):
+            with self.subTest(operation=i):
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    exec(compile(ast.parse('\n'.join(item['code'])),f'operation_{i}','exec'),{})
+                self.assertEqual(output.getvalue().strip(),item['result'])
+        self.assertGreaterEqual(len(DATA['decisionProcess']),4)
+        for source in DATA['sources']:
+            self.assertTrue(all(source.get(k) for k in ('title','url','note')))
+            self.assertTrue(source['url'].startswith('https://'))
+
+
+class AddedTrieVariants(unittest.TestCase):
+    def test_offline_xor_against_scan(self):
+        f=fresh(8)['offline_max_xor']
+        self.assertEqual(f([0,1,2,3,4],[(3,1),(1,3),(5,6)],3),[3,3,7])
+        self.assertEqual(f([],[(0,5)],1),[-1])
+        self.assertEqual(f([0],[(0,-1),(0,0)],1),[-1,0])
+        self.assertEqual(f([1],[],1),[])
+        for args in [([-1],[],3),([8],[],3),([],[(-1,2)],3),([],[ (8,2)],3),([],[],0)]:
+            with self.assertRaises(ValueError):f(*args)
+        rng=random.Random(619)
+        for _ in range(150):
+            nums=[rng.randrange(32) for _ in range(rng.randrange(12))]
+            queries=[(rng.randrange(32),rng.randrange(-2,35)) for _ in range(12)]
+            expected=[max((x^v for v in nums if v<=limit),default=-1) for x,limit in queries]
+            saved=nums[:],queries[:]
+            self.assertEqual(f(iter(nums),iter(queries),5),expected)
+            self.assertEqual((nums,queries),saved)
+
+    def test_cached_suggestions_bruteforce_and_copy(self):
+        T=fresh(9)['SuggestionTrie']
+        words=['mobile','mouse','moneypot','monitor','mousepad','mouse','']
+        t=T(words,3)
+        self.assertEqual(t.suggest('mo'),['mobile','moneypot','monitor'])
+        self.assertEqual(t.suggest('mou'),['mouse','mousepad'])
+        self.assertEqual(t.suggest('missing'),[])
+        self.assertEqual(t.suggest('')[0],'')
+        out=t.suggest('mo');out.clear()
+        self.assertEqual(len(t.suggest('mo')),3)
+        self.assertEqual(T(['a'],0).suggest(''),[])
+        with self.assertRaises(ValueError):T([], -1)
+        rng=random.Random(620)
+        vocabulary=[''.join(x) for n in range(5) for x in itertools.product('aλ',repeat=n)]
+        for _ in range(50):
+            words=[rng.choice(vocabulary) for _ in range(30)]
+            for k in range(5):
+                t=T(words,k)
+                for prefix in vocabulary:
+                    expected=sorted({w for w in words if w.startswith(prefix)})[:k]
+                    self.assertEqual(t.suggest(prefix),expected)
+        deep='a'*5000
+        self.assertEqual(T([deep]).suggest(deep),[deep])
+
+    def test_mapsum_overwrites_negative_and_empty_keys(self):
+        T=fresh(10)['MapSum'];t=T()
+        t.insert('apple',3);self.assertEqual(t.sum('ap'),3)
+        t.insert('app',2);self.assertEqual(t.sum('ap'),5)
+        t.insert('apple',2);self.assertEqual(t.sum('ap'),4)
+        t.insert('',-7);self.assertEqual(t.sum(''),-3)
+        self.assertEqual(t.sum('missing'),0)
+        rng=random.Random(621);values={}
+        vocabulary=['','a','ab','app','apple','λ','λa']
+        t=T()
+        for _ in range(500):
+            key=rng.choice(vocabulary);value=rng.randrange(-8,9)
+            t.insert(key,value);values[key]=value
+            for prefix in vocabulary:
+                self.assertEqual(t.sum(prefix),sum(v for k,v in values.items() if k.startswith(prefix)))
+        deep='a'*5000;t.insert(deep,19);self.assertEqual(t.sum(deep),19)
+
+
+class LongestPrefixTests(unittest.TestCase):
+    def test_terminal_depth_empty_and_random(self):
+        f=fresh(11)['longest_stored_prefix']
+        self.assertEqual(f(['a','app','apple'],'applepie'),'apple')
+        self.assertEqual(f(['a','app','apple'],'application'),'app')
+        self.assertIsNone(f(['apple'],'app'))
+        self.assertIsNone(f([],''))
+        self.assertEqual(f([''],'anything'),'')
+        self.assertEqual(f(['','λ','λa'],'λab'),'λa')
+        rng=random.Random(625)
+        vocabulary=[''.join(x) for n in range(5) for x in itertools.product('ab',repeat=n)]
+        for _ in range(200):
+            words=rng.sample(vocabulary,rng.randrange(len(vocabulary)))
+            text=rng.choice(vocabulary)
+            matches=[w for w in words if text.startswith(w)]
+            expected=max(matches,key=len) if matches else None
+            self.assertEqual(f(iter(words),text),expected)
+        text='a'*5000
+        self.assertEqual(f([text],text+'b'),text)
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

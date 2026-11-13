@@ -26,15 +26,15 @@ jobs:
         run: node --test leetcode-revision/tests/recall.test.mjs
       - name: Validate Strings Python examples and interview templates
         run: python3 leetcode-revision/tests/strings-guide-validation.py
-      - name: Validate all DSA guides, algorithms and static bundle
-        working-directory: leetcode-revision
+      - name: Test private sync, conflicts, recovery and automatic backups with synthetic adapters
+        run: node --test leetcode-revision/tests/data-safety-*.test.mjs leetcode-revision/tests/recovery-ui.test.mjs
+      - name: Check all DSA content schemas and deterministic generated assets
         run: |
-          python3 scripts/build-dsa-guides.py --check
-          python3 -m unittest discover -s tests -p "test_*.py" -v
-          for topic in hash-maps linked-lists stacks queues trees heaps graphs tries union-find; do
-            python3 "$topic-template-tests.py"
-          done
-          node tests/dsa-renderer.test.cjs
+          python3 leetcode-revision/scripts/build-dsa-guides.py --check
+          python3 -m unittest discover -s leetcode-revision/tests -p 'test_*.py' -v
+          node leetcode-revision/tests/dsa-renderer.test.cjs
+      - name: Execute every DSA topic algorithm suite against published content
+        run: python3 leetcode-revision/scripts/test-dsa-guides.py
 
   browser:
     runs-on: ubuntu-24.04
@@ -50,8 +50,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Test iPhone, iPad and desktop plus local save and reload
         run: node leetcode-revision/tests/browser-smoke.mjs
-      - name: Test all DSA guide controls, private notes and mobile content
-        working-directory: leetcode-revision
-        run: |
-          node tests/dsa-browser.test.cjs
-          node tests/dsa-real-content.test.cjs
+      - name: Test all-topic UI and private-note preservation using synthetic storage
+        run: node leetcode-revision/tests/dsa-browser.test.cjs
+      - name: Test published guide content at phone, tablet and desktop viewports
+        run: node leetcode-revision/tests/dsa-real-content.test.cjs
+      - name: Test private recovery controls on phone, tablet and desktop
+        run: node leetcode-revision/tests/recovery-browser.test.cjs

@@ -1,0 +1,2326 @@
+{
+  "id": "stacks",
+  "title": "Stacks",
+  "subtitle": "Keep only unfinished work: LIFO order exposes the most recent unresolved context or nearest useful candidate.",
+  "variables": "n = input elements/tokens, h = stack height, d = nesting depth, V/E = reachable graph vertices/edges, R = expanded output length. Costs assume constant-time primitive comparison/arithmetic on bounded-size values; Python big-integer operations add bit costs. list append is amortized O(1); a resize can be O(h). List end pop is amortized O(1), including occasional shrinking. Auxiliary space excludes returned output unless specified; iterative stacks count as auxiliary just as recursion frames do. Hash-set graph bounds are expected. All templates are Python 3.10+ standard library and avoid recursion-depth dependence. u = distinct symbols, n = total online calls for span analysis. Binary-tree h denotes tree height; explicit frames do not automatically imply O(h) for arbitrary-degree trees. Added examples count negation copies, returned slices and matrix-height state. Operation table costs describe the named operation on preexisting state; executable examples also construct small fixtures and verify results, whose setup/assertion cost is not the operation cost.",
+  "operations": [
+    [
+      "Create",
+      "stack = []",
+      "Empty LIFO stack",
+      "O(1)",
+      "O(1)",
+      "Use right end as top."
+    ],
+    [
+      "Push",
+      "stack.append(x)",
+      "Push top",
+      "O(1) amortized",
+      "O(1) amortized growth",
+      "Individual resize can be O(h)."
+    ],
+    [
+      "Pop",
+      "stack.pop()",
+      "Remove and return top",
+      "O(1) amortized",
+      "O(1)",
+      "Empty raises IndexError; occasional shrink can resize."
+    ],
+    [
+      "Peek",
+      "stack[-1]",
+      "Read top",
+      "O(1)",
+      "O(1)",
+      "Guard emptiness."
+    ],
+    [
+      "Inspect",
+      "if stack:; len(stack)",
+      "Nonempty / height",
+      "O(1)",
+      "O(1)",
+      "Do not use top payload truthiness to test emptiness."
+    ],
+    [
+      "Inspect",
+      "x in stack",
+      "Search any element",
+      "O(h)",
+      "O(1)",
+      "Stack does not index values for membership."
+    ],
+    [
+      "Inspect",
+      "stack.count(x); stack.index(x)",
+      "Count / first matching position",
+      "O(h)",
+      "O(1)",
+      "Repeated inside scan may become quadratic."
+    ],
+    [
+      "Copy",
+      "stack.copy()",
+      "Shallow stack snapshot",
+      "O(h)",
+      "O(h)",
+      "Payload objects still shared."
+    ],
+    [
+      "Copy",
+      "stack[:]",
+      "Slice copy of whole stack",
+      "O(h)",
+      "O(h)",
+      "Slicing is not O(1)."
+    ],
+    [
+      "Batch",
+      "stack.extend(values)",
+      "Push m elements in iteration order",
+      "O(m) amortized",
+      "O(m) growth",
+      "Last iterated value becomes top."
+    ],
+    [
+      "Iteration",
+      "for x in reversed(stack):",
+      "Inspect top to bottom",
+      "O(h) total",
+      "O(1) iterator",
+      "Do not structurally mutate during inspection."
+    ],
+    [
+      "Clear",
+      "stack.clear()",
+      "Release references",
+      "O(h)",
+      "O(1) auxiliary",
+      "Aliases see empty stack."
+    ],
+    [
+      "Wrong end",
+      "stack.insert(0,x); stack.pop(0)",
+      "Front insert/remove",
+      "O(h)",
+      "O(1) auxiliary",
+      "Avoid as stack API; shifts elements."
+    ],
+    [
+      "Alternative",
+      "deque.append(x); deque.pop()",
+      "Deque right-end LIFO",
+      "O(1)",
+      "O(1) growth",
+      "from collections import deque; use list unless both ends needed."
+    ],
+    [
+      "Output",
+      "list(reversed(stack))",
+      "Materialize top-first contents",
+      "O(h)",
+      "O(h) output",
+      "reversed alone does not copy."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "LIFO and stack height",
+      "The most recent unfinished item is resolved first. A list is the standard simple Python stack; top is at the right.",
+      [
+        "stack = []",
+        "stack.append(10)",
+        "stack.append(20)",
+        "assert stack[-1] == 20",
+        "assert stack.pop() == 20",
+        "assert len(stack) == 1",
+        "result = (stack,len(stack))",
+        "assert repr(result) == \"([10], 1)\""
+      ],
+      "O(1) amortized per push/pop",
+      "O(h)",
+      "Do not remove from index zero."
+    ],
+    [
+      "Guard underflow, not payload truthiness",
+      "An empty stack is false, but a nonempty stack containing zero is true. Peek/pop need a nonempty guard.",
+      [
+        "stack = [0]",
+        "assert bool(stack)",
+        "if stack:",
+        "    top = stack[-1]",
+        "assert top == 0",
+        "result = (bool(stack),top)",
+        "assert repr(result) == \"(True, 0)\""
+      ],
+      "O(1)",
+      "O(1)",
+      "if stack[-1] fails both on [] and for legitimate false-valued top."
+    ],
+    [
+      "Nested scopes match the latest opening",
+      "For brackets, push openers; each closer must match the top opener, and the stack must end empty.",
+      [
+        "pairs = {')': '(', ']': '[', '}': '{'}",
+        "stack = []",
+        "valid = True",
+        "for char in '([])':",
+        "    if char in '([{': stack.append(char)",
+        "    elif not stack or stack.pop() != pairs[char]:",
+        "        valid = False",
+        "        break",
+        "assert valid and not stack",
+        "result = (valid,stack)",
+        "assert repr(result) == \"(True, [])\""
+      ],
+      "O(n)",
+      "O(d)",
+      "Counts alone accept crossed nesting such as ([)]."
+    ],
+    [
+      "Operand order in postfix",
+      "Pop right operand first, then left. Commutative addition can hide reversal bugs that subtraction/division expose.",
+      [
+        "stack = [8, 3]",
+        "right = stack.pop()",
+        "left = stack.pop()",
+        "stack.append(left-right)",
+        "assert stack == [5]",
+        "result = stack",
+        "assert repr(result) == \"[5]\""
+      ],
+      "O(1) shown operation",
+      "O(h)",
+      "left/right order matters for noncommutative operators."
+    ],
+    [
+      "Truncation toward zero without float",
+      "Python // floors negative results. Signed absolute integer division truncates toward zero without converting huge integers to float.",
+      [
+        "a, b = -7, 3",
+        "quotient = abs(a) // abs(b)",
+        "if (a < 0) != (b < 0): quotient = -quotient",
+        "assert quotient == -2 and a // b == -3",
+        "result = (quotient,a//b)",
+        "assert repr(result) == \"(-2, -3)\""
+      ],
+      "O(1) bounded-word model; bit-dependent in Python",
+      "O(1) bounded-word model",
+      "int(a/b) can lose precision or overflow during float conversion."
+    ],
+    [
+      "Indices preserve distances and expiry",
+      "Monotonic stacks usually store indices: they allow reading values while retaining positions for distances, widths and tie ownership.",
+      [
+        "a = [70, 70, 71]",
+        "stack = []",
+        "wait = [0]*len(a)",
+        "for i, value in enumerate(a):",
+        "    while stack and a[stack[-1]] < value:",
+        "        j = stack.pop()",
+        "        wait[j] = i-j",
+        "    stack.append(i)",
+        "assert wait == [2, 1, 0]",
+        "result = wait",
+        "assert repr(result) == \"[2, 1, 0]\""
+      ],
+      "O(n) amortized aggregate",
+      "O(n) auxiliary plus output",
+      "A value alone cannot distinguish duplicate positions."
+    ],
+    [
+      "Monotonic does not mean sorted output",
+      "The stack stores unresolved candidates; a new value resolves or dominates a suffix, not every processed element.",
+      [
+        "a = [3, 1, 2]",
+        "stack = []",
+        "for i, value in enumerate(a):",
+        "    while stack and a[stack[-1]] < value: stack.pop()",
+        "    stack.append(i)",
+        "assert [a[i] for i in stack] == [3, 2]",
+        "result = [a[i] for i in stack]",
+        "assert repr(result) == \"[3, 2]\""
+      ],
+      "O(n)",
+      "O(n)",
+      "Explain whether pop means resolved answer or discarded dominated candidate."
+    ],
+    [
+      "Equality changes the question",
+      "Previous strictly smaller pops >= current; previous smaller-or-equal pops > current. Contribution counting needs asymmetric ties.",
+      [
+        "a = [2, 2]",
+        "stack, previous = [], []",
+        "for i, x in enumerate(a):",
+        "    while stack and a[stack[-1]] >= x: stack.pop()",
+        "    previous.append(stack[-1] if stack else -1)",
+        "    stack.append(i)",
+        "assert previous == [-1, -1]",
+        "result = previous",
+        "assert repr(result) == \"[-1, -1]\""
+      ],
+      "O(n)",
+      "O(n)",
+      "Using strict comparisons on both contribution boundaries double-counts equal minima."
+    ],
+    [
+      "Aggregate amortized proof",
+      "Each element enters once and leaves at most once. A long inner pop loop is paid for by earlier pushes, so total stack work is linear.",
+      [
+        "stack = []",
+        "pushes = pops = 0",
+        "for x in range(100):",
+        "    while stack and stack[-1] < x:",
+        "        stack.pop()",
+        "        pops += 1",
+        "    stack.append(x)",
+        "    pushes += 1",
+        "assert pushes == 100 and pops <= pushes",
+        "result = (pushes,pops)",
+        "assert repr(result) == \"(100, 99)\""
+      ],
+      "O(n)",
+      "O(n) worst",
+      "This does not excuse unrelated O(n) slices inside the loop."
+    ],
+    [
+      "Auxiliary metadata snapshots",
+      "A minimum stack stores the running minimum with each item, keeping minimum queries O(1) even with repeated minima.",
+      [
+        "stack = []",
+        "for x in [2, 1, 1]:",
+        "    minimum = min(x, stack[-1][1]) if stack else x",
+        "    stack.append((x, minimum))",
+        "stack.pop()",
+        "assert stack[-1][1] == 1",
+        "result = stack[-1]",
+        "assert repr(result) == \"(1, 1)\""
+      ],
+      "O(1) amortized update, O(1) min",
+      "O(h)",
+      "If using a separate minimum stack, duplicate minima must also be recorded."
+    ],
+    [
+      "Explicit frames replace recursive control",
+      "DFS can store enter/exit events; postorder work belongs to exit events after descendants finish. Graphs additionally require visited tracking.",
+      [
+        "children = {0: [1, 2], 1: [], 2: []}",
+        "stack, order = [(0, False)], []",
+        "while stack:",
+        "    node, exiting = stack.pop()",
+        "    if exiting: order.append(node)",
+        "    else:",
+        "        stack.append((node, True))",
+        "        for child in reversed(children[node]): stack.append((child, False))",
+        "assert order == [1, 2, 0]",
+        "result = order",
+        "assert repr(result) == \"[1, 2, 0]\""
+      ],
+      "O(V+E) on finite tree",
+      "O(V) worst explicit frames",
+      "A bare node stack does not preserve recursive exit-time work automatically."
+    ]
+  ],
+  "patterns": [
+    [
+      "Bracket matching",
+      "CORE",
+      "Well-nested delimiters",
+      "Push opening kinds; each close must pop its matching opener; require empty at end.",
+      "O(n)",
+      "O(d)",
+      "20 Valid Parentheses",
+      "Equal counts do not imply valid nesting.",
+      "Stack contains exactly unmatched openers in encounter order.",
+      "When quotes/escapes alter delimiter meaning; tokenize first."
+    ],
+    [
+      "Postfix evaluation",
+      "CORE",
+      "Operators after operands",
+      "Push numbers; for operator pop right then left, compute, push result.",
+      "O(n) bounded-word operations",
+      "O(n)",
+      "150 Evaluate Reverse Polish Notation",
+      "Division truncates toward zero, not // for negatives.",
+      "Stack values represent completed subexpressions awaiting use.",
+      "For infix without precedence parsing."
+    ],
+    [
+      "Prefix aggregate stack",
+      "CORE",
+      "Push/pop plus min/max query",
+      "Store (value,running_min) at every height.",
+      "O(1) amortized update; O(1) query",
+      "O(n)",
+      "155 Min Stack",
+      "Duplicate minima must survive one pop.",
+      "Each height stores the minimum of exactly its prefix.",
+      "For sliding-window deletion from both ends."
+    ],
+    [
+      "Adjacent cancellation / run compression",
+      "CORE",
+      "Repeated removal of adjacent equal items",
+      "Keep unresolved characters or (character,count) runs; pop a run at k.",
+      "O(n)",
+      "O(n)",
+      "1047 Remove All Adjacent Duplicates In String; 1209 Remove All Adjacent Duplicates in String II",
+      "Removal can create new adjacency across the deleted run.",
+      "Stack expands to the fully reduced processed prefix.",
+      "For nonadjacent deletion rules without extra state."
+    ],
+    [
+      "Next strictly greater resolution",
+      "CORE",
+      "Next warmer/larger item to right",
+      "Keep decreasing unresolved indices; pop indices whose value is strictly lower than current.",
+      "O(n)",
+      "O(n) auxiliary plus output",
+      "739 Daily Temperatures; 496 Next Greater Element I",
+      "Equal is not strictly greater.",
+      "Unresolved stack values are nonincreasing; no popped index has an earlier qualifying right answer.",
+      "For window maxima requiring expiry at front; use deque."
+    ],
+    [
+      "Previous strictly smaller boundary",
+      "CORE",
+      "Nearest lower left boundary",
+      "Pop while top >= current, then top is nearest strictly lower index.",
+      "O(n)",
+      "O(n)",
+      "84 Largest Rectangle in Histogram",
+      "Use >= vs > to match strictness.",
+      "Stack indices increase and values strictly increase after each insertion.",
+      "When all qualifying neighbors, not nearest one, are required."
+    ],
+    [
+      "Circular next greater",
+      "IMPORTANT",
+      "Array wraps around once",
+      "Scan virtual indices 0..2n-1, push original indices only during first pass.",
+      "O(n)",
+      "O(n)",
+      "503 Next Greater Element II",
+      "Never assign equal values as greater; avoid duplicated pushes.",
+      "Each original unresolved index can inspect at most one full cyclic successor traversal.",
+      "When more than one wrap changes state rather than repeats candidates."
+    ],
+    [
+      "Histogram rectangles",
+      "IMPORTANT",
+      "Max rectangle under bars",
+      "Increasing index stack; popped height spans from new stack top+1 to current index-1.",
+      "O(n)",
+      "O(n)",
+      "84 Largest Rectangle in Histogram; 85 Maximal Rectangle",
+      "Width is i-left-1 after popping, not i-popped_index.",
+      "Every popped bar gets its maximal legal span at its first strictly lower right boundary.",
+      "For arbitrary 2D weighted regions without histogram reduction."
+    ],
+    [
+      "Subarray extrema contributions",
+      "ADVANCED",
+      "Sum of minimum/maximum across every subarray",
+      "Find previous strict and next nonstrict boundary to assign each equal-valued tie once.",
+      "O(n)",
+      "O(n)",
+      "907 Sum of Subarray Minimums; 2104 Sum of Subarray Ranges",
+      "Symmetric tie treatment causes over/undercounting.",
+      "Each subarray assigns its minimum to exactly one chosen occurrence.",
+      "When the aggregate is not decomposable into independent extremum contributions."
+    ],
+    [
+      "Monotonic greedy subsequence",
+      "IMPORTANT",
+      "Remove k digits/letters for lexicographically smallest result",
+      "Pop larger prior symbols while deletion budget allows, then remove unused budget from suffix.",
+      "O(n)",
+      "O(n)",
+      "402 Remove K Digits; 316 Remove Duplicate Letters",
+      "Unique-letter variant needs remaining counts and membership too.",
+      "Retained prefix is lexicographically minimal under the remaining deletion/completion budget.",
+      "When reordering is allowed; this preserves subsequence order."
+    ],
+    [
+      "Nested decoding contexts",
+      "IMPORTANT",
+      "k[expression] with nesting",
+      "Push prior fragment list and repeat count on opening; collapse completed inner output on closing.",
+      "O(n+dR) conservative character-copy work plus integer bit costs",
+      "O(n+R) live storage",
+      "394 Decode String",
+      "Expanded output may be enormous even when input is short.",
+      "Frames store suspended outer contexts and current frame holds decoded inner prefix.",
+      "Untrusted huge expansion without resource limits or streaming design."
+    ],
+    [
+      "Collision simulation",
+      "IMPORTANT",
+      "Adjacent moving items annihilate",
+      "Keep survivors; resolve only right-moving top against new left-moving item until stable.",
+      "O(n)",
+      "O(n)",
+      "735 Asteroid Collision",
+      "Same direction never collides; zero velocity needs its own model.",
+      "Survivor stack is collision-free for the processed prefix.",
+      "When continuous timing/speeds differ so simple local rule is insufficient."
+    ],
+    [
+      "Unmatched-boundary indices",
+      "IMPORTANT",
+      "Longest valid parentheses substring",
+      "Seed index -1; push opening indices, pop for close, reset base when unmatched.",
+      "O(n)",
+      "O(n)",
+      "32 Longest Valid Parentheses",
+      "After an unmatched close, reset base to its index.",
+      "Bottom stores last invalid boundary; other indices are unmatched opens.",
+      "For subsequence length rather than contiguous substring."
+    ],
+    [
+      "Explicit LIFO graph traversal",
+      "CORE",
+      "Depth-first exploration without recursion overflow",
+      "Mark on push for duplicate-free LIFO reachability; use iterator frames to reproduce exact recursive DFS order.",
+      "O(V+E) expected",
+      "O(V)",
+      "200 Number of Islands; 1971 Find if Path Exists in Graph",
+      "Graph traversal needs visited; simple trees can omit it.",
+      "Each scheduled vertex is marked once; iterator frames retain one active neighbor cursor per DFS ancestor.",
+      "For shortest paths in unweighted graph; BFS is the correct frontier."
+    ],
+    [
+      "Enter/exit event frames",
+      "IMPORTANT",
+      "Postorder, nested evaluation, backtracking cleanup",
+      "Push an exit continuation before children; process exit when descendants completed.",
+      "O(V+E) on tree or visited graph",
+      "O(V) worst frames",
+      "145 Binary Tree Postorder Traversal",
+      "A naive node stack loses exit-time semantics.",
+      "Each exit frame resumes exactly the deferred work after its children.",
+      "When iteration order or side effects require a richer iterator frame."
+    ],
+    [
+      "Online compressed monotonic spans",
+      "IMPORTANT",
+      "Online consecutive previous <= current price",
+      "Store decreasing (price,span) groups; absorb no-greater groups.",
+      "O(1) amortized per call; O(n) worst call",
+      "O(n)",
+      "901 Online Stock Span",
+      "Equal prices merge; amortized is not worst-call time.",
+      "Groups partition processed days; group prices are strictly decreasing.",
+      "Arbitrary historical edits need a dynamic structure."
+    ],
+    [
+      "Distinct-symbol greedy subsequence",
+      "IMPORTANT",
+      "Smallest subsequence containing every distinct symbol once",
+      "Track remaining copies and present set; pop larger leaders only when they occur again.",
+      "O(n) expected",
+      "O(u) auxiliary plus O(u) output",
+      "316 Remove Duplicate Letters; 1081 Smallest Subsequence of Distinct Characters",
+      "Digit greedy alone can lose the final copy.",
+      "Stack symbols are unique and all missing required symbols remain in suffix.",
+      "Duplicates allowed or arbitrary reorder changes the contract."
+    ],
+    [
+      "Sign-context infix evaluation",
+      "IMPORTANT",
+      "Parentheses and +/- with unary signs",
+      "Suspend total and multiplier at opening, combine inner context on closing.",
+      "O(n) bounded-word operations",
+      "O(d)",
+      "224 Basic Calculator",
+      "Minus before parentheses negates the entire context.",
+      "Frames encode outer totals and multipliers for unfinished expressions.",
+      "Multiplication/division precedence needs a fuller parser."
+    ],
+    [
+      "Rain-water basin resolution",
+      "IMPORTANT",
+      "Total water under unit-width bars",
+      "Decreasing indices; popped bottom resolves layer bounded by current and surviving wall.",
+      "O(n)",
+      "O(n)",
+      "42 Trapping Rain Water",
+      "Water needs two walls and a height difference, unlike histogram area.",
+      "Resolved layers have valid walls and are counted once above popped bottoms.",
+      "Two pointers reduces space; variable widths require prefix-width accounting."
+    ]
+  ],
+  "recognize": [
+    [
+      "Closest greater to right",
+      "Next strictly greater resolution",
+      "Why: Unresolved stack values are nonincreasing; no popped index has an earlier qualifying right answer. Boundary/exception: Strict < pops for strict greater. Limit: For window maxima requiring expiry at front; use deque."
+    ],
+    [
+      "Closest strictly smaller to left",
+      "Previous strictly smaller boundary",
+      "Why: Stack indices increase and values strictly increase after each insertion. Boundary/exception: Pop >= current. Limit: When all qualifying neighbors, not nearest one, are required."
+    ],
+    [
+      "Nearest answer with wraparound",
+      "Circular next greater",
+      "Why: Each original unresolved index can inspect at most one full cyclic successor traversal. Boundary/exception: Push once, scan twice. Limit: When more than one wrap changes state rather than repeats candidates."
+    ],
+    [
+      "Best rectangle under heights",
+      "Histogram rectangles",
+      "Why: Every popped bar gets its maximal legal span at its first strictly lower right boundary. Boundary/exception: Nonnegative heights and width convention. Limit: For arbitrary 2D weighted regions without histogram reduction."
+    ],
+    [
+      "Sum of all subarray minima",
+      "Subarray extrema contributions",
+      "Why: Each subarray assigns its minimum to exactly one chosen occurrence. Boundary/exception: Use one strict and one nonstrict boundary. Limit: When the aggregate is not decomposable into independent extremum contributions."
+    ],
+    [
+      "Valid nested brackets",
+      "Bracket matching",
+      "Why: Stack contains exactly unmatched openers in encounter order. Boundary/exception: Counts alone fail ([)]. Limit: When quotes/escapes alter delimiter meaning; tokenize first."
+    ],
+    [
+      "Expression in postfix",
+      "Postfix evaluation",
+      "Why: Stack values represent completed subexpressions awaiting use. Boundary/exception: Right operand is first pop. Limit: For infix without precedence parsing."
+    ],
+    [
+      "Infix expression",
+      "Precedence parser / operator stack",
+      "Why: Infix precedence and parentheses determine when an operator can be evaluated. Boundary/exception: Postfix template is not a general infix evaluator."
+    ],
+    [
+      "Min query under push/pop",
+      "Prefix aggregate stack",
+      "Why: Each height stores the minimum of exactly its prefix. Boundary/exception: Duplicates matter. Limit: For sliding-window deletion from both ends."
+    ],
+    [
+      "Remove adjacent repetitions",
+      "Adjacent cancellation / run compression",
+      "Why: Stack expands to the fully reduced processed prefix. Boundary/exception: Cascades happen after pops. Limit: For nonadjacent deletion rules without extra state."
+    ],
+    [
+      "Smallest number after k deletions",
+      "Monotonic greedy subsequence",
+      "Why: Retained prefix is lexicographically minimal under the remaining deletion/completion budget. Boundary/exception: Budget leftover comes off the right. Limit: When reordering is allowed; this preserves subsequence order."
+    ],
+    [
+      "Nested repeat syntax",
+      "Nested decoding contexts",
+      "Why: Frames store suspended outer contexts and current frame holds decoded inner prefix. Boundary/exception: Bound expanded output and validate grammar. Limit: Untrusted huge expansion without resource limits or streaming design."
+    ],
+    [
+      "Line collisions with equal-speed signs",
+      "Collision simulation",
+      "Why: Survivor stack is collision-free for the processed prefix. Boundary/exception: Only positive-top/negative-current interact. Limit: When continuous timing/speeds differ so simple local rule is insufficient."
+    ],
+    [
+      "Longest valid contiguous parentheses",
+      "Unmatched-boundary indices",
+      "Why: Bottom stores last invalid boundary; other indices are unmatched opens. Boundary/exception: Reset base after unmatched close. Limit: For subsequence length rather than contiguous substring."
+    ],
+    [
+      "Deep graph/tree traversal",
+      "Explicit LIFO graph traversal",
+      "Why: Each scheduled vertex is marked once; iterator frames retain one active neighbor cursor per DFS ancestor. Boundary/exception: DFS is not shortest path BFS. Limit: For shortest paths in unweighted graph; BFS is the correct frontier."
+    ],
+    [
+      "Need work after descendants",
+      "Enter/exit event frames",
+      "Why: Each exit frame resumes exactly the deferred work after its children. Boundary/exception: Store continuation state, not just vertex. Limit: When iteration order or side effects require a richer iterator frame."
+    ],
+    [
+      "Maximum in moving window",
+      "Monotonic deque, not stack",
+      "Why: FIFO expiry needs access to the oldest candidate, which a stack lacks. Boundary/exception: Must expire candidates at the front."
+    ],
+    [
+      "Online consecutive <= current price",
+      "Online compressed monotonic spans",
+      "Why: Groups partition processed days; group prices are strictly decreasing. Boundary/exception: Equal prices merge; one call may be linear. Limit: Arbitrary historical edits need a dynamic structure."
+    ],
+    [
+      "Every distinct symbol once, smallest subsequence",
+      "Distinct-symbol greedy subsequence",
+      "Why: Stack symbols are unique and all missing required symbols remain in suffix. Boundary/exception: Membership alone cannot ensure completion. Limit: Duplicates allowed or arbitrary reorder changes the contract."
+    ],
+    [
+      "Evaluate nested +/- with unary signs",
+      "Sign-context infix evaluation",
+      "Why: Frames encode outer totals and multipliers for unfinished expressions. Boundary/exception: Multiplication is outside grammar. Limit: Multiplication/division precedence needs a fuller parser."
+    ],
+    [
+      "Water between bars",
+      "Rain-water basin resolution",
+      "Why: Resolved layers have valid walls and are counted once above popped bottoms. Boundary/exception: Not histogram; two pointers reduces auxiliary memory. Limit: Two pointers reduces space; variable widths require prefix-width accounting."
+    ]
+  ],
+  "contrasts": [
+    [
+      "Stack vs queue",
+      "LIFO explores latest pending work; FIFO processes earliest and gives BFS layers."
+    ],
+    [
+      "Monotonic stack vs deque",
+      "Stack resolves nearest boundaries; deque supports moving-window expiry and extrema."
+    ],
+    [
+      "Indices vs values",
+      "Indices retain widths, distances and duplicate identity; values suffice for pure cancellation/evaluation."
+    ],
+    [
+      "Strict vs nonstrict pop",
+      "< resolves strict next-greater; >= removes equal blockers for previous strictly smaller. Tie rules depend on the question."
+    ],
+    [
+      "Amortized vs worst per call",
+      "A full scan can be O(n) although one item pops O(n) predecessors; a streaming next() call may be linear individually."
+    ],
+    [
+      "Recursive vs explicit frames",
+      "Both store pending work; explicit frames avoid interpreter recursion depth but not memory requirements."
+    ],
+    [
+      "Histogram area vs minimum contribution",
+      "Area maximizes height times one maximal width; contribution sums value times number of owning subarrays."
+    ],
+    [
+      "Substring vs subsequence",
+      "Boundary-index parentheses finds a contiguous segment; greedy deletions retain a subsequence and may skip positions."
+    ],
+    [
+      "Node frontier vs recursive DFS frames",
+      "Mark-on-push LIFO gives reachability but can schedule cross-edge siblings too early to match recursive DFS. Suspend neighbor iterators for exact semantics."
+    ],
+    [
+      "Histogram vs rain water",
+      "Histogram uses limiting bar height; water uses minimum of two walls minus basin bottom."
+    ]
+  ],
+  "edges": [
+    [
+      "Empty",
+      "[] or empty text",
+      "Universal: Empty outputs, 0 lengths/areas, bracket True; postfix rejects no expression. Reveals missing base case."
+    ],
+    [
+      "Underflow",
+      "pop/min on empty custom stack",
+      "Universal: Raise IndexError consistently. Reveals unguarded underflow."
+    ],
+    [
+      "False payload",
+      "stack=[0]",
+      "Universal: Nonempty; do not test top truthiness. Reveals top truthiness."
+    ],
+    [
+      "Crossed delimiters",
+      "([)]",
+      "Algorithm-specific: Invalid despite equal counts. Reveals counts replacing nesting."
+    ],
+    [
+      "Unclosed opener",
+      "(((",
+      "Algorithm-specific: Invalid, nonempty stack at end. Reveals missing final empty check."
+    ],
+    [
+      "Equal values",
+      "[2,2,2]",
+      "Universal: No strictly greater answer; minima contribution total 12. Reveals wrong equality ownership."
+    ],
+    [
+      "Increasing",
+      "[1,2,3,4]",
+      "Universal: Large pop bursts but linear total work. Reveals burst mistaken for quadratic total."
+    ],
+    [
+      "Decreasing",
+      "[4,3,2,1]",
+      "Universal: Stack height can reach n. Reveals constant-height assumption."
+    ],
+    [
+      "Histogram zeros",
+      "[0,2,0]",
+      "Algorithm-specific: Max area 2; flush remaining heights. Reveals missing sentinel."
+    ],
+    [
+      "Circular singleton",
+      "[7]",
+      "Algorithm-specific: No next greater; result -1. Reveals self-match after wrap."
+    ],
+    [
+      "Negative division",
+      "-7 3 /",
+      "Algorithm-specific: Result -2, not -3. Reveals floor versus truncation."
+    ],
+    [
+      "Huge integer",
+      "10**400 divided by 3",
+      "Algorithm-specific: Integer-only truncation avoids floating conversion. Reveals float conversion."
+    ],
+    [
+      "Cancellation cascade",
+      "deeedbbcccbdaa, k=3",
+      "Algorithm-specific: aa after cascaded removals. Reveals missing cascade."
+    ],
+    [
+      "Budget endpoints",
+      "remove_k_digits(\"123\",0) or k=3",
+      "Algorithm-specific: 123 or 0; invalid k raises ValueError. Reveals unused deletion budget."
+    ],
+    [
+      "Decode grammar",
+      "3[a2[c]]; 2[a; [a]",
+      "Algorithm-specific: accaccacc; malformed forms raise ValueError. Reveals missing grammar validation."
+    ],
+    [
+      "Collision ties",
+      "[8,-8]; [-2,1]",
+      "Algorithm-specific: []; [-2,1]. Reveals wrong directions."
+    ],
+    [
+      "Graph cycle",
+      "0->1->0",
+      "Algorithm-specific: Each reachable vertex visited once. Reveals missing visited."
+    ],
+    [
+      "Deep nesting",
+      "depth 2000",
+      "Algorithm-specific: Iterative frames avoid recursion error; output still needs memory. Reveals recursive overflow."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Using pop(0)",
+      "Use append/pop at right end for LIFO O(1) amortized."
+    ],
+    [
+      "Peek before guard",
+      "Check stack before stack[-1]."
+    ],
+    [
+      "Top truthiness",
+      "Zero/None may be valid values; emptiness is bool(stack)."
+    ],
+    [
+      "Value-only distances",
+      "Store indices for waiting times, widths and boundary lengths."
+    ],
+    [
+      "Unchosen equality",
+      "State strict or nonstrict objective before writing the pop operator."
+    ],
+    [
+      "Wrong histogram width",
+      "After popping j, width is i-(new_top or -1)-1."
+    ],
+    [
+      "Unflushed histogram",
+      "Process a final sentinel position to resolve increasing suffix."
+    ],
+    [
+      "Duplicate minimum ownership",
+      "One boundary strict, the other nonstrict to count tied subarrays once."
+    ],
+    [
+      "Quadratic assumption",
+      "Count total pushes/pops rather than multiplying nested-loop bounds blindly."
+    ],
+    [
+      "Hidden copying",
+      "Slicing or joining on every step may dominate stack operations."
+    ],
+    [
+      "Postfix operand swap",
+      "Pop right first, then left."
+    ],
+    [
+      "Wrong negative division",
+      "Use signed abs(a)//abs(b), not // directly or float conversion."
+    ],
+    [
+      "Extra postfix operands",
+      "Require exactly one final result and enough operands at every operator."
+    ],
+    [
+      "Wrong collision directions",
+      "Only positive survivor versus negative incoming asteroid can collide."
+    ],
+    [
+      "Unused deletion budget",
+      "Trim remaining removals from suffix, guarding k=0 slice semantics."
+    ],
+    [
+      "Decode complexity claim",
+      "Account for expanded output and repeated materialization across nesting."
+    ],
+    [
+      "DFS used for shortest path",
+      "Use BFS for minimum edge count in unweighted graphs."
+    ],
+    [
+      "Recursion stack ignored",
+      "Explicit and implicit frames both count; deep Python recursion is not safe by default."
+    ]
+  ],
+  "impress": [
+    [
+      "Describe unresolved work",
+      "Say exactly what each stack entry is waiting for."
+    ],
+    [
+      "State equality policy",
+      "Dry-run [2,2] before trusting a monotonic comparison."
+    ],
+    [
+      "Prove linear total work",
+      "Charge each pop to its unique earlier push."
+    ],
+    [
+      "Separate output costs",
+      "Next-greater output O(n) is distinct from candidate stack memory."
+    ],
+    [
+      "Name the width interval",
+      "For a histogram popped bar, boundaries are exclusive."
+    ],
+    [
+      "Demonstrate operand order",
+      "Test subtraction or negative division, not only addition."
+    ],
+    [
+      "Validate grammar",
+      "Clarify bracket-only strings or tokenize a richer language first."
+    ],
+    [
+      "Use a counterexample",
+      "Crossed brackets disprove frequency-only validation."
+    ],
+    [
+      "Discuss peak height",
+      "A decreasing input can use O(n) stack even if typical cases shrink."
+    ],
+    [
+      "Bound expansions",
+      "For decoders discuss R and memory limits before claiming O(n)."
+    ]
+  ],
+  "memory": [
+    [
+      "LIFO",
+      "append / pop / [-1]",
+      "Right end is top."
+    ],
+    [
+      "Next strict greater",
+      "while a[stack[-1]] < x",
+      "Pop unresolved indices, assign current index."
+    ],
+    [
+      "Previous strict smaller",
+      "while a[stack[-1]] >= x",
+      "Equal values are not strictly smaller."
+    ],
+    [
+      "Histogram width",
+      "i-left-1",
+      "left is new stack top after pop."
+    ],
+    [
+      "Minimum ownership",
+      "(i-prev_less)*(next_less_equal-i)",
+      "One strict and one nonstrict boundary."
+    ],
+    [
+      "Daily wait",
+      "right_index-left_index",
+      "Indices preserve distance."
+    ],
+    [
+      "Circular scan",
+      "i = step % n, step in range(2*n)",
+      "Push only when step<n."
+    ],
+    [
+      "Postfix operands",
+      "right=pop(); left=pop()",
+      "Compute left op right."
+    ],
+    [
+      "Truncated quotient",
+      "sign(a*b) * (abs(a)//abs(b))",
+      "Compare signs without multiplying huge integers in code."
+    ],
+    [
+      "Longest parentheses",
+      "length=i-stack[-1]",
+      "Base -1, reset on unmatched close."
+    ],
+    [
+      "Collision condition",
+      "stack[-1]>0 and incoming<0",
+      "Only inward-facing pair interacts."
+    ],
+    [
+      "Deletion budget",
+      "while budget and top>current: pop",
+      "Remove leftover budget from tail."
+    ],
+    [
+      "Amortization",
+      "pushes<=n, pops<=n",
+      "Total O(n) stack actions, not O(n²)."
+    ],
+    [
+      "Online span",
+      "span=1+sum(absorbed spans)",
+      "Pop <= current, merging equality."
+    ],
+    [
+      "Unique greedy safety",
+      "pop larger only if remaining[top]>0",
+      "Membership prevents duplicates; remaining ensures completion."
+    ],
+    [
+      "Water layer",
+      "(min(left,right)-bottom)*(right_index-left_index-1)",
+      "Requires surviving left wall after bottom pops."
+    ]
+  ],
+  "templates": [
+    [
+      "Validate bracket-only text",
+      "O(n)",
+      "O(d)",
+      [
+        "def valid_brackets(text):",
+        "    close = {')': '(', ']': '[', '}': '{'}",
+        "    stack = []",
+        "    for char in text:",
+        "        if char in '([{':",
+        "            stack.append(char)",
+        "        elif char in close:",
+        "            if not stack or stack.pop() != close[char]:",
+        "                return False",
+        "        else:",
+        "            raise ValueError('only bracket characters allowed')",
+        "    return not stack"
+      ],
+      "Only ()[]{} input is accepted; malformed nesting returns False and an encountered nonbracket raises ValueError. Empty True, no mutation. This is not a quote/escape-aware parser; may stop on an earlier mismatch before examining later characters."
+    ],
+    [
+      "Min stack with per-height minima",
+      "O(1) amortized push/pop; O(1) top/min",
+      "O(h)",
+      [
+        "class MinStack:",
+        "    def __init__(self):",
+        "        self.data = []",
+        "    def push(self, value):",
+        "        minimum = min(value, self.data[-1][1]) if self.data else value",
+        "        self.data.append((value, minimum))",
+        "    def pop(self):",
+        "        if not self.data:",
+        "            raise IndexError('empty stack')",
+        "        return self.data.pop()[0]",
+        "    def top(self):",
+        "        if not self.data:",
+        "            raise IndexError('empty stack')",
+        "        return self.data[-1][0]",
+        "    def get_min(self):",
+        "        if not self.data:",
+        "            raise IndexError('empty stack')",
+        "        return self.data[-1][1]"
+      ],
+      "Comparable values; methods mutate owned storage, duplicate minima supported. Empty pop/top/get_min raise IndexError. Do not externally edit data."
+    ],
+    [
+      "Integer reverse Polish evaluation",
+      "O(n) bounded-word operations",
+      "O(n)",
+      [
+        "def eval_rpn(tokens):",
+        "    stack = []",
+        "    for token in tokens:",
+        "        if token not in ('+', '-', '*', '/'):",
+        "            try:",
+        "                stack.append(int(token))",
+        "            except (TypeError, ValueError):",
+        "                raise ValueError('invalid integer token') from None",
+        "            continue",
+        "        if len(stack) < 2:",
+        "            raise ValueError('operator lacks operands')",
+        "        right, left = stack.pop(), stack.pop()",
+        "        if token == '+': value = left+right",
+        "        elif token == '-': value = left-right",
+        "        elif token == '*': value = left*right",
+        "        else:",
+        "            if right == 0:",
+        "                raise ValueError('division by zero')",
+        "            value = abs(left)//abs(right)",
+        "            if (left < 0) != (right < 0): value = -value",
+        "        stack.append(value)",
+        "    if len(stack) != 1:",
+        "        raise ValueError('expression must have one result')",
+        "    return stack[0]"
+      ],
+      "Iterable of integer strings and binary +,-,*,/ tokens; integer division truncates toward zero, no float conversion. Invalid arity/token/zero division -> ValueError; empty invalid. Input unchanged; big-integer bit costs not constant."
+    ],
+    [
+      "Next strictly greater right indices",
+      "O(n)",
+      "O(n) auxiliary plus O(n) output",
+      [
+        "def next_greater_indices(values):",
+        "    answer = [-1]*len(values)",
+        "    stack = []",
+        "    for i, value in enumerate(values):",
+        "        while stack and values[stack[-1]] < value:",
+        "            answer[stack.pop()] = i",
+        "        stack.append(i)",
+        "    return answer"
+      ],
+      "Comparable indexable sequence; each answer is nearest strictly greater right index or -1. Equality does not resolve; input unchanged, empty []."
+    ],
+    [
+      "Previous strictly smaller indices",
+      "O(n)",
+      "O(n) auxiliary plus O(n) output",
+      [
+        "def previous_smaller_indices(values):",
+        "    answer, stack = [], []",
+        "    for i, value in enumerate(values):",
+        "        while stack and values[stack[-1]] >= value:",
+        "            stack.pop()",
+        "        answer.append(stack[-1] if stack else -1)",
+        "        stack.append(i)",
+        "    return answer"
+      ],
+      "Comparable indexable sequence; nearest strictly smaller left index or -1. Pops equal values deliberately; no input mutation."
+    ],
+    [
+      "Circular next strictly greater values",
+      "O(n)",
+      "O(n) auxiliary plus O(n) output",
+      [
+        "def circular_next_greater(values):",
+        "    n = len(values)",
+        "    answer, stack = [-1]*n, []",
+        "    for step in range(2*n):",
+        "        i = step % n",
+        "        while stack and values[stack[-1]] < values[i]:",
+        "            answer[stack.pop()] = values[i]",
+        "        if step < n:",
+        "            stack.append(i)",
+        "    return answer"
+      ],
+      "Numeric sequence; nearest strictly greater value looking right with at most one wrap, -1 if absent. Sentinel -1 may also be a legitimate answer value; use index variant for unambiguous identity. Empty [] avoids modulo by zero, no mutation."
+    ],
+    [
+      "Largest histogram rectangle",
+      "O(n)",
+      "O(n)",
+      [
+        "def largest_rectangle(heights):",
+        "    if any(height < 0 for height in heights):",
+        "        raise ValueError('heights must be nonnegative')",
+        "    stack = []",
+        "    best = 0",
+        "    for i in range(len(heights)+1):",
+        "        current = heights[i] if i < len(heights) else -1",
+        "        while stack and heights[stack[-1]] > current:",
+        "            height = heights[stack.pop()]",
+        "            left = stack[-1] if stack else -1",
+        "            best = max(best, height*(i-left-1))",
+        "        if i < len(heights):",
+        "            stack.append(i)",
+        "    return best",
+        "def maximal_rectangle(matrix):",
+        "    if not matrix:",
+        "        return 0",
+        "    columns = len(matrix[0])",
+        "    heights, best = [0]*columns, 0",
+        "    for row in matrix:",
+        "        if len(row) != columns:",
+        "            raise ValueError('ragged matrix')",
+        "        for j, cell in enumerate(row):",
+        "            if not isinstance(cell, (int, str)) or cell not in (0, 1, '0', '1'):",
+        "                raise ValueError('binary cells required')",
+        "            heights[j] = heights[j]+1 if cell in (1, '1') else 0",
+        "        best = max(best, largest_rectangle(heights))",
+        "    return best"
+      ],
+      "Indexable nonnegative numeric heights, unit-width bars, finite values; returns area, empty 0. Input unchanged. Equal heights stay until a strictly lower boundary; final -1 sentinel flushes all. maximal_rectangle variation: rectangular reusable binary matrix of integer/string 0/1 cells; O(rows*cols) time/O(cols) auxiliary, empty 0, no mutation; ragged/nonbinary ValueError. Bool is accepted under Python int semantics; floats are rejected."
+    ],
+    [
+      "Sum of subarray minimums with explicit ties",
+      "O(n)",
+      "O(n)",
+      [
+        "def sum_subarray_minimums(values, mod=None):",
+        "    if mod is not None and mod <= 0:",
+        "        raise ValueError('mod must be positive')",
+        "    n = len(values)",
+        "    left, right = [-1]*n, [n]*n",
+        "    stack = []",
+        "    for i, value in enumerate(values):",
+        "        while stack and values[stack[-1]] >= value:",
+        "            stack.pop()",
+        "        left[i] = stack[-1] if stack else -1",
+        "        stack.append(i)",
+        "    stack = []",
+        "    for i in range(n-1, -1, -1):",
+        "        while stack and values[stack[-1]] > values[i]:",
+        "            stack.pop()",
+        "        right[i] = stack[-1] if stack else n",
+        "        stack.append(i)",
+        "    total = 0",
+        "    for i, value in enumerate(values):",
+        "        contribution = value*(i-left[i])*(right[i]-i)",
+        "        total += contribution",
+        "        if mod is not None:",
+        "            total %= mod",
+        "    return total",
+        "def sum_subarray_ranges(values):",
+        "    return -sum_subarray_minimums([-x for x in values])-sum_subarray_minimums(values)"
+      ],
+      "Integer sequence, optional positive integer modulus; previous strictly less and next less-or-equal assign equal minima to the rightmost occurrence. Returns exact sum by default, negatives supported, empty 0, no mutation. sum_subarray_ranges variation uses max(a)=-min(-a): O(n) time/O(n) auxiliary including negated copy; empty 0, no mutation."
+    ],
+    [
+      "Remove adjacent runs of k equal characters",
+      "O(n)",
+      "O(n) auxiliary plus output",
+      [
+        "def remove_adjacent_k(text, k):",
+        "    if k <= 0:",
+        "        raise ValueError('k must be positive')",
+        "    if k == 1:",
+        "        return ''",
+        "    stack = []",
+        "    for char in text:",
+        "        if stack and stack[-1][0] == char:",
+        "            stack[-1][1] += 1",
+        "            if stack[-1][1] == k:",
+        "                stack.pop()",
+        "        else:",
+        "            stack.append([char, 1])",
+        "    return ''.join(char*count for char, count in stack)"
+      ],
+      "String, integer k>0; repeatedly cancels adjacent groups of exactly k as a deterministic left-to-right reduction including cascades. Does not alter input; empty string remains empty."
+    ],
+    [
+      "Smallest number after k digit deletions",
+      "O(n)",
+      "O(n)",
+      [
+        "def remove_k_digits(number, k):",
+        "    if not 0 <= k <= len(number):",
+        "        raise ValueError('k outside digit count')",
+        "    if any(char not in '0123456789' for char in number):",
+        "        raise ValueError('ASCII decimal digits required')",
+        "    stack = []",
+        "    for char in number:",
+        "        while k and stack and stack[-1] > char:",
+        "            stack.pop()",
+        "            k -= 1",
+        "        stack.append(char)",
+        "    if k:",
+        "        del stack[-k:]",
+        "    return ''.join(stack).lstrip('0') or '0'"
+      ],
+      "ASCII nonnegative decimal string (empty allowed as zero), integer 0<=k<=length. Delete exactly k positions preserving relative order, normalize leading zeroes; no mutation."
+    ],
+    [
+      "Equal-speed asteroid collision survivors",
+      "O(n)",
+      "O(n)",
+      [
+        "def asteroid_collision(asteroids):",
+        "    if any(x == 0 for x in asteroids):",
+        "        raise ValueError('zero asteroid has no direction')",
+        "    stack = []",
+        "    for x in asteroids:",
+        "        alive = True",
+        "        while alive and x < 0 and stack and stack[-1] > 0:",
+        "            if stack[-1] < -x:",
+        "                stack.pop()",
+        "            elif stack[-1] == -x:",
+        "                stack.pop()",
+        "                alive = False",
+        "            else:",
+        "                alive = False",
+        "        if alive:",
+        "            stack.append(x)",
+        "    return stack"
+      ],
+      "Reusable finite sequence of nonzero signed integers; sign gives direction, magnitude size; positions ordered left to right, all speeds equal. Larger survives, equal annihilate. Returns new survivor list; no mutation."
+    ],
+    [
+      "Longest valid parentheses substring length",
+      "O(n)",
+      "O(n)",
+      [
+        "def longest_valid_parentheses(text):",
+        "    if any(char not in '()' for char in text):",
+        "        raise ValueError('parentheses only')",
+        "    stack = [-1]",
+        "    best = 0",
+        "    for i, char in enumerate(text):",
+        "        if char == '(':",
+        "            stack.append(i)",
+        "        else:",
+        "            stack.pop()",
+        "            if stack:",
+        "                best = max(best, i-stack[-1])",
+        "            else:",
+        "                stack.append(i)",
+        "    return best"
+      ],
+      "String of only parentheses; length of longest contiguous balanced substring, not subsequence. Empty 0, no mutation; invalid character ValueError."
+    ],
+    [
+      "Decode nested repeat contexts",
+      "O(n+dR) character work; repeat-count big-int parsing adds bit costs",
+      "O(n+R) live storage",
+      [
+        "def decode_repeats(text):",
+        "    frames = []",
+        "    current = []",
+        "    count = None",
+        "    for char in text:",
+        "        if '0' <= char <= '9':",
+        "            count = (0 if count is None else count)*10 + int(char)",
+        "        elif char == '[':",
+        "            if count is None or count <= 0:",
+        "                raise ValueError('opening bracket needs positive count')",
+        "            frames.append((current, count))",
+        "            current, count = [], None",
+        "        elif char == ']':",
+        "            if count is not None or not frames:",
+        "                raise ValueError('unmatched close or dangling count')",
+        "            prefix, repeat = frames.pop()",
+        "            prefix.append(''.join(current)*repeat)",
+        "            current = prefix",
+        "        else:",
+        "            if count is not None:",
+        "                raise ValueError('count must be followed by opening bracket')",
+        "            if not (('a' <= char <= 'z') or ('A' <= char <= 'Z')):",
+        "                raise ValueError('ASCII letters only in literals')",
+        "            current.append(char)",
+        "    if count is not None or frames:",
+        "        raise ValueError('incomplete repeat expression')",
+        "    return ''.join(current)"
+      ],
+      "Grammar: ASCII letters, concatenation and positive-integer[expression] nesting; empty expression/text allowed, no bare digits. Iterative, no recursion; returns expanded string, invalid syntax ValueError. R is final expanded length, d maximum depth; nested joining may rematerialize output O(dR). No expansion cap: use only within trusted output constraints. The O(n+dR) bound counts character copies and bounded-word count operations; very long decimal counts additionally incur Python arbitrary-precision integer parsing/arithmetic cost, even when repeating an empty fragment."
+    ],
+    [
+      "Iterative LIFO graph reachability order",
+      "O(V+E) expected",
+      "O(V)",
+      [
+        "def dfs_order(adjacency, start):",
+        "    seen = {start}",
+        "    stack = [start]",
+        "    order = []",
+        "    while stack:",
+        "        node = stack.pop()",
+        "        order.append(node)",
+        "        for neighbor in reversed(adjacency.get(node, ())):",
+        "            if neighbor not in seen:",
+        "                seen.add(neighbor)",
+        "                stack.append(neighbor)",
+        "    return order"
+      ],
+      "Mapping hashable vertices to reversible ordered neighbor sequences, directed or undirected unweighted graph. Visits vertices reachable from start once, missing key treated as leaf; returns [start] when absent. No mutation; deterministic stack traversal, not guaranteed identical to recursive DFS preorder because siblings are marked on push. For exact recursive semantics use iterator frames."
+    ],
+    [
+      "Online stock span by compressed groups",
+      "O(1) amortized per call; O(n) worst one call",
+      "O(n) across n calls",
+      [
+        "class StockSpanner:",
+        "    def __init__(self):",
+        "        self.stack = []",
+        "    def next(self, price):",
+        "        span = 1",
+        "        while self.stack and self.stack[-1][0] <= price:",
+        "            span += self.stack.pop()[1]",
+        "        self.stack.append((price, span))",
+        "        return span"
+      ],
+      "Comparable prices; next mutates state and returns consecutive days ending today with price<=today. Equal prices merge. One call may pop O(n), but each group is pushed/popped once across calls."
+    ],
+    [
+      "Smallest distinct-symbol subsequence",
+      "O(n) expected",
+      "O(u) auxiliary plus O(u) output",
+      [
+        "from collections import Counter",
+        "def smallest_distinct_subsequence(text):",
+        "    remaining = Counter(text)",
+        "    stack, present = [], set()",
+        "    for char in text:",
+        "        remaining[char] -= 1",
+        "        if char in present:",
+        "            continue",
+        "        while stack and stack[-1] > char and remaining[stack[-1]] > 0:",
+        "            present.remove(stack.pop())",
+        "        stack.append(char)",
+        "        present.add(char)",
+        "    return ''.join(stack)"
+      ],
+      "String ordered by Python code points; lexicographically minimum subsequence with each distinct symbol once. Empty empty, no mutation. Pop only when another copy remains."
+    ],
+    [
+      "Binary-tree postorder with exit frames",
+      "O(n)",
+      "O(h) auxiliary plus O(n) output",
+      [
+        "class TreeNode:",
+        "    def __init__(self, val=0, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "def postorder(root):",
+        "    stack = [(root, False)] if root is not None else []",
+        "    order = []",
+        "    while stack:",
+        "        node, exiting = stack.pop()",
+        "        if exiting:",
+        "            order.append(node.val)",
+        "        else:",
+        "            stack.append((node, True))",
+        "            if node.right is not None:",
+        "                stack.append((node.right, False))",
+        "            if node.left is not None:",
+        "                stack.append((node.left, False))",
+        "    return order"
+      ],
+      "Finite proper binary tree, no cycles/shared descendants; left-right-node values, empty [], no mutation. h is height; frames hold ancestors plus bounded pending siblings. Arbitrary-degree push-all may require O(n) frames."
+    ],
+    [
+      "Basic plus-minus calculator with sign contexts",
+      "O(n) bounded-word work",
+      "O(d) frames",
+      [
+        "def calculate(text):",
+        "    total, sign, expect = 0, 1, True",
+        "    frames = []",
+        "    i = 0",
+        "    while i < len(text):",
+        "        char = text[i]",
+        "        if char.isspace():",
+        "            i += 1",
+        "            continue",
+        "        if '0' <= char <= '9':",
+        "            if not expect:",
+        "                raise ValueError('missing operator')",
+        "            value = 0",
+        "            while i < len(text) and '0' <= text[i] <= '9':",
+        "                value = value*10 + int(text[i])",
+        "                i += 1",
+        "            total += sign*value",
+        "            sign, expect = 1, False",
+        "            continue",
+        "        if char in '+-':",
+        "            factor = 1 if char == '+' else -1",
+        "            sign = sign*factor if expect else factor",
+        "            expect = True",
+        "        elif char == '(':",
+        "            if not expect:",
+        "                raise ValueError('missing operator before parenthesis')",
+        "            frames.append((total, sign))",
+        "            total, sign, expect = 0, 1, True",
+        "        elif char == ')':",
+        "            if expect or not frames:",
+        "                raise ValueError('empty context or unmatched close')",
+        "            prior, factor = frames.pop()",
+        "            total = prior + factor*total",
+        "            sign, expect = 1, False",
+        "        else:",
+        "            raise ValueError('invalid calculator character')",
+        "        i += 1",
+        "    if expect or frames:",
+        "        raise ValueError('incomplete expression')",
+        "    return total"
+      ],
+      "ASCII nonnegative integer literals, whitespace, binary +/-, parentheses and unary +/- (repeated unary signs accepted). Nonempty expression required; invalid syntax ValueError. No multiplication/division or implicit multiplication, no eval or mutation; Python big-integer parsing/arithmetic add bit costs."
+    ],
+    [
+      "Exact recursive-style graph DFS using iterator frames",
+      "O(V+E) expected",
+      "O(V) visited plus O(h) frames and O(V) output",
+      [
+        "def recursive_style_dfs(adjacency, start):",
+        "    seen, order = {start}, [start]",
+        "    frames = [iter(adjacency.get(start, ()))]",
+        "    while frames:",
+        "        neighbor = next(frames[-1], frames)",
+        "        if neighbor is frames:",
+        "            frames.pop()",
+        "        elif neighbor not in seen:",
+        "            seen.add(neighbor)",
+        "            order.append(neighbor)",
+        "            frames.append(iter(adjacency.get(neighbor, ())))",
+        "    return order"
+      ],
+      "Directed/undirected adjacency mapping of hashable vertices to finite stable ordered iterables. Iterator frames reproduce recursive DFS neighbor order, no recursion or graph mutation. Missing start is a leaf; cycles use seen. Private frame-list sentinel cannot be a hashable vertex. h is DFS depth."
+    ],
+    [
+      "Trapped rain water by bounded basins",
+      "O(n)",
+      "O(n)",
+      [
+        "def trapped_water(heights):",
+        "    if any(x < 0 for x in heights):",
+        "        raise ValueError('heights must be nonnegative')",
+        "    stack, water = [], 0",
+        "    for right, height in enumerate(heights):",
+        "        while stack and heights[stack[-1]] < height:",
+        "            bottom = stack.pop()",
+        "            if not stack:",
+        "                break",
+        "            left = stack[-1]",
+        "            bounded = min(heights[left], height)-heights[bottom]",
+        "            water += bounded*(right-left-1)",
+        "        stack.append(right)",
+        "    return water"
+      ],
+      "Reusable indexable finite nonnegative numeric unit-width heights; trapped area, empty 0, no mutation. Resolves horizontal layers between two taller walls. Two-pointer alternative uses O(1) auxiliary memory."
+    ]
+  ],
+  "practice": [
+    [
+      "20 Valid Parentheses",
+      "Matching stack",
+      "Easy",
+      "O(n); O(d)",
+      "Crossed nesting and leftover openers."
+    ],
+    [
+      "155 Min Stack",
+      "Prefix-min metadata",
+      "Medium",
+      "O(1) amortized updates; O(h)",
+      "Duplicate minima."
+    ],
+    [
+      "1047 Remove All Adjacent Duplicates In String",
+      "Adjacent cancellation",
+      "Easy",
+      "O(n); O(n)",
+      "Cascades after deletion."
+    ],
+    [
+      "682 Baseball Game",
+      "History simulation",
+      "Easy",
+      "O(n); O(n)",
+      "Operations read prior scores with correct arity."
+    ],
+    [
+      "150 Evaluate Reverse Polish Notation",
+      "Operand stack",
+      "Medium",
+      "O(n) bounded-word ops; O(n)",
+      "Right operand first, truncate toward zero."
+    ],
+    [
+      "496 Next Greater Element I",
+      "Monotonic resolution",
+      "Easy",
+      "O(n+m) expected; O(n)",
+      "Problem uniqueness permits value->answer map."
+    ],
+    [
+      "739 Daily Temperatures",
+      "Next greater distance",
+      "Medium",
+      "O(n); O(n)",
+      "Equal temperature is not warmer."
+    ],
+    [
+      "503 Next Greater Element II",
+      "Circular scan",
+      "Medium",
+      "O(n); O(n)",
+      "Scan twice but push once."
+    ],
+    [
+      "901 Online Stock Span",
+      "Compressed monotonic stack",
+      "Medium",
+      "O(n) total for n calls; O(n)",
+      "One next() may pop many spans."
+    ],
+    [
+      "735 Asteroid Collision",
+      "Survivor simulation",
+      "Medium",
+      "O(n); O(n)",
+      "Only inward-facing pair interacts."
+    ],
+    [
+      "1209 Remove All Adjacent Duplicates in String II",
+      "Run counts",
+      "Medium",
+      "O(n); O(n)",
+      "Retain prior run count after cascading pop."
+    ],
+    [
+      "394 Decode String",
+      "Context frames",
+      "Medium",
+      "O(n+dR) conservative; O(n+R)",
+      "Output expansion and nested joins."
+    ],
+    [
+      "402 Remove K Digits",
+      "Greedy monotonic subsequence",
+      "Medium",
+      "O(n); O(n)",
+      "Leftover budget and leading zeros."
+    ],
+    [
+      "316 Remove Duplicate Letters",
+      "Greedy + remaining counts",
+      "Medium",
+      "O(n); O(u)",
+      "Pop only if symbol appears later."
+    ],
+    [
+      "144 Binary Tree Preorder Traversal",
+      "Explicit DFS",
+      "Easy",
+      "O(n); O(h) tree auxiliary",
+      "Push right before left."
+    ],
+    [
+      "145 Binary Tree Postorder Traversal",
+      "Exit frames",
+      "Easy",
+      "O(n); O(h) for binary-tree frames",
+      "Emit after children, not on entry."
+    ],
+    [
+      "84 Largest Rectangle in Histogram",
+      "Increasing boundaries",
+      "Hard",
+      "O(n); O(n)",
+      "Exclusive boundary width and sentinel flush."
+    ],
+    [
+      "85 Maximal Rectangle",
+      "Row histograms + stack",
+      "Hard",
+      "O(rows*cols); O(cols)",
+      "Reset height on zero cells."
+    ],
+    [
+      "907 Sum of Subarray Minimums",
+      "Extremum contributions",
+      "Medium",
+      "O(n); O(n)",
+      "Asymmetric tie ownership."
+    ],
+    [
+      "2104 Sum of Subarray Ranges",
+      "Min/max contribution difference",
+      "Medium",
+      "O(n); O(n)",
+      "Separate strictness choices for minima/maxima."
+    ],
+    [
+      "32 Longest Valid Parentheses",
+      "Unmatched index boundaries",
+      "Hard",
+      "O(n); O(n)",
+      "Reset base after unmatched close."
+    ],
+    [
+      "224 Basic Calculator",
+      "Sign/context stack",
+      "Hard",
+      "O(n); O(d)",
+      "Unary minus and parenthesized sign context."
+    ],
+    [
+      "42 Trapping Rain Water",
+      "Rain-water basin resolution",
+      "Hard",
+      "O(n) time; O(n) stack or O(1) two-pointer auxiliary",
+      "Need two walls and bounded height difference, not histogram area."
+    ]
+  ],
+  "operationExamples": [
+    {
+      "code": [
+        "stack=[]; result=stack",
+        "assert repr(result) == \"[]\""
+      ],
+      "result": "[]",
+      "use": "Initialize unfinished work.",
+      "mutation": "Allocates empty list."
+    },
+    {
+      "code": [
+        "stack=[1]; returned=stack.append(2); result=(stack,returned)",
+        "assert repr(result) == \"([1, 2], None)\""
+      ],
+      "result": "([1, 2], None)",
+      "use": "Push pending opener/frame.",
+      "mutation": "Mutates; resize may allocate."
+    },
+    {
+      "code": [
+        "stack=[1,2]; result=(stack.pop(),stack)",
+        "assert repr(result) == \"(2, [1])\""
+      ],
+      "result": "(2, [1])",
+      "use": "Resolve newest context.",
+      "mutation": "Mutates; empty raises IndexError."
+    },
+    {
+      "code": [
+        "stack=[1,0]; result=(stack[-1],stack)",
+        "assert repr(result) == \"(0, [1, 0])\""
+      ],
+      "result": "(0, [1, 0])",
+      "use": "Inspect unresolved candidate.",
+      "mutation": "Read only; empty raises."
+    },
+    {
+      "code": [
+        "stack=[0]; result=(bool(stack),len(stack),bool(stack[-1]))",
+        "assert repr(result) == \"(True, 1, False)\""
+      ],
+      "result": "(True, 1, False)",
+      "use": "Guard underflow.",
+      "mutation": "Read only; payload truthiness differs."
+    },
+    {
+      "code": [
+        "stack=[1,2,1]; result=(2 in stack,9 in stack)",
+        "assert repr(result) == \"(True, False)\""
+      ],
+      "result": "(True, False)",
+      "use": "Recognize linear membership.",
+      "mutation": "Read only; set helps repeated membership."
+    },
+    {
+      "code": [
+        "stack=[2,1,2]; result=(stack.count(2),stack.index(2))",
+        "assert repr(result) == \"(2, 0)\""
+      ],
+      "result": "(2, 0)",
+      "use": "Count/locate when linear scan acceptable.",
+      "mutation": "Read only; absent index raises ValueError."
+    },
+    {
+      "code": [
+        "stack=[[]]; copy=stack.copy(); copy[0].append(1); result=(stack,copy,stack is copy)",
+        "assert repr(result) == \"([[1]], [[1]], False)\""
+      ],
+      "result": "([[1]], [[1]], False)",
+      "use": "Snapshot structure.",
+      "mutation": "New shallow list; nested payloads shared."
+    },
+    {
+      "code": [
+        "stack=[1,2]; copy=stack[:]; copy.pop(); result=(stack,copy)",
+        "assert repr(result) == \"([1, 2], [1])\""
+      ],
+      "result": "([1, 2], [1])",
+      "use": "Audit slicing cost.",
+      "mutation": "O(h) copy, original unchanged."
+    },
+    {
+      "code": [
+        "stack=[1]; returned=stack.extend([2,3]); result=(stack,stack[-1],returned)",
+        "assert repr(result) == \"([1, 2, 3], 3, None)\""
+      ],
+      "result": "([1, 2, 3], 3, None)",
+      "use": "Schedule batch in chosen order.",
+      "mutation": "Mutates; final iterated value becomes top."
+    },
+    {
+      "code": [
+        "stack=[1,2,3]",
+        "result=[]",
+        "for x in reversed(stack):",
+        "    result.append(x)",
+        "assert repr(result) == \"[3, 2, 1]\""
+      ],
+      "result": "[3, 2, 1]",
+      "use": "Top-to-bottom inspection.",
+      "mutation": "Iterator no copy; result list allocated."
+    },
+    {
+      "code": [
+        "stack=[1,2]; alias=stack; stack.clear(); result=(stack,alias is stack)",
+        "assert repr(result) == \"([], True)\""
+      ],
+      "result": "([], True)",
+      "use": "Reset while keeping aliases.",
+      "mutation": "Mutates, releases references."
+    },
+    {
+      "code": [
+        "stack=[1,2]; stack.insert(0,9); value=stack.pop(0); result=(value,stack)",
+        "assert repr(result) == \"(9, [1, 2])\""
+      ],
+      "result": "(9, [1, 2])",
+      "use": "Expose wrong-end shifts.",
+      "mutation": "Mutates; O(h) shifts."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "stack=deque([1]); stack.append(2); result=(stack.pop(),list(stack))",
+        "assert repr(result) == \"(2, [1])\""
+      ],
+      "result": "(2, [1])",
+      "use": "Use if both ends also needed.",
+      "mutation": "Mutates deque; empty raises."
+    },
+    {
+      "code": [
+        "stack=[1,2,3]; result=(list(reversed(stack)),stack)",
+        "assert repr(result) == \"([3, 2, 1], [1, 2, 3])\""
+      ],
+      "result": "([3, 2, 1], [1, 2, 3])",
+      "use": "Materialize top-first output.",
+      "mutation": "New list; original unchanged."
+    }
+  ],
+  "fundamentalDetails": [
+    {
+      "why": "Latest unfinished work completes first.",
+      "use": "Scheduling/parsing.",
+      "result": "([10], 1)",
+      "edge": "Front operations shift elements.",
+      "takeaway": "Right end is top."
+    },
+    {
+      "why": "Zero is valid data, not emptiness.",
+      "use": "Safe peek/pop.",
+      "result": "(True, 0)",
+      "edge": "[] has no top.",
+      "takeaway": "Guard stack, not stack[-1]."
+    },
+    {
+      "why": "Nested syntax closes newest scope.",
+      "use": "Delimiter validation.",
+      "result": "(True, [])",
+      "edge": "([)] has equal counts but crossed nesting.",
+      "takeaway": "Counts cannot encode nesting order."
+    },
+    {
+      "why": "Left/right order determines operator meaning.",
+      "use": "Postfix evaluation.",
+      "result": "[5]",
+      "edge": "Addition hides reversed operands.",
+      "takeaway": "Pop right before left."
+    },
+    {
+      "why": "Floor division is not truncation.",
+      "use": "LC150 signed division.",
+      "result": "(-2, -3)",
+      "edge": "Huge integers cannot safely use float.",
+      "takeaway": "Signed absolute integer division."
+    },
+    {
+      "why": "Positions preserve widths and duplicate identities.",
+      "use": "Temperatures/histograms.",
+      "result": "[2, 1, 0]",
+      "edge": "Equal values at different positions have different distances.",
+      "takeaway": "Store indices for distance."
+    },
+    {
+      "why": "Only useful unresolved candidates remain.",
+      "use": "Monotonic dominance.",
+      "result": "[3, 2]",
+      "edge": "Popping may resolve or dominate; explain which.",
+      "takeaway": "Candidate invariant, not sorted output."
+    },
+    {
+      "why": "Strictness determines equal-value ownership.",
+      "use": "Contributions/nearest boundaries.",
+      "result": "[-1, -1]",
+      "edge": "Symmetric strict boundaries overcount equal minima.",
+      "takeaway": "Assign ties on one side."
+    },
+    {
+      "why": "Each push funds at most one later pop.",
+      "use": "Aggregate linear proof.",
+      "result": "(100, 99)",
+      "edge": "Unrelated slices are not paid by this proof.",
+      "takeaway": "Count lifetime events, not indentation."
+    },
+    {
+      "why": "Metadata per height survives duplicate values.",
+      "use": "Min/max stack.",
+      "result": "(1, 1)",
+      "edge": "Repeated minima need repeated snapshots.",
+      "takeaway": "Metadata describes a prefix."
+    },
+    {
+      "why": "Continuations retain work after descendants.",
+      "use": "Postorder/backtracking cleanup.",
+      "result": "[1, 2, 0]",
+      "edge": "Graphs need visited; high-degree push-all can need O(V) frames.",
+      "takeaway": "Exit work is a scheduled event."
+    }
+  ],
+  "patternDetails": [
+    {
+      "steps": [
+        "Push opening kind.",
+        "Match closer against popped opener.",
+        "Reject mismatch/underflow; require empty ending."
+      ],
+      "templates": [
+        "Validate bracket-only text"
+      ],
+      "related": "Quotes/escapes need tokenization.",
+      "variations": "Bracket-only grammar differs from ignoring other characters."
+    },
+    {
+      "steps": [
+        "Push integer operands.",
+        "Pop right then left.",
+        "Push result; require one final value."
+      ],
+      "templates": [
+        "Integer reverse Polish evaluation"
+      ],
+      "related": "Infix needs precedence/contexts.",
+      "variations": "Signed absolute division avoids float; bit costs matter."
+    },
+    {
+      "steps": [
+        "Push value with prefix minimum.",
+        "Pop metadata with its value.",
+        "Read top minimum snapshot."
+      ],
+      "templates": [
+        "Min stack with per-height minima"
+      ],
+      "related": "Separate minima stack also needs duplicate records.",
+      "variations": "Replace min with max or another constant-time prefix aggregate."
+    },
+    {
+      "steps": [
+        "Track unresolved runs.",
+        "Increment top or push new run.",
+        "Pop at k and permit cascades."
+      ],
+      "templates": [
+        "Remove adjacent runs of k equal characters"
+      ],
+      "related": "Collision survivor rules differ.",
+      "variations": "k=2 removes ordinary pairs; k=1 deletes all."
+    },
+    {
+      "steps": [
+        "Store unresolved indices.",
+        "Pop strictly lower values.",
+        "Assign nearest greater and push current."
+      ],
+      "templates": [
+        "Next strictly greater right indices"
+      ],
+      "related": "Previous boundaries discard dominated candidates.",
+      "variations": "Use i-j for waits; reverse comparison for smaller."
+    },
+    {
+      "steps": [
+        "Pop >= current.",
+        "Read nearest surviving top or -1.",
+        "Push index."
+      ],
+      "templates": [
+        "Previous strictly smaller indices"
+      ],
+      "related": "Contributions deliberately use asymmetric ties.",
+      "variations": "Use > for smaller-or-equal; do not change blindly."
+    },
+    {
+      "steps": [
+        "Scan virtual 2n positions.",
+        "Resolve strictly smaller tops.",
+        "Push original indices only first pass."
+      ],
+      "templates": [
+        "Circular next strictly greater values"
+      ],
+      "related": "Linear next-greater scans once.",
+      "variations": "Return indices if -1 value sentinel is ambiguous."
+    },
+    {
+      "steps": [
+        "Maintain increasing heights.",
+        "On lower bar pop and derive i-left-1 width.",
+        "Flush sentinel; matrix version updates row heights."
+      ],
+      "templates": [
+        "Largest histogram rectangle"
+      ],
+      "related": "Water measures bounded gaps.",
+      "variations": "Executable maximal_rectangle wrapper reduces each row to histogram."
+    },
+    {
+      "steps": [
+        "Find previous strict-less.",
+        "Find next less-or-equal.",
+        "Sum value*(i-left)*(right-i)."
+      ],
+      "templates": [
+        "Sum of subarray minimums with explicit ties"
+      ],
+      "related": "Nearest-boundary output is not a contribution sum.",
+      "variations": "Executable ranges variation uses max=-min(-values), including allocation."
+    },
+    {
+      "steps": [
+        "Choose deletion budget or distinctness constraint.",
+        "Pop larger leader only if completion stays feasible.",
+        "Remove leftover digit budget from suffix."
+      ],
+      "templates": [
+        "Smallest number after k digit deletions",
+        "Smallest distinct-symbol subsequence"
+      ],
+      "related": "Unique symbols additionally need remaining counts/present set.",
+      "variations": "Digit version allows repeats; distinct version cannot lose final copy."
+    },
+    {
+      "steps": [
+        "Suspend fragments/count at opening.",
+        "Decode inner context.",
+        "Join/repeat at closing and resume outer."
+      ],
+      "templates": [
+        "Decode nested repeat contexts"
+      ],
+      "related": "Calculator suspends numeric total.",
+      "variations": "Trusted output constraints required; iterative nested joins still cost O(n+dR)."
+    },
+    {
+      "steps": [
+        "Keep stable survivors.",
+        "Resolve positive top against negative incoming only.",
+        "Repeat until incoming dies or survives."
+      ],
+      "templates": [
+        "Equal-speed asteroid collision survivors"
+      ],
+      "related": "Adjacent cancellation compares equality.",
+      "variations": "Equal speed essential; different velocities need timing."
+    },
+    {
+      "steps": [
+        "Seed invalid boundary -1.",
+        "Push opening index or pop closer.",
+        "Reset base on underflow; maximize distance."
+      ],
+      "templates": [
+        "Longest valid parentheses substring length"
+      ],
+      "related": "Validation asks boolean, not longest substring.",
+      "variations": "Not a subsequence problem; boundary positions matter."
+    },
+    {
+      "steps": [
+        "Track seen when scheduling.",
+        "LIFO reachability pushes reversed neighbors.",
+        "Exact recursive DFS suspends neighbor iterator per active vertex."
+      ],
+      "templates": [
+        "Iterative LIFO graph reachability order",
+        "Exact recursive-style graph DFS using iterator frames"
+      ],
+      "related": "BFS finds unweighted shortest paths.",
+      "variations": "Node-frontier mark-on-push can differ on cross edges; iterator frames reproduce recursive order."
+    },
+    {
+      "steps": [
+        "Schedule continuation before descendants.",
+        "Process children in intended order.",
+        "Resume exit work on subtree/iterator completion."
+      ],
+      "templates": [
+        "Binary-tree postorder with exit frames",
+        "Exact recursive-style graph DFS using iterator frames"
+      ],
+      "related": "Basic reachability needs no exit work.",
+      "variations": "Binary-tree frames O(h); arbitrary degree push-all may need O(V); graphs need visited."
+    },
+    {
+      "steps": [
+        "Start span at one.",
+        "Absorb all <= price groups.",
+        "Push combined (price,span)."
+      ],
+      "templates": [
+        "Online stock span by compressed groups"
+      ],
+      "related": "Previous greater boundary describes same span.",
+      "variations": "One call O(n), lifetime O(n); equality merges."
+    },
+    {
+      "steps": [
+        "Count remaining copies; track membership.",
+        "Skip present symbols; pop larger leaders only if another copy remains.",
+        "Append symbol and join."
+      ],
+      "templates": [
+        "Smallest distinct-symbol subsequence"
+      ],
+      "related": "K-digit removal has budget instead.",
+      "variations": "Unicode comparison uses code-point order, not custom collation."
+    },
+    {
+      "steps": [
+        "Accumulate with pending unary sign.",
+        "Suspend total/multiplier at opening.",
+        "Combine inner value on close; validate syntax."
+      ],
+      "templates": [
+        "Basic plus-minus calculator with sign contexts"
+      ],
+      "related": "RPN has no parenthesis context.",
+      "variations": "Only +/-; multiplication needs precedence parser, never eval."
+    },
+    {
+      "steps": [
+        "Keep decreasing wall indices.",
+        "Pop basin bottom when taller right arrives.",
+        "With left wall add height difference times interior width."
+      ],
+      "templates": [
+        "Trapped rain water by bounded basins"
+      ],
+      "related": "Histogram multiplies popped height by maximal span.",
+      "variations": "Two pointers uses O(1) auxiliary; variable widths need width-prefix sums."
+    }
+  ],
+  "templateDetails": [
+    {
+      "pattern": "Bracket matching",
+      "preconditions": "Only ()[]{} input is accepted; malformed nesting returns False and an encountered nonbracket raises ValueError. Empty True, no mutation. This is not a quote/escape-aware parser; may stop on an earlier mismatch before examining later characters.",
+      "observation": "Reconstruct invariant: Stack contains exactly unmatched openers in encounter order. Adaptation: Bracket-only grammar differs from ignoring other characters."
+    },
+    {
+      "pattern": "Prefix aggregate stack",
+      "preconditions": "Comparable values; methods mutate owned storage, duplicate minima supported. Empty pop/top/get_min raise IndexError. Do not externally edit data.",
+      "observation": "Reconstruct invariant: Each height stores the minimum of exactly its prefix. Adaptation: Replace min with max or another constant-time prefix aggregate."
+    },
+    {
+      "pattern": "Postfix evaluation",
+      "preconditions": "Iterable of integer strings and binary +,-,*,/ tokens; integer division truncates toward zero, no float conversion. Invalid arity/token/zero division -> ValueError; empty invalid. Input unchanged; big-integer bit costs not constant.",
+      "observation": "Reconstruct invariant: Stack values represent completed subexpressions awaiting use. Adaptation: Signed absolute division avoids float; bit costs matter."
+    },
+    {
+      "pattern": "Next strictly greater resolution",
+      "preconditions": "Comparable indexable sequence; each answer is nearest strictly greater right index or -1. Equality does not resolve; input unchanged, empty [].",
+      "observation": "Reconstruct invariant: Unresolved stack values are nonincreasing; no popped index has an earlier qualifying right answer. Adaptation: Use i-j for waits; reverse comparison for smaller."
+    },
+    {
+      "pattern": "Previous strictly smaller boundary",
+      "preconditions": "Comparable indexable sequence; nearest strictly smaller left index or -1. Pops equal values deliberately; no input mutation.",
+      "observation": "Reconstruct invariant: Stack indices increase and values strictly increase after each insertion. Adaptation: Use > for smaller-or-equal; do not change blindly."
+    },
+    {
+      "pattern": "Circular next greater",
+      "preconditions": "Numeric sequence; nearest strictly greater value looking right with at most one wrap, -1 if absent. Sentinel -1 may also be a legitimate answer value; use index variant for unambiguous identity. Empty [] avoids modulo by zero, no mutation.",
+      "observation": "Reconstruct invariant: Each original unresolved index can inspect at most one full cyclic successor traversal. Adaptation: Return indices if -1 value sentinel is ambiguous."
+    },
+    {
+      "pattern": "Histogram rectangles",
+      "preconditions": "Indexable nonnegative numeric heights, unit-width bars, finite values; returns area, empty 0. Input unchanged. Equal heights stay until a strictly lower boundary; final -1 sentinel flushes all. maximal_rectangle variation: rectangular reusable binary matrix of integer/string 0/1 cells; O(rows*cols) time/O(cols) auxiliary, empty 0, no mutation; ragged/nonbinary ValueError. Bool is accepted under Python int semantics; floats are rejected.",
+      "observation": "Reconstruct invariant: Every popped bar gets its maximal legal span at its first strictly lower right boundary. Adaptation: Executable maximal_rectangle wrapper reduces each row to histogram."
+    },
+    {
+      "pattern": "Subarray extrema contributions",
+      "preconditions": "Integer sequence, optional positive integer modulus; previous strictly less and next less-or-equal assign equal minima to the rightmost occurrence. Returns exact sum by default, negatives supported, empty 0, no mutation. sum_subarray_ranges variation uses max(a)=-min(-a): O(n) time/O(n) auxiliary including negated copy; empty 0, no mutation.",
+      "observation": "Reconstruct invariant: Each subarray assigns its minimum to exactly one chosen occurrence. Adaptation: Executable ranges variation uses max=-min(-values), including allocation."
+    },
+    {
+      "pattern": "Adjacent cancellation / run compression",
+      "preconditions": "String, integer k>0; repeatedly cancels adjacent groups of exactly k as a deterministic left-to-right reduction including cascades. Does not alter input; empty string remains empty.",
+      "observation": "Reconstruct invariant: Stack expands to the fully reduced processed prefix. Adaptation: k=2 removes ordinary pairs; k=1 deletes all."
+    },
+    {
+      "pattern": "Monotonic greedy subsequence",
+      "preconditions": "ASCII nonnegative decimal string (empty allowed as zero), integer 0<=k<=length. Delete exactly k positions preserving relative order, normalize leading zeroes; no mutation.",
+      "observation": "Reconstruct invariant: Retained prefix is lexicographically minimal under the remaining deletion/completion budget. Adaptation: Digit version allows repeats; distinct version cannot lose final copy."
+    },
+    {
+      "pattern": "Collision simulation",
+      "preconditions": "Reusable finite sequence of nonzero signed integers; sign gives direction, magnitude size; positions ordered left to right, all speeds equal. Larger survives, equal annihilate. Returns new survivor list; no mutation.",
+      "observation": "Reconstruct invariant: Survivor stack is collision-free for the processed prefix. Adaptation: Equal speed essential; different velocities need timing."
+    },
+    {
+      "pattern": "Unmatched-boundary indices",
+      "preconditions": "String of only parentheses; length of longest contiguous balanced substring, not subsequence. Empty 0, no mutation; invalid character ValueError.",
+      "observation": "Reconstruct invariant: Bottom stores last invalid boundary; other indices are unmatched opens. Adaptation: Not a subsequence problem; boundary positions matter."
+    },
+    {
+      "pattern": "Nested decoding contexts",
+      "preconditions": "Grammar: ASCII letters, concatenation and positive-integer[expression] nesting; empty expression/text allowed, no bare digits. Iterative, no recursion; returns expanded string, invalid syntax ValueError. R is final expanded length, d maximum depth; nested joining may rematerialize output O(dR). No expansion cap: use only within trusted output constraints. The O(n+dR) bound counts character copies and bounded-word count operations; very long decimal counts additionally incur Python arbitrary-precision integer parsing/arithmetic cost, even when repeating an empty fragment.",
+      "observation": "Reconstruct invariant: Frames store suspended outer contexts and current frame holds decoded inner prefix. Adaptation: Trusted output constraints required; iterative nested joins still cost O(n+dR)."
+    },
+    {
+      "pattern": "Explicit LIFO graph traversal",
+      "preconditions": "Mapping hashable vertices to reversible ordered neighbor sequences, directed or undirected unweighted graph. Visits vertices reachable from start once, missing key treated as leaf; returns [start] when absent. No mutation; deterministic stack traversal, not guaranteed identical to recursive DFS preorder because siblings are marked on push. For exact recursive semantics use iterator frames.",
+      "observation": "Reconstruct invariant: Each scheduled vertex is marked once; iterator frames retain one active neighbor cursor per DFS ancestor. Adaptation: Node-frontier mark-on-push can differ on cross edges; iterator frames reproduce recursive order."
+    },
+    {
+      "pattern": "Online compressed monotonic spans",
+      "preconditions": "Comparable prices; next mutates state and returns consecutive days ending today with price<=today. Equal prices merge. One call may pop O(n), but each group is pushed/popped once across calls.",
+      "observation": "Reconstruct invariant: Groups partition processed days; group prices are strictly decreasing. Adaptation: One call O(n), lifetime O(n); equality merges."
+    },
+    {
+      "pattern": "Monotonic greedy subsequence",
+      "preconditions": "String ordered by Python code points; lexicographically minimum subsequence with each distinct symbol once. Empty empty, no mutation. Pop only when another copy remains.",
+      "observation": "Reconstruct invariant: Retained prefix is lexicographically minimal under the remaining deletion/completion budget. Adaptation: Digit version allows repeats; distinct version cannot lose final copy."
+    },
+    {
+      "pattern": "Enter/exit event frames",
+      "preconditions": "Finite proper binary tree, no cycles/shared descendants; left-right-node values, empty [], no mutation. h is height; frames hold ancestors plus bounded pending siblings. Arbitrary-degree push-all may require O(n) frames.",
+      "observation": "Reconstruct invariant: Each exit frame resumes exactly the deferred work after its children. Adaptation: Binary-tree frames O(h); arbitrary degree push-all may need O(V); graphs need visited."
+    },
+    {
+      "pattern": "Sign-context infix evaluation",
+      "preconditions": "ASCII nonnegative integer literals, whitespace, binary +/-, parentheses and unary +/- (repeated unary signs accepted). Nonempty expression required; invalid syntax ValueError. No multiplication/division or implicit multiplication, no eval or mutation; Python big-integer parsing/arithmetic add bit costs.",
+      "observation": "Reconstruct invariant: Frames encode outer totals and multipliers for unfinished expressions. Adaptation: Only +/-; multiplication needs precedence parser, never eval."
+    },
+    {
+      "pattern": "Explicit LIFO graph traversal",
+      "preconditions": "Directed/undirected adjacency mapping of hashable vertices to finite stable ordered iterables. Iterator frames reproduce recursive DFS neighbor order, no recursion or graph mutation. Missing start is a leaf; cycles use seen. Private frame-list sentinel cannot be a hashable vertex. h is DFS depth.",
+      "observation": "Reconstruct invariant: Each scheduled vertex is marked once; iterator frames retain one active neighbor cursor per DFS ancestor. Adaptation: Node-frontier mark-on-push can differ on cross edges; iterator frames reproduce recursive order."
+    },
+    {
+      "pattern": "Rain-water basin resolution",
+      "preconditions": "Reusable indexable finite nonnegative numeric unit-width heights; trapped area, empty 0, no mutation. Resolves horizontal layers between two taller walls. Two-pointer alternative uses O(1) auxiliary memory.",
+      "observation": "Reconstruct invariant: Resolved layers have valid walls and are counted once above popped bottoms. Adaptation: Two pointers uses O(1) auxiliary; variable widths need width-prefix sums."
+    }
+  ],
+  "decisionProcess": [
+    "0–20 seconds: Identify latest unfinished context, nearest useful neighbor or explicit continuation. Clarify comparison strictness, output order and input grammar.",
+    "20–45 seconds: Matching/evaluation stack for nesting; monotonic indices for boundaries; metadata for prefix min; run stack for reductions; iterator/exit frames for recursion replacement.",
+    "45–80 seconds: Describe stack contents and what pop means (resolve, dominate, cancel or return). Choose equal-value ownership before implementation.",
+    "80–120 seconds: Derive answer from indices/boundaries and prove each item enters/leaves once. Include hidden allocations, hash assumptions, integer bit costs and expanded output.",
+    "120–180 seconds: Trace empty/underflow/equal/increasing/decreasing input, negative division and unfinished contexts. Compare queue for BFS, deque for expiring windows, two pointers for water-space optimization."
+  ],
+  "practiceDetails": [
+    {
+      "insight": "Unmatched opener order detects crossing. Mastery: reconstruct invariant and code unaided, justify O(n); O(d), and expose: Crossed nesting and leftover openers.",
+      "secondary": "LIFO grammar"
+    },
+    {
+      "insight": "Prefix minimum at every height handles pops. Mastery: reconstruct invariant and code unaided, justify O(1) amortized updates; O(h), and expose: Duplicate minima.",
+      "secondary": "Duplicate metadata"
+    },
+    {
+      "insight": "Deletion can expose another cancellable pair. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Cascades after deletion.",
+      "secondary": "Reduced-prefix invariant"
+    },
+    {
+      "insight": "History operations require correct stack arity. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Operations read prior scores with correct arity.",
+      "secondary": "Simulation"
+    },
+    {
+      "insight": "Right operand pops first. Mastery: reconstruct invariant and code unaided, justify O(n) bounded-word ops; O(n), and expose: Right operand first, truncate toward zero.",
+      "secondary": "Integer truncation"
+    },
+    {
+      "insight": "Unique values permit value-to-answer lookup. Mastery: reconstruct invariant and code unaided, justify O(n+m) expected; O(n), and expose: Problem uniqueness permits value->answer map.",
+      "secondary": "Hash map"
+    },
+    {
+      "insight": "Resolve colder indices; distance is i-j. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Equal temperature is not warmer.",
+      "secondary": "Strict comparison"
+    },
+    {
+      "insight": "Only original indices need pushing. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Scan twice but push once.",
+      "secondary": "Virtual double scan"
+    },
+    {
+      "insight": "Absorb spans of all no-greater groups. Mastery: reconstruct invariant and code unaided, justify O(n) total for n calls; O(n), and expose: One next() may pop many spans.",
+      "secondary": "Amortization"
+    },
+    {
+      "insight": "Only inward-facing survivors interact. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Only inward-facing pair interacts.",
+      "secondary": "Direction simulation"
+    },
+    {
+      "insight": "Run counts survive cascades. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Retain prior run count after cascading pop.",
+      "secondary": "Compression"
+    },
+    {
+      "insight": "Nested output may rematerialize per depth. Mastery: reconstruct invariant and code unaided, justify O(n+dR) conservative; O(n+R), and expose: Output expansion and nested joins.",
+      "secondary": "Expansion-sensitive bounds"
+    },
+    {
+      "insight": "Discard larger leaders while budget remains. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Leftover budget and leading zeros.",
+      "secondary": "Subsequence greedy"
+    },
+    {
+      "insight": "Pop only if another copy remains. Mastery: reconstruct invariant and code unaided, justify O(n); O(u), and expose: Pop only if symbol appears later.",
+      "secondary": "Counts and membership"
+    },
+    {
+      "insight": "Push right before left for left-first preorder. Mastery: reconstruct invariant and code unaided, justify O(n); O(h) tree auxiliary, and expose: Push right before left.",
+      "secondary": "Explicit frontier"
+    },
+    {
+      "insight": "Emit exit only after both children. Mastery: reconstruct invariant and code unaided, justify O(n); O(h) for binary-tree frames, and expose: Emit after children, not on entry.",
+      "secondary": "Continuation frames"
+    },
+    {
+      "insight": "Popped height spans exclusive nearest boundaries. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Exclusive boundary width and sentinel flush.",
+      "secondary": "Width proof"
+    },
+    {
+      "insight": "Zero resets height; run histogram per row. Mastery: reconstruct invariant and code unaided, justify O(rows*cols); O(cols), and expose: Reset height on zero cells.",
+      "secondary": "2D reduction"
+    },
+    {
+      "insight": "Asymmetric ties assign every minimum once. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Asymmetric tie ownership.",
+      "secondary": "Contributions"
+    },
+    {
+      "insight": "Ranges equal maxima minus minima. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Separate strictness choices for minima/maxima.",
+      "secondary": "Negation reduction"
+    },
+    {
+      "insight": "Invalid closing index becomes new base. Mastery: reconstruct invariant and code unaided, justify O(n); O(n), and expose: Reset base after unmatched close.",
+      "secondary": "Contiguous boundary"
+    },
+    {
+      "insight": "Minus negates the whole inner context. Mastery: reconstruct invariant and code unaided, justify O(n); O(d), and expose: Unary minus and parenthesized sign context.",
+      "secondary": "Unary/context parsing"
+    },
+    {
+      "insight": "Each bottom resolves a horizontal water layer. Mastery: reconstruct invariant and code unaided, justify O(n) time; O(n) stack or O(1) two-pointer auxiliary, and expose: Need two walls and bounded height difference, not histogram area.",
+      "secondary": "Two-pointer alternative"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Python tutorial: lists as stacks",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-stacks",
+      "note": "Fetched 2026-11-13 HTTP 200. Right-end list stack semantics. Algorithm explanations/proofs/examples/tests are original synthesis."
+    },
+    {
+      "title": "Python collections reference",
+      "url": "https://docs.python.org/3/library/collections.html",
+      "note": "Fetched 2026-11-13 HTTP 200. deque/Counter semantics. Templates use Python 3.10+ standard library. No exact AlgoMonster foundation/Grokking/NeetCode coverage claim; unavailable course/list coverage remains unverified."
+    }
+  ]
+}

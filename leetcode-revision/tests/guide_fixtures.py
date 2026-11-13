@@ -3,7 +3,7 @@ import argparse
 import json
 from pathlib import Path
 
-TOPICS = ('hash-maps', 'linked-lists', 'stacks', 'queues', 'trees', 'heaps', 'graphs', 'tries', 'union-find')
+TOPICS = ('arrays', 'strings', 'hash-maps', 'linked-lists', 'stacks', 'queues', 'trees', 'heaps', 'graphs', 'tries', 'union-find')
 
 
 def guide(topic):
@@ -23,6 +23,13 @@ def guide(topic):
         'impress': [[value('habit'), value('reasoning')]],
         'memory': [[value('recall label'), value('rule'), value('recall explanation')]],
         'templates': [[value('template'), 'O(n)', 'O(1)', code, value('contract')], [value('second template'), 'O(n)', 'O(1)', code, value('second contract')]],
+        'operationExamples': [{'code': ['result = 2 + 3', 'assert result == 5'], 'result': value('operation result'), 'use': value('operation use'), 'mutation': value('operation mutation')}],
+        'fundamentalDetails': [{key: value('fundamental ' + key) for key in ['why', 'use', 'result', 'edge', 'takeaway']}],
+        'patternDetails': [{'steps': [value('step one'), value('step two')], 'templates': [value('template'), value('second template')], 'related': value('related'), 'variations': value('variations')}],
+        'templateDetails': [{'pattern': value('pattern'), 'preconditions': value('preconditions ' + str(i)), 'observation': value('observation ' + str(i))} for i in range(2)],
+        'practiceDetails': [{'insight': value('insight'), 'secondary': value('secondary')}],
+        'decisionProcess': [value('decision one'), value('decision two')],
+        'sources': [{'title': value('source title'), 'url': 'https://example.org/reference?x=1&y=2', 'note': value('source note')}],
         'practice': [[value('LC 1 problem'), value('practice pattern'), 'Easy', value('optimized complexity'), value('practice trap')]],
     }
 

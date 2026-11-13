@@ -2,7 +2,7 @@
   "id": "queues",
   "title": "Queues & Deques",
   "subtitle": "A queue preserves arrival order; a deque also keeps only the live candidates needed at either boundary.",
-  "variables": "n = input items, k = window size or capacity, V/E = all supplied graph vertices/edges (including neighbor-only vertices and edges scanned during validation), R/C = grid rows/columns, w = maximum BFS frontier width, q = current queue size. Bounds assume O(1) reference operations and fixed-size numeric comparisons/arithmetic; Python large integers cost by bit length. Hash-based graph bounds are expected and include O(key length) hashing/comparison for long keys. Auxiliary space excludes returned output unless stated; deque storage itself is counted. Inputs are finite; graphs use hashable vertices. Single-threaded algorithms are not producer/consumer synchronization.",
+  "variables": "n = input items, k = window size or capacity, V/E = all supplied graph vertices/edges (including neighbor-only vertices and edges scanned during validation), R/C = grid rows/columns, w = maximum BFS frontier width (or retained event count in RecentCounter), q = current queue size. Bounds assume O(1) reference operations and fixed-size numeric comparisons/arithmetic; Python large integers cost by bit length. Hash-based graph bounds are expected and include O(key length) hashing/comparison for long keys. Auxiliary space excludes returned output unless stated; deque storage itself is counted. Inputs are finite; graphs use hashable vertices. Single-threaded algorithms are not producer/consumer synchronization. For lock-state templates d = wheel count; O(d) string neighbor construction and hashing is charged per generated neighbor.",
   "operations": [
     [
       "Construction",
@@ -42,7 +42,7 @@
       "Insert at left",
       "O(1)",
       "O(1) incremental",
-      "For 0–1 BFS this means cost-zero candidates go first."
+      "For 0\u20131 BFS this means cost-zero candidates go first."
     ],
     [
       "Deque",
@@ -316,7 +316,7 @@
       "Transferring on every dequeue destroys the amortized bound."
     ],
     [
-      "Zero–one shortest paths",
+      "Zero\u2013one shortest paths",
       "Distance relaxation, not a permanent seen flag, handles weighted 0/1 edges. A deque separates the current and next distance bands.",
       [
         "from collections import deque",
@@ -329,7 +329,7 @@
         "    else:",
         "        q.append((u, weight))"
       ],
-      "O(V+E) for full 0–1 BFS",
+      "O(V+E) for full 0\u20131 BFS",
       "O(V+E) queued records with stale-entry design",
       "This does not generalize to weights 2 or negative edges."
     ]
@@ -345,7 +345,7 @@
       "Word Ladder; Shortest Path in Binary Matrix",
       "Do not count weighted cost as one hop.",
       "Queue distances are nondecreasing; first discovery is shortest.",
-      "Unequal edge weights need 0–1 BFS or Dijkstra."
+      "Unequal edge weights need 0\u20131 BFS or Dijkstra."
     ],
     [
       "Level-order traversal",
@@ -408,7 +408,7 @@
       "For positive-only input a simple sliding window is easier."
     ],
     [
-      "0–1 BFS",
+      "0\u20131 BFS",
       "IMPORTANT",
       "Shortest path with weights only zero or one",
       "Relax distances; zero to front, one to back; skip stale records",
@@ -507,73 +507,73 @@
   "recognize": [
     [
       "Fewest equal-cost moves",
-      "Unweighted BFS",
-      "Visited state includes keys/resources if these affect future moves."
+      "Unweighted shortest path",
+      "FIFO layers certify fewest edges; state must include keys/resources affecting future moves. Unequal weights invalidate first-discovery finality."
     ],
     [
       "Values grouped by depth",
-      "Level-order BFS",
-      "Snapshot frontier size; empty tree returns []."
+      "Level-order traversal",
+      "One frontier snapshot equals one depth; postorder dependencies instead need DFS."
     ],
     [
       "Nearest among many sources",
       "Multi-source BFS",
-      "All sources must start at the same initial distance."
+      "Simultaneous distance-zero seeding minimizes distance to any source; unequal start times require a weighted model."
     ],
     [
       "Window maximum",
-      "Monotonic deque",
-      "Window expires oldest indices, not arbitrary interior elements."
+      "Monotonic maximum deque",
+      "FIFO expiry and dominance expose live maximum; arbitrary interior deletions need another structure."
     ],
     [
       "Window max-min <= limit",
-      "Dual deques",
-      "Shrinking cannot increase the range."
+      "Dual monotonic deques",
+      "Two extrema certify range validity and shrinking cannot increase range; nonmonotone predicates do not justify this loop."
     ],
     [
       "Shortest sum threshold with negatives",
-      "Prefix monotonic deque",
-      "Positive-only two pointers fail on [2,-1,2]."
+      "Prefix-sum monotonic deque",
+      "Negative values destroy sum-window monotonicity: [1,-1,5], K=5 has best length1, while the usual positive-only shrink-until-invalid loop can stop after length3."
     ],
     [
-      "All edge costs are 0 or 1",
-      "0–1 BFS",
-      "Use relaxations; a zero-cost route may improve a queued node."
+      "All edge costs0 or1",
+      "0\u20131 BFS",
+      "Two distance bands allow zero front/one back; relaxations matter and other weights violate the bands."
     ],
     [
       "Prerequisites become ready",
-      "Kahn queue",
-      "A cycle leaves some vertices unprocessed."
+      "Kahn topological processing",
+      "Zero indegree means no unmet prerequisites; cycle leaves vertices unprocessed."
     ],
     [
       "Fixed-capacity FIFO API",
-      "Circular buffer",
-      "Decide reject-on-full versus auto-evict."
+      "Circular queue",
+      "Modular indices reuse slots in constant time; choose rejection not silent eviction for pending jobs."
     ],
     [
       "Only stack primitives allowed",
-      "Two-stack queue",
-      "Amortized, not worst-case constant pop."
+      "Queue using two stacks",
+      "Lazy reversal restores arrival order; pop is amortized constant, not individual worst constant."
     ],
     [
       "Recent ordered timestamps",
-      "Expiration queue",
-      "Out-of-order pings violate front-only expiration."
+      "Time-window request queue",
+      "Oldest events expire as cutoff increases; out-of-order timestamps invalidate front-only expiry."
     ],
     [
       "Repeat turns in cyclic order",
-      "Round-robin queue",
-      "Consider arithmetic if the turn count dominates input size."
+      "Round-robin simulation",
+      "Queue follows upcoming turns; prove turn count or use arithmetic compression."
     ],
     [
       "Minimum operations on encoded states",
-      "Implicit BFS",
-      "Count state copy/hash costs."
+      "Implicit-state BFS",
+      "Unit moves give minimum depth; count state copy/hash cost and encode complete future state."
     ],
     [
       "Two groups with inequality edges",
-      "BFS coloring",
-      "Must cover isolated and disconnected vertices."
+      "Bipartite coloring by BFS",
+      "Alternating colors enforce every edge; cover all components and do not confuse directed reachability with inequality constraints."
     ]
   ],
   "contrasts": [
@@ -599,7 +599,7 @@
     ],
     [
       "Seen vs distance relaxation",
-      "Ordinary BFS can mark once at enqueue; 0–1 BFS must accept shorter paths."
+      "Ordinary BFS can mark once at enqueue; 0\u20131 BFS must accept shorter paths."
     ],
     [
       "Queue vs priority queue",
@@ -612,84 +612,94 @@
   ],
   "edges": [
     [
+      "Universal: no unintended mutation",
+      "Snapshot a graph/list input before and after read-only query; for tree rewiring compare object identities instead.",
+      "Read-only contracts preserve structure; mutation templates must explicitly document changed links. Exposes accidental in-place sorting, pointer loss or aliasing."
+    ],
+    [
+      "Universal: output versus auxiliary",
+      "A broad tree, all-equal stream or many repeated values.",
+      "Count materialized answers separately from working frontier/heap. Exposes claiming constant space while storing all output."
+    ],
+    [
       "Empty graph",
       "adj={}, source=7",
-      "BFS treats absent adjacency as no outgoing edges; path to 7 is [7]."
+      "BFS treats absent adjacency as no outgoing edges; path to 7 is [7]. Incorrect implementation exposed: Rejecting source==target or requiring adjacency[source]."
     ],
     [
       "Disconnected target",
       "0 -> 1; target=2",
-      "Return [] for no path."
+      "Return [] for no path. Incorrect implementation exposed: Rebuilding parent links for an undiscovered target."
     ],
     [
       "Repeated edges",
       "0 -> [1,1]",
-      "BFS queues 1 once; Kahn counts and decrements both edges."
+      "BFS queues 1 once; Kahn counts and decrements both edges. Incorrect implementation exposed: Enqueue on every repeated edge instead of first discovery."
     ],
     [
       "Self-loop",
       "0 -> 0",
-      "BFS terminates; topological order reports cycle."
+      "BFS terminates; topological order reports cycle. Incorrect implementation exposed: No seen marking; omitting Kahn processed-count check."
     ],
     [
       "One-element window",
       "a=[-3], k=1",
-      "Maximum is [-3]."
+      "Maximum is [-3]. Incorrect implementation exposed: Default-zero maximum on all-negative data."
     ],
     [
       "Full-length window",
       "a=[2,1,2], k=3",
-      "Return [2]."
+      "Return [2]. Incorrect implementation exposed: Dropping last/only complete window."
     ],
     [
       "Invalid window",
       "k=0 or k>len(a)",
-      "Raise ValueError in provided maximum template."
+      "Raise ValueError in provided maximum template. Incorrect implementation exposed: Unguarded root indexing for zero window."
     ],
     [
       "Equal maxima",
       "[5,5,5], k=2",
-      "Return [5,5]; retaining newer equal index is safe."
+      "Return [5,5]; retaining newer equal index is safe. Incorrect implementation exposed: Expiring all equal values as one occurrence."
     ],
     [
       "Strictly decreasing",
       "[4,3,2,1], k=3",
-      "Deque may retain k candidates; maxima [4,3]."
+      "Deque may retain k candidates; maxima [4,3]. Incorrect implementation exposed: Assuming only one candidate is ever stored."
     ],
     [
       "Negative prefix sums",
-      "[2,-1,2], K=3",
-      "Shortest nonempty length is 3."
+      "[1,-1,5], K=5",
+      "Shortest nonempty length is1; positive-only shrink loop can stop after dropping1 and miss suffix[5]. Incorrect implementation exposed: A shrinking sum loop assumes positive-only input."
     ],
     [
       "Nonpositive threshold",
       "[-5], K=0",
-      "No nonempty solution, return -1."
+      "No nonempty solution, return -1. Incorrect implementation exposed: Allowing empty length0 for nonpositive K."
     ],
     [
       "Zero capacity",
       "CircularQueue(0)",
-      "Raise ValueError rather than modulo zero."
+      "Raise ValueError rather than modulo zero. Incorrect implementation exposed: Modulo with zero capacity."
     ],
     [
       "Wrap after full cycle",
-      "enqueue/dequeue beyond capacity many times",
-      "Order remains FIFO and storage stays fixed."
+      "Capacity2: enqueue1,2; dequeue1; enqueue3; dequeue2,3",
+      "Order remains FIFO and storage stays fixed. Incorrect implementation exposed: Nonmodular tail or ambiguous equal head/tail."
     ],
     [
       "Zero-weight improvement",
       "s->a cost1, s->b cost0, b->a cost0",
-      "0–1 BFS must improve a to distance 0."
+      "0\u20131 BFS must improve a to distance 0. Incorrect implementation exposed: Permanently seen at first cost1 enqueue."
     ],
     [
       "No source cells",
       "binary matrix all ones",
-      "Nearest-zero distances remain -1."
+      "Nearest-zero distances remain -1. Incorrect implementation exposed: Using default0 for unreachable distance."
     ],
     [
       "Timestamp cutoff",
       "pings 1 then 3001, window=3000",
-      "Both are included; expiration is < cutoff, not <=."
+      "Both are included; expiration is < cutoff, not <=. Incorrect implementation exposed: Expiring <=cutoff rather than <cutoff."
     ]
   ],
   "mistakes": [
@@ -773,7 +783,7 @@
     ],
     [
       "Challenge a pattern",
-      "Use a zero-weight detour to refute first-enqueue finalization in 0–1 BFS."
+      "Use a zero-weight detour to refute first-enqueue finalization in 0\u20131 BFS."
     ],
     [
       "Separate memory",
@@ -790,6 +800,10 @@
     [
       "Dry-run wraparound",
       "Exercise head near the last slot with a full-to-empty transition."
+    ],
+    [
+      "Practice mastery rubric",
+      "Before marking mastered: recognize from a fresh clue, reconstruct without looking, state/prove frontier invariant, derive full time/space including worst single step, pass one boundary and one adversarial test, then explain a changed-constraint follow-up. Revisit failures after a delay."
     ]
   ],
   "memory": [
@@ -844,7 +858,7 @@
       "Newer lower prefix dominates the old candidate."
     ],
     [
-      "0–1 placement",
+      "0\u20131 placement",
       "cost 0 -> appendleft; cost 1 -> append",
       "Only after a successful relaxation."
     ],
@@ -1014,7 +1028,7 @@
       "Numeric sequence may contain negatives; target may be nonpositive. Returns shortest NONEMPTY contiguous length or -1; no mutation. Feasibility loop precedes dominance removal."
     ],
     [
-      "Zero–one shortest distances",
+      "Zero\u2013one shortest distances",
       "O(V+E) expected",
       "O(V+E)",
       [
@@ -1137,7 +1151,7 @@
     ],
     [
       "Recent ordered event count",
-      "O(1) amortized per ping",
+      "O(1) amortized per ping; O(q) single expiration burst",
       "O(w) live timestamps",
       [
         "from collections import deque",
@@ -1210,8 +1224,8 @@
     ],
     [
       "Implicit lock-state shortest moves",
-      "O(10^d * d^2) worst with length-d string neighbors",
-      "O(10^d * d) string states",
+      "O(D*d + 10^d*d^2), D supplied deadends, d wheels",
+      "O((D+10^d)*d) string-state storage",
       [
         "from collections import deque",
         "def lock_moves(target, deadends=()):",
@@ -1237,7 +1251,7 @@
         "                    q.append((neighbor, depth + 1))",
         "    return -1"
       ],
-      "d-wheel decimal lock, unit moves change one digit with wraparound. Minimum moves or -1; consumes deadends iterable, no input mutation. d=4 has 10,000 states. Each of O(d) neighbors costs O(d) string copying/hashing; general dimension bound is not O(10^d d)."
+      "d-wheel decimal lock, unit moves change one digit with wraparound. Minimum moves or -1; consumes deadends iterable, no input mutation. d=4 has 10,000 states. Each of O(d) neighbors costs O(d) string copying/hashing; general dimension bound is not O(10^d d). D is supplied deadend count; deadend set construction/validation adds O(D*d) time and stored key characters, even if start is forbidden."
     ],
     [
       "Fixed-capacity circular deque",
@@ -1353,7 +1367,7 @@
       "752. Open the Lock",
       "Implicit BFS",
       "Medium",
-      "O(10^d d^2) time; O(10^d d) string storage; fixed d=4",
+      "O(D*d+10^d*d^2) time; O((D+10^d)*d) storage; d=4 in LC752",
       "Start state can be forbidden."
     ],
     [
@@ -1407,10 +1421,657 @@
     ],
     [
       "1368. Minimum Cost to Make at Least One Valid Path in a Grid",
-      "0–1 BFS",
+      "0\u20131 BFS",
       "Hard",
       "O(RC); O(RC) space",
       "Arrow-following move costs zero, not every move."
     ]
+  ],
+  "operationExamples": [
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque()",
+        "print(list(q))"
+      ],
+      "result": "[]",
+      "use": "Initialize a BFS frontier.",
+      "mutation": "Allocates an empty deque; does not copy payloads."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "items = [1, 2]",
+        "q = deque(items)",
+        "print(list(q), items)"
+      ],
+      "result": "[1, 2] [1, 2]",
+      "use": "Copy arrivals without consuming the source list.",
+      "mutation": "New container; shallow references; generator inputs consumed."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1])",
+        "q.append(2)",
+        "print(list(q))"
+      ],
+      "result": "[1, 2]",
+      "use": "Discover and enqueue a BFS neighbor.",
+      "mutation": "Mutates q; no output container."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2])",
+        "print(q.popleft(), list(q))"
+      ],
+      "result": "1 [2]",
+      "use": "Process oldest unvisited vertex.",
+      "mutation": "Removes one reference; payload unchanged."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([2])",
+        "q.appendleft(1)",
+        "print(list(q))"
+      ],
+      "result": "[1, 2]",
+      "use": "Prioritize cost-zero relaxation.",
+      "mutation": "Mutates left endpoint."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2])",
+        "print(q.pop(), list(q))"
+      ],
+      "result": "2 [1]",
+      "use": "Discard dominated monotonic candidates.",
+      "mutation": "Removes right endpoint."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2])",
+        "print(q[0], q[-1], list(q))"
+      ],
+      "result": "1 2 [1, 2]",
+      "use": "Read current maximum candidate without deleting it.",
+      "mutation": "Read-only."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2, 3])",
+        "print(q[1])"
+      ],
+      "result": "2",
+      "use": "Recognize why deque cannot replace array random access.",
+      "mutation": "Read-only; middle access traverses blocks."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([None])",
+        "print(len(q), bool(q))"
+      ],
+      "result": "1 True",
+      "use": "Distinguish empty from a valid None payload.",
+      "mutation": "Read-only."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1])",
+        "q.extend([2, 3])",
+        "print(list(q))"
+      ],
+      "result": "[1, 2, 3]",
+      "use": "Seed several BFS sources.",
+      "mutation": "Mutates q; consumes iterable."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([3])",
+        "q.extendleft([1, 2])",
+        "print(list(q))"
+      ],
+      "result": "[2, 1, 3]",
+      "use": "Avoid reversing intended source order accidentally.",
+      "mutation": "Mutates q and reverses incoming order at left."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2], maxlen=2)",
+        "q.append(3)",
+        "print(list(q))"
+      ],
+      "result": "[2, 3]",
+      "use": "Maintain a recent fixed-count history, not pending BFS work.",
+      "mutation": "Allocates bounded q, append evicts oldest reference."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque(maxlen=2)",
+        "print(q.maxlen)"
+      ],
+      "result": "2",
+      "use": "Inspect eviction policy.",
+      "mutation": "Read-only attribute, cannot assign a new bound."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2, 3])",
+        "q.rotate(1)",
+        "print(list(q))"
+      ],
+      "result": "[3, 1, 2]",
+      "use": "Simulate cyclic order when full rotations are modest.",
+      "mutation": "Mutates order; no new container."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2])",
+        "r = q.reverse()",
+        "print(list(q), r)"
+      ],
+      "result": "[2, 1] None",
+      "use": "Reverse traversal order deliberately.",
+      "mutation": "Mutates q and returns None."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2, 1])",
+        "print(2 in q, q.count(1))"
+      ],
+      "result": "True 2",
+      "use": "Spot accidental linear membership inside a traversal.",
+      "mutation": "Read-only; equality callbacks may be costly."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2, 1])",
+        "q.remove(1)",
+        "print(list(q))"
+      ],
+      "result": "[2, 1]",
+      "use": "Remove first matching event only when linear search is acceptable.",
+      "mutation": "Mutates q; first equal occurrence removed."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([[1]])",
+        "a = q.copy()",
+        "b = list(q)",
+        "a[0].append(2)",
+        "print(list(q), b)"
+      ],
+      "result": "[[1, 2]] [[1, 2]]",
+      "use": "Explain shallow snapshot aliasing.",
+      "mutation": "Allocates two containers; nested list remains shared."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2])",
+        "for x in q:",
+        "    print(x)"
+      ],
+      "result": "1\n2",
+      "use": "Visit FIFO order without modifying the frontier.",
+      "mutation": "Iteration reads q; printing is observable output."
+    },
+    {
+      "code": [
+        "from collections import deque",
+        "q = deque([1, 2])",
+        "q.clear()",
+        "print(len(q))"
+      ],
+      "result": "0",
+      "use": "Release queued references after cancellation.",
+      "mutation": "Mutates q; payloads may still exist elsewhere."
+    },
+    {
+      "code": [
+        "from queue import Queue",
+        "q = Queue(maxsize=2)",
+        "q.put_nowait('job')",
+        "print(q.get_nowait())",
+        "q.task_done()",
+        "q.join()"
+      ],
+      "result": "job",
+      "use": "Explain producer/consumer coordination versus BFS.",
+      "mutation": "Mutates synchronized queue and unfinished-task counter; join returns because work acknowledged."
+    }
+  ],
+  "fundamentalDetails": [
+    {
+      "why": "Arrival order makes equal-cost search explore earlier depths before later ones.",
+      "use": "BFS, work queues, recent events.",
+      "result": "Starting [1,2], append 3 then remove oldest: removed 1, retained [2,3].",
+      "edge": "Empty popleft raises IndexError; use length, not payload truthiness.",
+      "takeaway": "FIFO means append right, remove left."
+    },
+    {
+      "why": "Endpoint operations avoid shifting all surviving references.",
+      "use": "Monotonic windows and zero-cost frontier priority.",
+      "result": "Prepend 1 to [2,3]: endpoints (1,3); pop returns 3.",
+      "edge": "Interior indexing is linear in distance from nearest end.",
+      "takeaway": "Deque is a boundary structure, not a random-access array."
+    },
+    {
+      "why": "A sentinel value can also be valid data.",
+      "use": "Custom ring-buffer API contracts.",
+      "result": "deque([None]) is nonempty; after removing None it is empty.",
+      "edge": "0, False and None are all valid queued payloads.",
+      "takeaway": "State lives in size, not the first value."
+    },
+    {
+      "why": "A capacity policy determines whether unprocessed work can disappear.",
+      "use": "Recent history; never silently drop BFS frontier entries.",
+      "result": "[1,2] maxlen2 -> append3 -> [2,3] -> prepend0 -> [0,2].",
+      "edge": "maxlen=0 accepts appends but retains nothing.",
+      "takeaway": "Eviction, rejection and blocking are different specifications."
+    },
+    {
+      "why": "Breadth boundaries encode minimum unit-move distance.",
+      "use": "Level output, minute-by-minute spread.",
+      "result": "After processing the captured first level, level=[0], queue=[1,2].",
+      "edge": "A chain has width1, a broad level can be Theta(n).",
+      "takeaway": "Capture length once before adding children."
+    },
+    {
+      "why": "First discovery already proves minimum hops for equal-weight edges.",
+      "use": "Prevent duplicate queue records and parent overwrites.",
+      "result": "On 0->[1,1],1->[0], seen finishes {0,1}, queue empty.",
+      "edge": "Parallel edges and cycles still queue each vertex once.",
+      "takeaway": "Mark when enqueued in ordinary BFS, not when popped."
+    },
+    {
+      "why": "Modulo maps logical consecutive positions onto reusable fixed storage.",
+      "use": "Design Circular Queue / Deque.",
+      "result": "Capacity3 head2 stores7 at slot2; remove advances head to0 and size0.",
+      "edge": "Zero capacity makes modulo invalid; full size=k differs from size0.",
+      "takeaway": "Tail=(head+size)%capacity."
+    },
+    {
+      "why": "A newer larger candidate beats an older smaller one now and expires later.",
+      "use": "Fixed-window maximum and dual extrema windows.",
+      "result": "[4,2,5] leaves candidate index [2], value5.",
+      "edge": "Equal values: keeping newer index simplifies expiry.",
+      "takeaway": "Discard only with a dominance proof."
+    },
+    {
+      "why": "Reversing one batch puts its oldest element on top.",
+      "use": "FIFO when only stacks are permitted.",
+      "result": "Incoming [1,2,3] transfers to outgoing [3,2,1], pop returns1.",
+      "edge": "A single transfer costs O(q); repeated full-sequence cost is linear.",
+      "takeaway": "Each item enters, crosses, leaves once."
+    },
+    {
+      "why": "Two distance bands suffice when every edge adds only 0 or1.",
+      "use": "Weighted shortest paths with binary costs.",
+      "result": "After seeding source and relaxing edges, queue=[(1,0),(0,0),(2,1)], distances={0:0,1:0,2:1}.",
+      "edge": "First enqueue is not final; stale records must be skipped.",
+      "takeaway": "Relax distances; zero front, one back."
+    }
+  ],
+  "patternDetails": [
+    {
+      "steps": [
+        "Enqueue source and mark it discovered.",
+        "Pop oldest and discover each unseen neighbor once, storing parent.",
+        "On target, walk parent links; otherwise return no path."
+      ],
+      "templates": [
+        "Unweighted shortest path"
+      ],
+      "related": "Compare with Level-order traversal; select by the stated frontier invariant, not shared syntax.",
+      "variations": "Path versus distance-only BFS; bidirectional BFS requires layer-safe meeting and reversible neighbor generation."
+    },
+    {
+      "steps": [
+        "Seed root if present.",
+        "Capture current frontier length.",
+        "Process exactly that many nodes and enqueue children for the next level."
+      ],
+      "templates": [
+        "Binary tree levels"
+      ],
+      "related": "Compare with Multi-source BFS; select by the stated frontier invariant, not shared syntax.",
+      "variations": "Right-side view takes last value per level; minimum depth stops at first leaf."
+    },
+    {
+      "steps": [
+        "Initialize all sources at zero simultaneously.",
+        "Pop nearest frontier and claim unvisited neighboring cells.",
+        "Keep unreachable sentinel for cells with no reachable source."
+      ],
+      "templates": [
+        "Distance to nearest zero"
+      ],
+      "related": "Compare with Monotonic maximum deque; select by the stated frontier invariant, not shared syntax.",
+      "variations": "Rotting oranges also tracks fresh count and unreachable cells."
+    },
+    {
+      "steps": [
+        "Expire out-of-window front indices.",
+        "Pop tails with values <= new value, then append index.",
+        "Read live maximum at front once first window is complete."
+      ],
+      "templates": [
+        "Sliding window maximum"
+      ],
+      "related": "Sliding windows expire FIFO, monotonic stacks retain dominated-candidate logic without window expiry.",
+      "variations": "Minimum windows reverse comparisons; newest equal candidates may replace older ones."
+    },
+    {
+      "steps": [
+        "Update decreasing-max and increasing-min deques.",
+        "While max-min exceeds limit, advance left and expire matching fronts.",
+        "Update maximum valid window length."
+      ],
+      "templates": [
+        "Longest bounded-range window"
+      ],
+      "related": "Sliding windows expire FIFO, monotonic stacks retain dominated-candidate logic without window expiry.",
+      "variations": "Range validity is monotone under shrinking; arbitrary sum conditions with negatives are not."
+    },
+    {
+      "steps": [
+        "Start prefix0 at index0.",
+        "Remove feasible fronts while recording shortest nonempty length.",
+        "Remove tails with >= current prefix, then append current prefix."
+      ],
+      "templates": [
+        "Shortest threshold subarray with negatives"
+      ],
+      "related": "Prefix sums plus monotonic dominance; unlike positive-only two pointers, negatives are supported.",
+      "variations": "Longest threshold variant has a different objective and pop rule; do not reuse blindly."
+    },
+    {
+      "steps": [
+        "Validate binary edge weights.",
+        "Skip stale distance records; relax improving edges.",
+        "Push zero-cost improvements left and one-cost improvements right."
+      ],
+      "templates": [
+        "Zero\u2013one shortest distances"
+      ],
+      "related": "Ordinary BFS for equal edges; heap Dijkstra for general nonnegative edges.",
+      "variations": "Directional-grid moves derive cost from the outgoing cell, not arrival cell."
+    },
+    {
+      "steps": [
+        "Count incoming edges and enqueue every zero-indegree vertex.",
+        "Pop ready vertex; remove each outgoing dependency.",
+        "Return order only if processed count equals vertex count."
+      ],
+      "templates": [
+        "Kahn topological order"
+      ],
+      "related": "Compare with Circular queue; select by the stated frontier invariant, not shared syntax.",
+      "variations": "Heap frontier gives lexicographically smallest order at O((V+E)log V) rather than FIFO linear work."
+    },
+    {
+      "steps": [
+        "Track head, size and fixed array.",
+        "Reject full append; store at modular tail or move head left for prepend.",
+        "Clear removed slot, update size and head only as required."
+      ],
+      "templates": [
+        "Fixed-capacity circular queue",
+        "Fixed-capacity circular deque"
+      ],
+      "related": "Compare with Queue using two stacks; select by the stated frontier invariant, not shared syntax.",
+      "variations": "Two-ended ring supports front/back updates; maxlen deque instead silently evicts."
+    },
+    {
+      "steps": [
+        "Push arrivals onto incoming.",
+        "Only when outgoing empty, transfer incoming in reverse.",
+        "Read/remove outgoing top; guard emptiness."
+      ],
+      "templates": [
+        "Queue using two stacks"
+      ],
+      "related": "Compare with Time-window request queue; select by the stated frontier invariant, not shared syntax.",
+      "variations": "A transfer can be linear despite constant amortized work; deque has simpler endpoint API."
+    },
+    {
+      "steps": [
+        "Reject timestamps earlier than last accepted timestamp.",
+        "Append new event and expire times < t-window.",
+        "Return retained count including exact cutoff."
+      ],
+      "templates": [
+        "Recent ordered event count"
+      ],
+      "related": "Compare with Round-robin simulation; select by the stated frontier invariant, not shared syntax.",
+      "variations": "Duplicates count; fixed-time window has no fixed item-count memory bound without rate bound."
+    },
+    {
+      "steps": [
+        "Store each party upcoming turn indices in increasing queues.",
+        "Earlier index bans later opponent and survives to index+n.",
+        "Stop when one party queue is empty."
+      ],
+      "templates": [
+        "Round-robin senate index queues"
+      ],
+      "related": "Compare with Implicit-state BFS; select by the stated frontier invariant, not shared syntax.",
+      "variations": "General simulation bound is number of turns; senate is linear because every contest eliminates one."
+    },
+    {
+      "steps": [
+        "Encode complete immutable state and reject forbidden start/target.",
+        "BFS unseen one-move neighbors with enqueue-time marking.",
+        "Return depth at target, -1 when exhausted."
+      ],
+      "templates": [
+        "Implicit lock-state shortest moves"
+      ],
+      "related": "Compare with Bipartite coloring by BFS; select by the stated frontier invariant, not shared syntax.",
+      "variations": "Integer encoding avoids O(d) strings per neighbor; search state must include all future-relevant variables. Deadend preprocessing is part of total input cost; count it separately from reachable state exploration."
+    },
+    {
+      "steps": [
+        "Start every uncolored component.",
+        "Assign opposite colors on discovery.",
+        "Reject same-color edge including self-loop."
+      ],
+      "templates": [
+        "Bipartite graph coloring"
+      ],
+      "related": "Compare with Unweighted shortest path; select by the stated frontier invariant, not shared syntax.",
+      "variations": "Odd cycle is the obstruction; directed arcs interpreted only as inequality constraints need symmetrization."
+    }
+  ],
+  "decisionProcess": [
+    "0\u201330s: define the queued record (vertex, cell, candidate index, timestamp or cyclic turn), output, and whether arrivals/edges are ordered.",
+    "30\u201360s: equal-cost shortest moves -> BFS; nearest of many sources -> seed all; weights0/1 -> relax with deque; other nonnegative weights -> heap Dijkstra. Negative weights require another algorithm.",
+    "60\u201390s: fixed-window extremum -> monotonic deque; max-min validity -> dual deques; shortest sum with negatives -> increasing prefix deque. Prove both dominance and expiry.",
+    "90\u2013120s: dependencies -> Kahn indegree; two groups -> component coloring; repeated turns -> simulate only after bounding total turns.",
+    "120\u2013180s: for API design choose eviction/rejection/blocking, then deque/ring/two stacks. State invariant, amortized versus worst latency, memory including payloads/output, and dry-run empty, duplicate and boundary cases."
+  ],
+  "templateDetails": [
+    {
+      "pattern": "Unweighted shortest path",
+      "preconditions": "Directed adjacency mapping of hashable vertices; missing key is a sink. Returns one minimum-hop vertex path, or []; source==target yields [source]. No input mutation. For undirected graphs supply both directions.",
+      "observation": "First discovery is shortest only with equal-cost edges."
+    },
+    {
+      "pattern": "Level-order traversal",
+      "preconditions": "Finite acyclic binary tree with no shared children; accepts compatible val/left/right nodes. Returns value lists per depth; does not mutate.",
+      "observation": "One queue snapshot is exactly one depth."
+    },
+    {
+      "pattern": "Multi-source BFS",
+      "preconditions": "Rectangular binary grid, four orthogonal moves. Returns new distance grid, -1 if no zero is reachable; [] -> [], [[]] -> [[]]. No mutation.",
+      "observation": "Sources must be seeded together, not sequentially searched."
+    },
+    {
+      "pattern": "Monotonic maximum deque",
+      "preconditions": "Comparable numeric sequence, positive valid k. Returns maxima in window order, without mutation. Empty input has no valid k and raises ValueError.",
+      "observation": "Each index enters/leaves at most once."
+    },
+    {
+      "pattern": "Dual monotonic deques",
+      "preconditions": "Finite real values, nonnegative limit, no NaN. Returns longest length with max-min<=limit; [] -> 0; no mutation.",
+      "observation": "Shrink until both extrema certify validity."
+    },
+    {
+      "pattern": "Prefix-sum monotonic deque",
+      "preconditions": "Numeric sequence may contain negatives; target may be nonpositive. Returns shortest NONEMPTY contiguous length or -1; no mutation. Feasibility loop precedes dominance removal.",
+      "observation": "Feasibility removal precedes dominance, preserving nonempty cases."
+    },
+    {
+      "pattern": "0\u20131 BFS",
+      "preconditions": "Directed mapping to reusable lists of (hashable neighbor, 0/1 weight); validates all supplied edges. Returns reachable vertex distances only; source absent is allowed. No mutation; undirected graphs need symmetric edges.",
+      "observation": "Zero front/one back maintain distance bands; stale records are not current."
+    },
+    {
+      "pattern": "Kahn topological processing",
+      "preconditions": "n labeled vertices 0..n-1; directed edge (u,v) means u precedes v. Returns one order, or [] for a cycle (also [] for n=0). Parallel edges are counted separately; no mutation.",
+      "observation": "Zero indegree means all prerequisites already removed."
+    },
+    {
+      "pattern": "Circular queue",
+      "preconditions": "Positive integer capacity; enqueue returns success bool and never evicts. peek/dequeue raise IndexError when empty; None is a valid item. No resizing; no thread-safety guarantee.",
+      "observation": "Size distinguishes full from empty at identical modular head/tail."
+    },
+    {
+      "pattern": "Queue using two stacks",
+      "preconditions": "FIFO object; arbitrary payloads. Empty pop/peek raise IndexError. Internal transfer mutates representation but not payloads.",
+      "observation": "Transfer reverses each item only once."
+    },
+    {
+      "pattern": "Time-window request queue",
+      "preconditions": "Finite numeric nondecreasing timestamps, duplicates counted individually. Returns count in inclusive [t-window,t]. Rejected out-of-order ping leaves state unchanged.",
+      "observation": "Inclusive cutoff expires only strictly older timestamps."
+    },
+    {
+      "pattern": "Bipartite coloring by BFS",
+      "preconditions": "Undirected adjacency list with vertices 0..n-1 and symmetric edges; reusable lists. Returns bool; empty graph is bipartite, self-loop is not. Does not mutate; symmetry is a caller precondition.",
+      "observation": "An odd cycle forces a same-color edge."
+    },
+    {
+      "pattern": "Round-robin simulation",
+      "preconditions": "Nonempty R/D string with optimal bans against the earliest upcoming opponent. Returns winning party; no mutation. Re-enqueued index is next-cycle turn. Arbitrary round-robin simulations need their own turn bound.",
+      "observation": "Each contest permanently eliminates one participant."
+    },
+    {
+      "pattern": "Implicit-state BFS",
+      "preconditions": "d-wheel decimal lock, unit moves change one digit with wraparound. Minimum moves or -1; consumes deadends iterable, no input mutation. d=4 has 10,000 states. Each of O(d) neighbors costs O(d) string copying/hashing; general dimension bound is not O(10^d d). D is supplied deadend count; deadend set construction/validation adds O(D*d) time and stored key characters, even if start is forbidden.",
+      "observation": "A state must encode every future-relevant fact."
+    },
+    {
+      "pattern": "Circular queue",
+      "preconditions": "Positive integer capacity. Appends reject full writes with False, pops raise IndexError on empty. None is valid data. Mutates own fixed buffer and releases removed references; no thread-safety.",
+      "observation": "Front insertion moves head before storing; tail deletion leaves head unchanged."
+    }
+  ],
+  "practiceDetails": [
+    {
+      "insight": "Expire timestamps strictly before inclusive cutoff.",
+      "secondary": "Ordered two pointers"
+    },
+    {
+      "insight": "Reverse incoming only when outgoing empty.",
+      "secondary": "Amortized analysis"
+    },
+    {
+      "insight": "Tail is (head+size)%capacity.",
+      "secondary": "Modular arithmetic"
+    },
+    {
+      "insight": "Prepend moves head left before writing; pop uses head+size-1.",
+      "secondary": "Circular queue"
+    },
+    {
+      "insight": "Snapshot current queue length.",
+      "secondary": "Tree traversal"
+    },
+    {
+      "insight": "Take last node of each left-to-right level.",
+      "secondary": "Depth-first alternative"
+    },
+    {
+      "insight": "All rotten sources start at minute0; count unreachable fresh cells.",
+      "secondary": "Grid reachability"
+    },
+    {
+      "insight": "Seed all zero cells, not one BFS per cell.",
+      "secondary": "Multi-source shortest path"
+    },
+    {
+      "insight": "Eight directions and blocked endpoints; cell-count length differs from edge count.",
+      "secondary": "Implicit graph"
+    },
+    {
+      "insight": "Visited state is complete wheel string; dead start fails.",
+      "secondary": "State-space encoding"
+    },
+    {
+      "insight": "Processed count less than V proves directed cycle.",
+      "secondary": "Indegree invariant"
+    },
+    {
+      "insight": "Remove ready prerequisites and preserve all isolated vertices.",
+      "secondary": "Topological ordering"
+    },
+    {
+      "insight": "Restart coloring in every disconnected component.",
+      "secondary": "Odd-cycle detection"
+    },
+    {
+      "insight": "Surviving senator next acts at old index+n.",
+      "secondary": "Greedy earliest ban"
+    },
+    {
+      "insight": "Newest >= value dominates older tail.",
+      "secondary": "Amortized candidate pruning"
+    },
+    {
+      "insight": "Max and min together certify range validity.",
+      "secondary": "Monotone sliding window"
+    },
+    {
+      "insight": "New lower prefix dominates older higher prefix, while feasible fronts minimize length.",
+      "secondary": "Prefix sums"
+    },
+    {
+      "insight": "Follow outgoing arrow at cost0, other directions cost1.",
+      "secondary": "Dijkstra specialization"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Python collections.deque documentation",
+      "url": "https://docs.python.org/3/library/collections.html#collections.deque",
+      "note": "Public official API page fetched successfully 2026-11-13. Code targets Python3.10+; current heapq max-heap APIs added3.14 exist, while these templates use negated numeric keys for compatibility. Algorithmic guarantees are explained independently."
+    },
+    {
+      "title": "Python standard-library data structures",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "note": "Public documentation fetched successfully 2026-11-13. Python-first code is original synthesis, not copied course material."
+    },
+    {
+      "title": "AlgoMonster public decision flowchart",
+      "url": "https://algo.monster/flowchart",
+      "note": "Public page fetched successfully 2026-11-13; used only as pattern-selection context. Supplied foundation course URLs returned404 in project research. No course-completeness attribution; paid Grokking and exact rendered NeetCode list coverage unverified."
+    }
   ]
 }

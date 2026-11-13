@@ -1,80 +1,42 @@
-# Public DSA guide integration
+# Public DSA interview guides
 
-The nine new guides use the existing Arrays `.ag` components and eight major sections. Arrays and Strings keep their original reference data and archive functions. Public content and private editable records remain separate.
+Eleven public guide sources live in `data/dsa/<topic>-guide.json`. Edit these maintainable JSON sources and `scripts/dsa-guide-renderer.js`, not generated `dsa-interview-guides.js`. Runtime uses the existing script architecture without fetch or package dependencies. Original Arrays/Strings scripts remain fallback APIs. Enriched content takes precedence, preserving legacy major section IDs, local preference keys, archive/edit handlers, record identities, review ratings and history.
 
-## Sources and static build
-
-- Content sources include the nine root `<topic>-guide.json` files and their `<topic>-template-tests.py` files. The integration does not modify these.
-- `scripts/dsa-guide-renderer.js` owns the shared HTML renderer.
-- `scripts/build-dsa-guides.py` validates content and produces `dsa-interview-guides.js`. Commit/deploy that generated asset with the site when the owner is ready; no deployment is performed here.
-- `index.html` loads the generated bundle before `data-structure-revision.js`. Runtime uses ordinary scripts, with no fetch, package manager, backend, or build service required by GitHub Pages.
-
-Run the strict production build after editing content:
+## Build and verify
 
 ```sh
 python3 scripts/build-dsa-guides.py
 python3 scripts/build-dsa-guides.py --check
-```
-
-For development with an explicitly incomplete content set only:
-
-```sh
-python3 scripts/build-dsa-guides.py --allow-partial
-python3 scripts/build-dsa-guides.py --allow-partial --check
-```
-
-Partial builds skip missing files only. Invalid present files always fail. Validation finishes before replacing the output, so a failed build preserves the previous bundle. The strict default reports every missing topic. `--check` also rejects a stale or missing generated asset.
-
-Content can later move without changing runtime behavior:
-
-```sh
-python3 scripts/build-dsa-guides.py --data-dir content/dsa
-```
-
-For future asset changes, update the corresponding `index.html` cache-busting query strings along with the generated asset.
-
-## Data contract
-
-See `DSA_GUIDE_SPEC.md` for the complete tuple field definitions. The builder enforces all required fields, topic/filename identity, nonempty rows, tuple widths, scalar strings, valid tiers, and Python 3.10 grammar/compilation for every fundamental and template. Unknown top-level fields are rejected so record metadata or private-note fields cannot silently enter the public bundle. It does not execute content code during a build; the topic executable template tests provide algorithm correctness evidence.
-
-`variables` accepts prose, a list of rules, `[symbol, definition]` pairs, or an object mapping symbols to definitions. Other fields follow the spec exactly. Content is plain text; embedded markup and URLs are displayed as escaped text. The generated script escapes `<` and JavaScript line separators in the embedded payload, and the renderer escapes every data value before inserting HTML. Existing Arrays/Strings external links keep `target="_blank" rel="noopener noreferrer"`.
-
-All counts come from data. Patterns include recognition, approach, time, space, practice, traps, correctness invariants, and applicability limits. Templates include code, costs, and their contract/adaptation. Practice includes difficulty, optimized complexity, and the key trap.
-
-## State and private notes
-
-- Existing record key: `recall-structures-v1`, with the same record objects and cloud events.
-- Existing section keys: `recall-arrays-open-v1` and `recall-strings-open-v1` remain independent.
-- New section key: `recall-dsa-guides-open-v1`. Only known sections for loaded public preset guides are accepted. Section IDs are `dg-<topic>-<section>`; pattern IDs are `dg-<topic>-pattern-<index>`.
-- New public sections begin collapsed on a fresh device. A user's saved open sections are restored. Expand/collapse/navigation affect only the clicked article.
-- New guides display saved private text in a separate plain-text block and edit the original `notes` field. They never archive, clear, consolidate, or add migration metadata to notes. Arrays/Strings keep their prior opt-in archival behavior.
-- Only the eleven built-in topics are visible, in canonical order ending with Union Find. Extra/custom notebooks are excluded from cards, navigation, search and summary counts on every load and cloud merge; the add/delete-custom controls are absent. Their original records, notes, timestamps and metadata remain intact in private device/cloud storage and backups. Nothing is automatically deleted or migrated. Updated website code applies after each device loads or refreshes the deployed site; already-open/offline pages cannot update instantly.
-- Missing/empty public bundles leave private notes available. Storage exceptions do not block reading public guides.
-
-## Integration checks
-
-No dependencies are installed by these checks. All synthetic JSON is written only to isolated temporary directories, never over real guide content.
-
-```sh
-python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 scripts/test-dsa-guides.py
+python3 -m unittest discover -s tests -p 'test_dsa_*.py' -v
 node tests/dsa-renderer.test.cjs
-node --check scripts/dsa-guide-renderer.js
-node --check dsa-interview-guides.js
-node --check data-structure-revision.js
-node --check array-interview-guide.js
-node --check string-interview-guide.js
-```
-
-Use a real Node executable for `--check`. On this machine `node` first resolves to a Bun shim; `/opt/homebrew/bin/node` provides Node's syntax-only check.
-
-Optional automated browser suite, using an already available Playwright module and Chromium:
-
-```sh
-DSA_PLAYWRIGHT_MODULE=/path/to/existing/playwright \
-DSA_CHROMIUM_EXECUTABLE=/path/to/existing/chromium \
+node --test tests/recall.test.mjs
+python3 tests/strings-guide-validation.py
 node tests/dsa-browser.test.cjs
+node tests/dsa-real-content.test.cjs
+node tests/browser-smoke.mjs
+node --test tests/recovery-ui.test.mjs tests/data-safety-*.test.mjs
+node tests/recovery-browser.test.cjs
 ```
 
-With a normal local Playwright installation, `node tests/dsa-browser.test.cjs` suffices; `DSA_CHROMIUM_EXECUTABLE` is optional. If no module is available, the browser script reports a skip. It intercepts all page requests, requires no listening server, and uses disposable browser profiles and synthetic notes. It checks actual DOM rendering, section scopes and reload persistence, keyboard operation, copy delegation, all-topic search, note editing/preservation, fixed topic scope and hidden-record preservation, two-device cloud merge/reload, mobile layout, missing/empty registry, and denied storage. `DSA_SCREENSHOT=1` optionally writes `output/playwright/dsa-mobile.png`.
+Python3.10+ grammar, tuple widths/types/tiers, all supplemental aligned metadata, exact template links, source HTTPS URLs and unknown-field rejection are validated before atomic bundle replacement. Supplemental fields are optional for older authoring fixtures; the production audit requires all of them. Code is compiled at build time, not executed by the builder. Independent algorithm suites and public-example audit execute it separately. No private-note fields belong in this schema. Failed builds leave the prior asset intact; `--check` rejects stale output. `--allow-partial` is development only, never deployment readiness.
 
-The full-index isolated preview test uses actual guide content and local website files while disabling production Firebase and intercepting every request. Run tests/dsa-real-content.test.cjs with the same Playwright environment variables. It checks all eleven topics, real-content counts, navigation, unique IDs, desktop and 375px mobile layouts, and saves preview screenshots under output/playwright. Use disposable browser storage; never seed real private notes.
+Browser suites use disposable synthetic storage and intercepted network; actual full-index suite disables Firebase. To use existing installations set `DSA_PLAYWRIGHT_MODULE` and optionally `DSA_CHROMIUM_EXECUTABLE`. The synthetic browser suite reports an explicit skip if Playwright is absent; real-content tests require it. Real-content screenshots default to `output/playwright`; set `DSA_SCREENSHOT_DIR` for artifacts outside published source. Screenshots/test fixtures are not personal data.
+
+## UI and safety boundaries
+
+Each topic has eight independently collapsible chapters, nested individual operations/fundamentals/patterns/templates, hidden recall explanations and practice answers, scoped chapter actions, direct pattern-to-template expansion/focus, copy controls, mobile code scrolling and reduced-motion behavior. Search indexes every public field including supplemental examples/provenance. Chapter preference storage is view-only: Arrays `recall-arrays-open-v1`, Strings `recall-strings-open-v1`, other presets `recall-dsa-guides-open-v1`. Nested view-only preferences use `recall-dsa-guides-nested-v1`. Known loaded preset chapter IDs only are restored. Only canonical topics are displayed; older extras remain intact in storage, cloud sync, history and exports. No Add/delete notebook controls are offered.
+
+Private notes remain in `recall-structures-v1` with their original identities and fields. Reading/updating public guides never automatically merges, clears or archives notes. Original opt-in Arrays/Strings archive and restore handlers remain available. No private account comparison has been performed. User notes were not loaded from Firebase or copied to repository files.
+
+## Provenance
+
+Original educational synthesis, not copied paid lessons. Python collections/heapq documentation is cross-checked; examples target Python3.10+, while newer Python versions also have public max-heap APIs. AlgoMonster Foundation's old root URL returns404; its moved public intro verifies memory/BigO/arrays/strings/linked-lists/queues/hash/stacks/sorting only, not graph/tree/trie/DSU modules. NeetCode150 public topic categories were rendered, not all solutions audited. Grokking public course overview was checked, paid lessons were not accessed. Per-topic sources state their exact relevance and limitations. See SOURCE_VERIFICATION.md.
+
+Live Firebase, real Google account multi-device sync, physical iPhone/iPad Safari, deployment and private-note comparison require separate verification. Passing synthetic tests is not a claim those were tested.
+
+## Final public coverage
+
+All11 topics:275 operations,131 fundamentals,207 patterns,233 runnable templates,260 practice entries. Every operation/fundamental/pattern/template/practice entry has its aligned enrichment. Counts come from source JSON; see INTEGRATION_RESULT.md for exact per-topic counts and executed verification. All algorithm tests are preserved byte-for-byte in tests/dsa; scripts/test-dsa-guides.py stages them beside the matching JSON in disposable temporary storage so authoring relative paths need no edits.
+
+Release reconciliation preserves the latest canonical-only upstream display policy. The superseded nine root JSON/test pairs are relocated public educational sources, now enhanced under data/dsa and tests/dsa, not removed private records. Independent review status issues (retained concept conflicts and persistent listener errors) were remediated and regression-tested.

@@ -47,6 +47,32 @@ class SchemaTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 build.validate_guide(data, 'trees')
 
+    def test_optional_metadata_alignment_contract_and_links(self):
+        import copy
+        original = guide('trees')
+        for key in build.SUPPLEMENTAL:
+            data = copy.deepcopy(original)
+            data[key] = []
+            with self.assertRaises(ValueError): build.validate_guide(data, 'trees')
+            data = copy.deepcopy(original)
+            data[key][0]['privateMetadata'] = 'no'
+            with self.assertRaises(ValueError): build.validate_guide(data, 'trees')
+            data = copy.deepcopy(original)
+            first = next(iter(data[key][0]))
+            data[key][0][first] = ''
+            with self.assertRaises(ValueError): build.validate_guide(data, 'trees')
+        for key, field, value in [('patternDetails', 'templates', ['not a template']), ('operationExamples', 'code', ['not python!'])]:
+            data = copy.deepcopy(original)
+            data[key][0][field] = value
+            with self.assertRaises(ValueError): build.validate_guide(data, 'trees')
+        for url in ['javascript:alert(1)', 'https://user:password@example.org', 'http://example.org']:
+            data = copy.deepcopy(original)
+            data['sources'][0]['url'] = url
+            with self.assertRaises(ValueError): build.validate_guide(data, 'trees')
+        data = copy.deepcopy(original)
+        for key in [*build.SUPPLEMENTAL, 'decisionProcess', 'sources']: del data[key]
+        build.validate_guide(data, 'trees')
+
 
 class BuildTests(unittest.TestCase):
     def setUp(self):

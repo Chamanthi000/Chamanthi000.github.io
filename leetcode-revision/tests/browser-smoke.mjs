@@ -1,7 +1,8 @@
 /* Real Chromium smoke tests across phone, iPad, desktop and reload persistence.
    Run: npm install --no-save playwright && npx playwright install chromium
         node leetcode-revision/tests/browser-smoke.mjs */
-import { chromium } from 'playwright';
+import { createRequire } from 'node:module';
+const {chromium}=createRequire(import.meta.url)(process.env.DSA_PLAYWRIGHT_MODULE||'playwright');
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -24,15 +25,16 @@ const server=createServer(async(req,res)=>{
 const waitListen=()=>new Promise(ok=>server.listen(0,'127.0.0.1',ok));
 await waitListen();
 const origin='http://127.0.0.1:'+server.address().port;
-const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.DSA_CHROMIUM_EXECUTABLE?{executablePath:process.env.DSA_CHROMIUM_EXECUTABLE}:{})});
 const report=[],capture=(name,result)=>report.push({name,result});
 try{
  for(const device of [{name:'iPhone',width:390,height:844},{name:'iPad',width:820,height:1180},{name:'Desktop',width:1280,height:800}]){
   const context=await browser.newContext({viewport:{width:device.width,height:device.height},isMobile:device.name==='iPhone',hasTouch:device.name==='iPhone'});
+  if(process.env.DSA_LEGACY_FALLBACK)await context.route('**/dsa-interview-guides.js*',route=>route.fulfill({contentType:'application/javascript',body:'window.RecallDSAGuides={};'}));
   await context.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort());
   const page=await context.newPage();
   for(const [name,path] of [['Coding','/index.html'],['Goals','/goals.html'],['SQL Patterns','/sql-pattern-guide.html'],['Big O','/complexities.html']]){
-   await page.goto(origin+path,{waitUntil:'domcontentloaded'});
+   await page.goto(origin+path+(process.env.DSA_LEGACY_FALLBACK&&name==='Coding'?'?legacyFallback=1':''),{waitUntil:'domcontentloaded'});
    const metrics=await page.evaluate(()=>({documentWidth:document.documentElement.scrollWidth,viewport:innerWidth,fontSize:parseFloat(getComputedStyle(document.body).fontSize)}));
    assert.ok(metrics.documentWidth<=metrics.viewport+6,device.name+' '+name+' overflows horizontally by '+(metrics.documentWidth-metrics.viewport)+'px');
    assert.ok(metrics.fontSize>=15,device.name+' '+name+' renders undersized body text');

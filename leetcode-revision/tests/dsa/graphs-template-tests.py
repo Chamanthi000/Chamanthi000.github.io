@@ -330,7 +330,7 @@ class GraphTemplates(unittest.TestCase):
         self.assertEqual(f(grid,0),4)
         self.assertEqual(f(grid,1000000),4)
         self.assertEqual(grid,saved)
-        for grid,k in [([[0]],-1),([[0],[]],0),([[2]],1)]:
+        for grid,k in [([[0]],-1),([[0]],0.5),([[0],[]],0),([[2]],1)]:
             with self.assertRaises(ValueError):
                 f(grid,k)
         # Independent layer-set state oracle over every 2x3 binary board.
@@ -357,80 +357,164 @@ class GraphTemplates(unittest.TestCase):
                     distance += 1
                 self.assertEqual(f(grid,k),expected)
 
-    def test_eventual_safety(self):
-        f = fresh(15)['eventual_safe_nodes']
-        self.assertEqual(f([[1,2],[2,3],[5],[0],[5],[],[]]), [2,4,5,6])
-        self.assertEqual(f([]), [])
-        rng = random.Random(510)
-        for n in range(1,7):
-            for _ in range(30):
-                adj = [[v for v in range(n) if rng.randrange(5)==0] for u in range(n)]
-                def bad(u, path):
-                    if u in path: return True
-                    return any(bad(v,path|{u}) for v in adj[u])
-                self.assertEqual(f(adj), [u for u in range(n) if not bad(u,set())])
 
-    def test_bounded_paths(self):
-        f = fresh(16)['bounded_shortest_paths']
-        rng = random.Random(511)
-        for _ in range(90):
-            n, budget = rng.randrange(1,6), rng.randrange(5)
-            edges = [(u,v,rng.randrange(-5,6)) for u in range(n) for v in range(n) if rng.randrange(4)==0]
-            want = [float('inf')]*n; want[0]=0
-            frontier=[(0,0)]
-            for step in range(budget):
-                frontier=[(v,cost+w) for x,cost in frontier for u,v,w in edges if u==x]
-                for v,cost in frontier: want[v]=min(want[v],cost)
-            self.assertEqual(f(n,edges,0,budget),want)
-        with self.assertRaises(ValueError): f(2,[],0,-1)
+class SupplementalContract(unittest.TestCase):
+    def test_aligned_metadata_and_executed_examples(self):
+        import contextlib
+        import io
+        aligned = {
+            'operations': ('operationExamples', ('code','result','use','mutation')),
+            'fundamentals': ('fundamentalDetails', ('why','use','result','edge','takeaway')),
+            'patterns': ('patternDetails', ('steps','templates','related','variations')),
+            'templates': ('templateDetails', ('pattern','preconditions','observation')),
+            'practice': ('practiceDetails', ('insight','secondary')),
+        }
+        names = {row[0] for row in DATA['templates']}
+        pattern_names = {row[0] for row in DATA['patterns']}
+        self.assertEqual(len(names), len(DATA['templates']))
+        covered = set()
+        for base,(supplement,fields) in aligned.items():
+            self.assertEqual(len(DATA[base]), len(DATA[supplement]), supplement)
+            for i,item in enumerate(DATA[supplement]):
+                for field in fields:
+                    self.assertIn(field,item,(supplement,i))
+                    self.assertTrue(item[field],(supplement,i,field))
+                if base == 'patterns':
+                    self.assertTrue(set(item['templates']) <= names)
+                    covered.update(item['templates'])
+                if base == 'templates':
+                    self.assertIn(item['pattern'], pattern_names)
+        self.assertEqual(covered,names)
+        for i,item in enumerate(DATA['operationExamples']):
+            with self.subTest(operation=i):
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    exec(compile(ast.parse('\n'.join(item['code'])),f'operation_{i}','exec'),{})
+                self.assertEqual(output.getvalue().strip(),item['result'])
+        self.assertGreaterEqual(len(DATA['decisionProcess']),4)
+        for source in DATA['sources']:
+            self.assertTrue(all(source.get(k) for k in ('title','url','note')))
+            self.assertTrue(source['url'].startswith('https://'))
 
-    def test_grid_minimax(self):
-        f = fresh(17)['minimum_effort']
-        self.assertIsNone(f([])); self.assertEqual(f([[8]]),0)
+class AddedGraphVariants(unittest.TestCase):
+    def test_eventual_safety_exhaustive(self):
+        f=fresh(15)['eventual_safe_nodes']
+        self.assertEqual(f([]),[])
+        self.assertEqual(f([[1,1],[]]),[0,1])
+        # A path of V edges exists iff some reachable walk contains a cycle.
+        for flags in itertools.product((0,1),repeat=9):
+            adj=[[v for v in range(3) if flags[3*u+v]] for u in range(3)]
+            expected=[]
+            for start in range(3):
+                frontier={start}
+                for _ in range(3):
+                    frontier={v for u in frontier for v in adj[u]}
+                if not frontier:
+                    expected.append(start)
+            self.assertEqual(f(adj),expected)
+
+    def test_snapshot_budget_with_negative_cycles(self):
+        f=fresh(16)['bounded_shortest_paths']
+        self.assertEqual(f(3,[(0,1,1),(1,2,1),(0,2,10)],0,1),[0,1,10])
+        self.assertEqual(f(3,[(0,1,1),(1,2,1),(0,2,10)],0,2),[0,1,2])
+        self.assertEqual(f(1,[(0,0,-1)],0,4),[-4])
+        self.assertEqual(f(2,iter([(0,1,7)]),0,0),[0,float('inf')])
+        rng=random.Random(615)
+        for _ in range(100):
+            n=4
+            edges=[(rng.randrange(n),rng.randrange(n),rng.randrange(-3,6)) for _ in range(7)]
+            for budget in range(5):
+                best=[float('inf')]*n
+                def walk(u,cost,left):
+                    best[u]=min(best[u],cost)
+                    if left:
+                        for a,b,w in edges:
+                            if a==u:
+                                walk(b,cost+w,left-1)
+                walk(0,0,budget)
+                saved=edges[:]
+                self.assertEqual(f(n,edges,0,budget),best)
+                self.assertEqual(edges,saved)
+        for args in [(0,[],0,1),(2,[],0,-1),(2,[(0,2,1)],0,1)]:
+            with self.assertRaises(ValueError):f(*args)
+
+    def test_minimax_threshold_oracle(self):
+        f=fresh(17)['minimum_effort']
+        self.assertIsNone(f([]));self.assertIsNone(f([[]]))
+        self.assertEqual(f([[7]]),0)
         self.assertEqual(f([[1,2,2],[3,8,2],[5,3,5]]),2)
-        rng = random.Random(512)
-        for _ in range(90):
-            rows,cols=rng.randrange(1,4),rng.randrange(1,4)
-            grid=[[rng.randrange(-9,10) for c in range(cols)] for r in range(rows)]
-            thresholds={0}|{abs(grid[r][c]-grid[nr][nc]) for r in range(rows) for c in range(cols) for nr,nc in [(r+1,c),(r,c+1)] if nr<rows and nc<cols}
-            for threshold in sorted(thresholds):
-                seen,stack={(0,0)},[(0,0)]
+        with self.assertRaises(ValueError):f([[1],[]])
+        rng=random.Random(616)
+        for _ in range(100):
+            grid=[[rng.randrange(-5,6) for _ in range(3)] for _ in range(3)]
+            expected=None
+            for limit in range(11):
+                seen={(0,0)};stack=[(0,0)]
                 while stack:
                     r,c=stack.pop()
-                    for nr,nc in [(r+1,c),(r-1,c),(r,c+1),(r,c-1)]:
-                        if 0<=nr<rows and 0<=nc<cols and (nr,nc) not in seen and abs(grid[r][c]-grid[nr][nc])<=threshold:
-                            seen.add((nr,nc));stack.append((nr,nc))
-                if (rows-1,cols-1) in seen: break
-            self.assertEqual(f(grid),threshold)
+                    for a,b in ((r+1,c),(r-1,c),(r,c+1),(r,c-1)):
+                        if 0<=a<3 and 0<=b<3 and (a,b) not in seen and abs(grid[a][b]-grid[r][c])<=limit:
+                            seen.add((a,b));stack.append((a,b))
+                if (2,2) in seen:
+                    expected=limit;break
+            saved=copy.deepcopy(grid)
+            self.assertEqual(f(grid),expected);self.assertEqual(grid,saved)
 
-    def test_manhattan_dense_mst(self):
-        f=fresh(18)['manhattan_mst'];rng=random.Random(513)
+    def test_dense_prim_matches_explicit_graph(self):
+        f=fresh(18)['manhattan_mst'];prim=fresh(11)['prim_weight']
+        self.assertEqual(f([]),0);self.assertEqual(f([(1,2)]),0)
+        self.assertEqual(f([(0,0),(0,0)]),0)
+        self.assertEqual(f([(0,0),(2,2),(3,10),(5,2),(7,0)]),20)
+        rng=random.Random(617)
         for n in range(9):
-            for _ in range(20):
-                points=[(rng.randrange(-5,6),rng.randrange(-5,6)) for i in range(n)]
-                edges=sorted((abs(points[u][0]-points[v][0])+abs(points[u][1]-points[v][1]),u,v) for u in range(n) for v in range(u))
-                parent=list(range(n));want=0
-                def root(x):
-                    while parent[x]!=x: x=parent[x]
-                    return x
-                for w,u,v in edges:
-                    a,b=root(u),root(v)
-                    if a!=b: parent[a]=b;want+=w
-                self.assertEqual(f(points),want)
+            for _ in range(12):
+                pts=[(rng.randrange(-4,5),rng.randrange(-4,5)) for _ in range(n)]
+                adj=[[(v,abs(x-a)+abs(y-b)) for v,(a,b) in enumerate(pts) if u!=v] for u,(x,y) in enumerate(pts)]
+                saved=pts[:]
+                self.assertEqual(f(pts),prim(adj));self.assertEqual(pts,saved)
 
-    def test_dag_count_paths(self):
-        f=fresh(19)['dag_path_counts'];rng=random.Random(514)
-        for n in range(1,9):
-            for _ in range(25):
-                adj=[[v for v in range(u+1,n) for repeat in range(rng.randrange(3))] for u in range(n)]
-                want=[0]*n;stack=[0]
-                while stack:
-                    u=stack.pop();want[u]+=1;stack.extend(adj[u])
-                self.assertEqual(f(adj,0),want)
-                self.assertEqual(f(adj,0,7),[x%7 for x in want])
-                self.assertEqual(f(adj,0,1),[0]*n)
-        with self.assertRaises(ValueError): f([[0]],0)
-        with self.assertRaises(ValueError): f([[]],0,0)
+    def test_dag_counts_and_large_integer(self):
+        f=fresh(19)['dag_path_counts']
+        self.assertEqual(f([[1,2],[3],[3],[],[]],0),[1,1,1,2,0])
+        self.assertEqual(f([[1,1],[]],0),[1,2])
+        self.assertEqual(f([[]],0,1),[0])
+        for adj,source,mod in [([],0,None),([[0]],0,None),([[],[1]],0,None),([[]],0,0)]:
+            with self.assertRaises(ValueError):f(adj,source,mod)
+        rng=random.Random(618)
+        for _ in range(100):
+            adj=[[v for v in range(u+1,7) if rng.random()<.4] for u in range(7)]
+            expected=[0]*7
+            def visit(u):
+                expected[u]+=1
+                for v in adj[u]:visit(v)
+            visit(0)
+            self.assertEqual(f(adj,0),expected)
+            self.assertEqual(f(adj,0,3),[x%3 for x in expected])
+        adj=[[i+1,i+1] for i in range(1200)]+[[]]
+        self.assertEqual(f(adj,0)[-1],2**1200)
+
+
+class IdentityCloneTests(unittest.TestCase):
+    def test_clone_equal_values_cycles_and_independence(self):
+        ns=fresh(20);Node=ns['GraphNode'];f=ns['clone_graph']
+        self.assertIsNone(f(None))
+        a,b,c=Node(7),Node(7),Node(8)
+        a.neighbors=[a,b,b];b.neighbors=[c];c.neighbors=[a]
+        cloned=f(a)
+        self.assertIsNot(cloned,a);self.assertEqual(cloned.value,7)
+        self.assertIs(cloned.neighbors[0],cloned)
+        cb=cloned.neighbors[1]
+        self.assertIs(cb,cloned.neighbors[2]);self.assertIsNot(cb,cloned)
+        self.assertEqual(cb.value,cloned.value)
+        self.assertIs(cb.neighbors[0].neighbors[0],cloned)
+        cb.neighbors.clear();self.assertEqual(b.neighbors,[c])
+        self.assertEqual(a.neighbors,[a,b,b])
+        nodes=[Node(i) for i in range(5000)]
+        for u,v in zip(nodes,nodes[1:]):u.neighbors.append(v)
+        current=f(nodes[0]);count=1
+        while current.neighbors:
+            current=current.neighbors[0];count+=1
+        self.assertEqual(count,5000)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

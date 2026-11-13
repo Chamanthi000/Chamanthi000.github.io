@@ -1,3 +1,4 @@
+# Disposable local verification artifacts. Private backups must remain outside public source.
+/output/
 __pycache__/
 *.py[cod]
-/output/

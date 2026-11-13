@@ -14,14 +14,14 @@ try {
 }
 const root = path.resolve(__dirname, '..');
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'recall-browser-'));
-const topics = ['hash-maps', 'linked-lists', 'stacks', 'queues', 'trees', 'heaps', 'graphs', 'tries', 'union-find'];
+const topics = ['arrays', 'strings', 'hash-maps', 'linked-lists', 'stacks', 'queues', 'trees', 'heaps', 'graphs', 'tries', 'union-find'];
 const KEY = 'recall-structures-v1';
 const OPEN = 'recall-dsa-guides-open-v1';
 const privateText = '  PRIVATE fixture <tag> & "quotes"\n\n    keep indentation and trailing spaces  ';
 const seed = [
   { id: 'arrays', title: 'Arrays', notes: 'Arrays original notes', createdAt: '2026-01-01', updatedAt: '2026-01-02', extraMetadata: 'keep me' },
   { id: 'strings', title: 'Strings', notes: '', stringMergeVersion: 1, stringIntegratedNotes: 'Strings archived additions', stringLegacyBackup: 'Strings original archive', updatedAt: '2026-01-03' },
-  ...topics.map(id => ({ id, title: id, notes: privateText, updatedAt: '2026-01-04' })),
+  ...topics.filter(id => !['arrays', 'strings'].includes(id)).map(id => ({ id, title: id, notes: privateText, updatedAt: '2026-01-04' })),
   { id: 'custom-existing', title: 'Existing notebook', notes: privateText + ' Hidden legacy text', updatedAt: '2026-01-05', customMetadata: { keep: true } },
   { id: 'custom-deleted', title: 'Old removed notebook', notes: 'Retain tombstone history', deleted: true, updatedAt: '2026-01-06' }
 ];
@@ -79,10 +79,10 @@ async function run() {
   await page.goto(base);
   await page.locator('#dsToggle').click();
   assert.equal(await page.locator('.ds-topic').count(), 11);
-  const canonicalIds = ['arrays','strings',...topics];
+  const canonicalIds=topics;
   assert.deepEqual(await page.locator('.ds-topic').evaluateAll(nodes=>nodes.map(node=>node.dataset.id)),canonicalIds);
-  assert.equal(await page.locator('.dg > .ag-section').count(), 72);
-  assert.equal(await page.locator('.dg > .ag-section[open]').count(), 0);
+  assert.equal(await page.locator('.dg > .ag-section:not(.ag-private-notes)').count(), 88);
+  assert.equal(await page.locator('.dg > .ag-section:not(.ag-private-notes)[open]').count(), 2);
   assert.equal(await page.locator('.dg img, .dg script').count(), 0);
   assert.equal(await page.locator('[data-id="hash-maps"] .ds-note-count').textContent(), 'Revision guide + notes');
   assert.equal(await page.locator('[data-id="hash-maps"] .dg-private-text').textContent(), privateText);
@@ -98,7 +98,7 @@ async function run() {
   assert.equal(await topic('hash-maps').locator('.ag-section[open]').count(), 1);
   await topic('hash-maps').locator('[data-ag-expand-all]').click();
   await page.waitForFunction(() => document.querySelectorAll('[data-id="hash-maps"] .ag-section[open]').length === 8);
-  assert.equal(await page.locator('.dg > .ag-section[open]').count(), 8);
+  assert.equal(await page.locator('.dg > .ag-section:not(.ag-private-notes)[open]').count(), 10);
   let saved = JSON.parse(await page.evaluate(key => localStorage.getItem(key), OPEN));
   assert.equal(saved.length, 8);
   assert.ok(saved.every(id => id.startsWith('dg-hash-maps-')));
@@ -142,9 +142,23 @@ async function run() {
   await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.fixtureCopied = text; } } }));
   await topic('hash-maps').locator('[data-ag-open="dg-hash-maps-memorize"]').click();
   await topic('hash-maps').locator('[data-ag-section="dg-hash-maps-memorize"] .ag-detail > summary').first().click();
-  const code = await topic('hash-maps').locator('[data-ag-section="dg-hash-maps-memorize"] code').last().textContent();
+  await topic('hash-maps').locator('[data-ag-section="dg-hash-maps-memorize"] .ag-detail .dg-recall > summary').first().click();
+  const code = await topic('hash-maps').locator('[data-ag-section="dg-hash-maps-memorize"] .ag-code code').first().textContent();
   await topic('hash-maps').locator('[data-ag-section="dg-hash-maps-memorize"] [data-ds-copy]').first().click();
   assert.equal(await page.evaluate(() => window.fixtureCopied), code);
+
+  // Pattern links expand the exact template and major chapter, then move keyboard focus.
+  await topic('hash-maps').locator('[data-ag-open="dg-hash-maps-patterns"]').click();
+  await topic('hash-maps').locator('.ag-pattern > summary').first().click();
+  await topic('hash-maps').locator('[data-dg-target]').first().click();
+  assert.equal(await page.evaluate(() => document.activeElement.parentElement.id), 'dg-hash-maps-template-0');
+  assert.equal(await topic('hash-maps').locator('#dg-hash-maps-template-0').evaluate(el => el.open), true);
+  assert.equal(await topic('hash-maps').locator('#dg-hash-maps-memorize').evaluate(el => el.open), true);
+
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('recall-dsa-guides-nested-v1')||'{}')['hash-maps']?.length > 0);
+  await page.reload();await page.locator('#dsToggle').click();await page.locator('[data-nav-id="hash-maps"]').click();
+  assert.equal(await topic('hash-maps').locator('#dg-hash-maps-template-0').evaluate(el=>el.open),true,'nested preferences survive refresh');
+  assert.equal(await topic('hash-maps').locator('#dg-hash-maps-template-0 .dg-recall').evaluate(el=>el.open),true,'reveal preference survives refresh');
 
   // The fixed DSA list ends at Union Find; hidden records stay intact.
   assert.equal(await page.locator('[data-nav-id="custom-existing"]').count(), 0);
@@ -204,7 +218,7 @@ async function run() {
   assert.match(await secondPage.locator('#dsSummary').textContent(), /^11 data structures/);
   await secondDevice.close();
 
-  await page.setViewportSize({ width: 375, height: 812 });
+  await page.setViewportSize({ width: 393, height: 852 });
   await page.locator('[data-nav-id="hash-maps"]').click();
   await topic('hash-maps').locator('[data-ag-expand-all]').click();
   const size = await topic('hash-maps').locator('.ag').evaluate(element => ({ width: element.clientWidth, content: element.scrollWidth }));
@@ -247,7 +261,7 @@ async function run() {
   assert.equal(await deniedPage.locator('[data-id="trees"] .ag-section[open]').count(), 8);
   await denied.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: browser notes/editing, scoped state and reload, search all nine guides, keyboard/copy, hidden-note preservation, two-device cloud merge/reload, mobile, empty/missing/all-missing guides, denied storage.');
+  console.log('PASS: browser notes/editing, scoped state and reload, search all 11 guides, keyboard/copy, canonical-only UI and hidden records/sync/second-device retention, cloud merge, mobile, empty/missing/all-missing guides, denied storage.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   if (browser) await browser.close();

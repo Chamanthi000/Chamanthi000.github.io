@@ -343,5 +343,120 @@ class UnionFindTemplates(unittest.TestCase):
                 for u in range(n):
                     self.assertEqual(d.relation(a,u),oracle(a,u))
 
+
+class SupplementalContract(unittest.TestCase):
+    def test_aligned_metadata_and_executed_examples(self):
+        import contextlib
+        import io
+        aligned = {
+            'operations': ('operationExamples', ('code','result','use','mutation')),
+            'fundamentals': ('fundamentalDetails', ('why','use','result','edge','takeaway')),
+            'patterns': ('patternDetails', ('steps','templates','related','variations')),
+            'templates': ('templateDetails', ('pattern','preconditions','observation')),
+            'practice': ('practiceDetails', ('insight','secondary')),
+        }
+        names = {row[0] for row in DATA['templates']}
+        pattern_names = {row[0] for row in DATA['patterns']}
+        self.assertEqual(len(names), len(DATA['templates']))
+        covered = set()
+        for base,(supplement,fields) in aligned.items():
+            self.assertEqual(len(DATA[base]), len(DATA[supplement]), supplement)
+            for i,item in enumerate(DATA[supplement]):
+                for field in fields:
+                    self.assertIn(field,item,(supplement,i))
+                    self.assertTrue(item[field],(supplement,i,field))
+                if base == 'patterns':
+                    self.assertTrue(set(item['templates']) <= names)
+                    covered.update(item['templates'])
+                if base == 'templates':
+                    self.assertIn(item['pattern'], pattern_names)
+        self.assertEqual(covered,names)
+        for i,item in enumerate(DATA['operationExamples']):
+            with self.subTest(operation=i):
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    exec(compile(ast.parse('\n'.join(item['code'])),f'operation_{i}','exec'),{})
+                self.assertEqual(output.getvalue().strip(),item['result'])
+        self.assertGreaterEqual(len(DATA['decisionProcess']),4)
+        for source in DATA['sources']:
+            self.assertTrue(all(source.get(k) for k in ('title','url','note')))
+            self.assertTrue(source['url'].startswith('https://'))
+
+
+class AddedDSUVariants(unittest.TestCase):
+    def test_reverse_deletions_against_rebuilding(self):
+        f=fresh(9)['components_after_deletions']
+        self.assertEqual(f(3,[(0,1),(1,2)],[0,0,1]),[2,2,3])
+        self.assertEqual(f(2,[(0,1),(0,1)],[0,1]),[1,2])
+        self.assertEqual(f(0,[],[]),[])
+        self.assertEqual(f(3,[],[]),[])
+        for args in [(2,[(0,2)],[]),(2,[(0,1)],[-1]),(2,[],[0])]:
+            with self.assertRaises(ValueError):f(*args)
+        rng=random.Random(622)
+        for _ in range(150):
+            n=6;edges=[(rng.randrange(n),rng.randrange(n)) for _ in range(10)]
+            deletions=[rng.randrange(len(edges)) for _ in range(15)]
+            alive=set(range(len(edges)));expected=[]
+            for eid in deletions:
+                alive.discard(eid)
+                expected.append(len(set(groups(n,[edges[i] for i in alive]))))
+            saved=edges[:],deletions[:]
+            self.assertEqual(f(n,iter(edges),iter(deletions)),expected)
+            self.assertEqual((edges,deletions),saved)
+
+    def test_offline_dynamic_multiplicity_and_random_oracle(self):
+        from collections import Counter
+        f=fresh(10)['offline_dynamic_connectivity']
+        ops=[('query',0,1),('add',0,1),('add',1,0),('remove',0,1),('query',0,1),('remove',1,0),('query',0,1)]
+        self.assertEqual(f(2,ops),[False,True,False])
+        self.assertEqual(f(0,[]),[])
+        self.assertEqual(f(1,[('query',0,0),('add',0,0),('remove',0,0),('query',0,0)]),[True,True])
+        for n,ops in [(2,[('remove',0,1)]),(2,[('bad',0,1)]),(2,[('query',-1,0)])]:
+            with self.assertRaises(ValueError):f(n,ops)
+        rng=random.Random(623)
+        for _ in range(75):
+            n=7;counts=Counter();ops=[];expected=[]
+            for step in range(80):
+                u,v=rng.randrange(n),rng.randrange(n);edge=tuple(sorted((u,v)))
+                kind=rng.choice(['add','remove','query'])
+                if kind=='remove' and counts[edge]==0:kind='add'
+                ops.append((kind,u,v))
+                if kind=='add':counts[edge]+=1
+                elif kind=='remove':counts[edge]-=1
+                else:
+                    labels=groups(n,[e for e,count in counts.items() if count])
+                    expected.append(labels[u]==labels[v])
+            saved=ops[:]
+            self.assertEqual(f(n,iter(ops)),expected);self.assertEqual(ops,saved)
+        # Scheduling recursion is logarithmic, even for a long time axis.
+        self.assertEqual(f(1,[('query',0,0)]*5000),[True]*5000)
+
+    def test_exact_ratio_orientation_and_contradictions(self):
+        from fractions import Fraction
+        T=fresh(11)['RatioDSU'];t=T(5)
+        self.assertIsNone(t.relation(0,1))
+        self.assertTrue(t.constrain(0,1,2));self.assertTrue(t.constrain(1,2,3))
+        self.assertEqual(t.relation(0,2),Fraction(6))
+        self.assertEqual(t.relation(2,0),Fraction(1,6))
+        self.assertTrue(t.constrain(3,2,'5/2')) # smaller first root attaches to larger second root
+        self.assertEqual(t.relation(3,0),Fraction(5,12))
+        saved=copy.deepcopy(t.__dict__)
+        self.assertFalse(t.constrain(0,2,7));self.assertEqual(t.__dict__,saved)
+        self.assertTrue(t.constrain(4,4,1));self.assertFalse(t.constrain(4,4,2))
+        for args in [(0,1,0),(0,1,-1),(-1,0,2)]:
+            with self.assertRaises(ValueError):t.constrain(*args)
+        rng=random.Random(624)
+        for _ in range(50):
+            values=[Fraction(rng.randrange(1,10),rng.randrange(1,10)) for _ in range(12)]
+            t=T(12);edges=[]
+            for _ in range(35):
+                a,b=rng.randrange(12),rng.randrange(12)
+                self.assertTrue(t.constrain(a,b,values[a]/values[b]));edges.append((a,b))
+                labels=groups(12,edges)
+                for u in range(12):
+                    for v in range(12):
+                        expected=values[u]/values[v] if labels[u]==labels[v] else None
+                        self.assertEqual(t.relation(u,v),expected)
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

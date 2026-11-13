@@ -22,6 +22,38 @@ def namespace(name):
     return ns
 
 class QueueTemplates(unittest.TestCase):
+    def test_supplemental_alignment_and_operation_outputs(self):
+        import contextlib
+        import io
+        fields = {'operationExamples': ('operations', ('code','result','use','mutation')),
+                  'fundamentalDetails': ('fundamentals', ('why','use','result','edge','takeaway')),
+                  'patternDetails': ('patterns', ('steps','templates','related','variations')),
+                  'templateDetails': ('templates', ('pattern','preconditions','observation')),
+                  'practiceDetails': ('practice', ('insight','secondary'))}
+        names = {row[0] for row in DATA['templates']}
+        mapped = set()
+        for field, (base, keys) in fields.items():
+            self.assertEqual(len(DATA[field]), len(DATA[base]), field)
+            for entry in DATA[field]:
+                self.assertEqual(set(entry), set(keys), field)
+                self.assertTrue(all(entry[key] for key in keys), (field, entry))
+        for entry in DATA['patternDetails']:
+            self.assertTrue(set(entry['templates']) <= names)
+            mapped.update(entry['templates'])
+        self.assertEqual(mapped, names)
+        for row, entry in zip(DATA['operations'], DATA['operationExamples']):
+            with self.subTest(operation=row[1]):
+                code = '\n'.join(entry['code'])
+                ast.parse(code)
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    exec(compile(code, row[1], 'exec'), {})
+                self.assertEqual(output.getvalue().strip(), entry['result'])
+        self.assertGreaterEqual(len(DATA['decisionProcess']), 3)
+        for source in DATA['sources']:
+            self.assertEqual(set(source), {'title','url','note'})
+            self.assertTrue(source['url'].startswith('https://'))
+
     def test_schema_and_all_code(self):
         self.assertEqual(DATA['id'], 'queues')
         for field in ('title', 'subtitle', 'variables'):
@@ -277,67 +309,76 @@ class QueueTemplates(unittest.TestCase):
                            for bits in itertools.product((0, 1), repeat=n))
             self.assertEqual(f(adj), expected)
 
-    def test_round_robin_senate(self):
+    def test_senate_index_queues(self):
         f = namespace('Round-robin senate index queues')['senate_winner']
-        for text, want in [('R', 'Radiant'), ('D', 'Dire'), ('RD', 'Radiant'),
-                           ('DR', 'Dire'), ('RDD', 'Dire'), ('RRD', 'Radiant')]:
-            self.assertEqual(f(text), want)
-        for text in ['', 'RX', 'r']:
-            with self.assertRaises(ValueError): f(text)
-        for size in range(1, 9):
-            for chars in itertools.product('RD', repeat=size):
-                text = ''.join(chars)
-                swapped = text.translate(str.maketrans('RD', 'DR'))
-                self.assertNotEqual(f(text), f(swapped))
-                self.assertIn(f(text)[0], text)
-
-    def test_implicit_lock(self):
-        f = namespace('Implicit lock-state shortest moves')['lock_moves']
-        self.assertEqual(f('0202', ['0201','0101','0102','1212','2002']), 6)
-        self.assertEqual(f('00'), 0)
-        self.assertEqual(f('00', ['00']), -1)
-        self.assertEqual(f('11', ['11']), -1)
-        self.assertEqual(f('11', ['10','90','01','09']), -1)
-        for value in range(100):
-            digits = [value // 10, value % 10]
-            self.assertEqual(f(str(value).zfill(2)), sum(min(x,10-x) for x in digits))
-        rng = random.Random(314)
-        for _ in range(45):
-            blocked = set(rng.sample(range(1,100), 25))
-            target = rng.randrange(100)
-            dist, q = {0:0}, deque([0])
-            while q:
-                u = q.popleft()
-                a,b = divmod(u,10)
-                for v in (((a-1)%10)*10+b, ((a+1)%10)*10+b, a*10+(b-1)%10, a*10+(b+1)%10):
-                    if v not in blocked and v not in dist:
-                        dist[v] = dist[u]+1; q.append(v)
-            self.assertEqual(f(str(target).zfill(2), [str(x).zfill(2) for x in blocked]), dist.get(target,-1))
-        for target in ['', '1x']:
-            with self.assertRaises(ValueError): f(target)
-        with self.assertRaises(ValueError): f('00', ['1'])
-
-    def test_circular_deque_both_ends(self):
-        cls = namespace('Fixed-capacity circular deque')['CircularDeque']
-        for capacity in [0,-1,True,1.5]:
-            with self.assertRaises(ValueError): cls(capacity)
-        rng = random.Random(315)
-        for capacity in range(1,6):
-            actual, expected = cls(capacity), deque()
-            for _ in range(900):
-                method = rng.choice(['append','appendleft','pop','popleft'])
-                if method.startswith('append'):
-                    value = rng.choice([None,0,False,7,-2,'x'])
-                    accepted = len(expected) < capacity
-                    self.assertEqual(getattr(actual,method)(value), accepted)
-                    if accepted: getattr(expected,method)(value)
-                elif expected:
-                    self.assertEqual(getattr(actual,method)(), getattr(expected,method)())
+        for bad in ('', 'X', 'RDX'):
+            with self.assertRaises(ValueError):
+                f(bad)
+        def oracle(s):
+            q, banned = deque(s), {'R': 0, 'D': 0}
+            alive = {'R': s.count('R'), 'D': s.count('D')}
+            while alive['R'] and alive['D']:
+                actor = q.popleft()
+                if banned[actor]:
+                    banned[actor] -= 1
+                    alive[actor] -= 1
                 else:
-                    with self.assertRaises(IndexError): getattr(actual,method)()
+                    banned['D' if actor == 'R' else 'R'] += 1
+                    q.append(actor)
+            return 'Radiant' if alive['R'] else 'Dire'
+        for n in range(1, 10):
+            for bits in itertools.product('RD', repeat=n):
+                s = ''.join(bits)
+                self.assertEqual(f(s), oracle(s), s)
+        self.assertEqual(f('RD' * 10000), 'Radiant')
+
+    def test_implicit_lock_states(self):
+        f = namespace('Implicit lock-state shortest moves')['lock_moves']
+        self.assertEqual(f('0000'), 0)
+        self.assertEqual(f('0000', ['0000']), -1)
+        self.assertEqual(f('0202', ['0201','0101','0102','1212','2002']), 6)
+        self.assertEqual(f('1', ['9','1']), -1)
+        self.assertEqual(f('5', ['1','9']), -1)
+        for target in ('', 'x', '１２'):
+            with self.assertRaises(ValueError):
+                f(target)
+        with self.assertRaises(ValueError):
+            f('00', ['1'])
+        for target in itertools.product('0123456789', repeat=2):
+            target = ''.join(target)
+            expected = sum(min(int(c), 10-int(c)) for c in target)
+            self.assertEqual(f(target), expected)
+
+    def test_two_ended_ring(self):
+        cls = namespace('Fixed-capacity circular deque')['CircularDeque']
+        for bad in (0, -1, 1.5, True):
+            with self.assertRaises(ValueError):
+                cls(bad)
+        rng = random.Random(225)
+        for capacity in (1, 2, 7):
+            actual, expected = cls(capacity), deque()
+            for _ in range(2500):
+                operation = rng.randrange(4)
+                value = rng.choice([None, 0, -1, 'x'])
+                if operation < 2:
+                    allowed = len(expected) < capacity
+                    method = 'append' if operation == 0 else 'appendleft'
+                    self.assertEqual(getattr(actual, method)(value), allowed)
+                    if allowed:
+                        getattr(expected, method)(value)
+                else:
+                    method = 'pop' if operation == 2 else 'popleft'
+                    if expected:
+                        self.assertEqual(getattr(actual, method)(), getattr(expected, method)())
+                    else:
+                        with self.assertRaises(IndexError):
+                            getattr(actual, method)()
                 self.assertEqual(len(actual), len(expected))
-            while expected: self.assertEqual(actual.popleft(), expected.popleft())
-            self.assertTrue(all(value is None for value in actual.buffer))
+                retained = [actual.buffer[(actual.head+i)%capacity] for i in range(len(actual))]
+                self.assertEqual(retained, list(expected))
+            while expected:
+                self.assertEqual(actual.popleft(), expected.popleft())
+            self.assertTrue(all(x is None for x in actual.buffer))
 
     def test_zz_every_template_executed(self):
         self.assertEqual(USED, {t[0] for t in DATA['templates']})
