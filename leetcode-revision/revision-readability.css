@@ -1743,3 +1743,17 @@ body.rev-index .quick-review .ds-practice-row{
     font-size:12.8px!important;
   }
 }
+
+
+/* Data-structure headers-only reset v14 */
+body.rev-index #dataStructureRevision .ds-add-row{display:none!important}
+body.rev-index #dataStructureRevision .ds-cheatsheet-intro,
+body.rev-index #dataStructureRevision .ds-view-switch,
+body.rev-index #dataStructureRevision .ds-study-loop{display:none!important}
+body.rev-index #dataStructureRevision .ds-topic-desc,
+body.rev-index #dataStructureRevision .ds-topic-time,
+body.rev-index #dataStructureRevision .ds-note-count{display:none!important}
+body.rev-index #dataStructureRevision .ds-topic summary{min-height:62px}
+body.rev-index #dataStructureRevision .ds-topic-copy{gap:0}
+body.rev-index #dataStructureRevision .ds-topic-nav{grid-template-columns:1fr}
+body.rev-index #dataStructureRevision .ds-nav-label{display:none}
