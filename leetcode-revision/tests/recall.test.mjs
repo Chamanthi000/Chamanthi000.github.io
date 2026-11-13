@@ -56,7 +56,7 @@ test('Arrays guide covers interview requirements without replacing user notes',(
  assert.ok(dsRevision.includes("arrayIntegratedNotes"));
  assert.ok(dsRevision.includes("ARRAY_ARCHIVE_KEY"));
  assert.ok(dsRevision.includes("verified.at(-1)?.notes!==existing"));
- assert.ok(dsRevision.includes("const personalHtml=!customGuide&&personal"));
+ assert.ok(dsRevision.includes("const personalHtml=!legacyGuide&&personal"));
  assert.ok(arrayStyles.includes('ag-section-toggle'));
 });
 
@@ -79,7 +79,7 @@ test('Strings guide supplies collapsible interview reference while preserving pr
  assert.ok(index.includes('string-interview-guide.js'));
  assert.ok(index.indexOf('string-interview-guide.js')<index.indexOf('data-structure-revision.js'));
  for(const name of ['preservedStringMarkup','stringIntegratedNotes','STRING_ARCHIVE_KEY','stringOpenSections','downloadStringBackup'])assert.ok(dsRevision.includes(name),name);
- assert.ok(dsRevision.includes('const personalHtml=!customGuide&&personal'));
+ assert.ok(dsRevision.includes('const personalHtml=!legacyGuide&&personal'));
  assert.ok(guide.html.includes('KMP')&&guide.html.includes('casefold')&&guide.html.includes('Minimum Window Substring'));
 });
 test('Due means solved AND scheduled, never just saved',()=>{

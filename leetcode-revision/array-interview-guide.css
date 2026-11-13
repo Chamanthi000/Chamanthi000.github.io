@@ -1,6 +1,7 @@
-/* Arrays FAANG guide · isolated to the read-only Arrays notebook */
+/* Shared read-only DSA guide styling, scoped to the revision notebooks. */
 body.rev-index #dataStructureRevision .ag{color:#284638;font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.73;min-width:0;overflow-wrap:anywhere}
 body.rev-index #dataStructureRevision .ag *{box-sizing:border-box}
+body.rev-index #dataStructureRevision .dg-private-text{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:10px 0}
 body.rev-index #dataStructureRevision .ag .ag-hero{padding:clamp(18px,3.5vw,30px);background:linear-gradient(140deg,#eff7ee,#f9fcf9 62%,#eef4ee);border:1px solid #dceadc;border-radius:18px;margin:0 0 14px}
 body.rev-index #dataStructureRevision .ag .ag-hero-label,.ag .ag-kicker{font:800 11px/1.35 'Plus Jakarta Sans',system-ui,sans-serif;letter-spacing:.095em;color:#477a5c;text-transform:uppercase}
 body.rev-index #dataStructureRevision .ag .ag-hero h2{font:800 clamp(19px,2.3vw,28px)/1.35 'Plus Jakarta Sans',system-ui,sans-serif;letter-spacing:-.035em;max-width:750px;margin:11px 0;color:#254935}

@@ -1,0 +1,1393 @@
+{
+  "id": "union-find",
+  "title": "Union Find",
+  "subtitle": "Maintain a partition that only merges: representatives answer connectivity while root metadata summarizes each component.",
+  "variables": "N = number of initialized elements, E = input edges, Q = queries, M = total DSU operations, α = inverse Ackermann function, A = number of accounts, H = email occurrences, U = unique emails, R*C = grid positions; L = output/query text length; U_g = distinct emails in output group g; E_lifetimes = number of active edge intervals in offline mixed-update problems. With union by size/rank plus path compression, M operations cost O(N+M α(N)) amortized total after initialization; a single operation is not guaranteed O(1). Weighted/rollback variants have explicitly different bounds. Dictionary-backed labels use expected hashing; hashing and comparing a long string costs O(length) initially/worst-case, and sorting strings adds comparison cost. Main bounds use fixed-width numeric arithmetic; Python large integers have additional bit complexity. Space separates initialized DSU arrays, constructed/sorted input copies, auxiliary stacks and returned output. Templates use standard-library Python 3.10+, integer IDs 0..N-1 unless explicitly mapped; root identifiers are unstable implementation details.",
+  "operations": [
+    [
+      "Initialize",
+      "dsu = DSU(n)",
+      "Create n singleton components",
+      "O(N)",
+      "O(N) persistent",
+      "n must be nonnegative; even isolated elements count."
+    ],
+    [
+      "Representative",
+      "root = dsu.find(x)",
+      "Find representative with iterative compression",
+      "O(α(N)) amortized",
+      "O(1) auxiliary",
+      "Mutates parent pointers even though connectivity is unchanged; validates ID."
+    ],
+    [
+      "Merge",
+      "merged = dsu.union(a, b)",
+      "Merge components by size",
+      "O(α(N)) amortized",
+      "O(1) auxiliary",
+      "Returns false if already connected; does not imply a directed-cycle answer."
+    ],
+    [
+      "Connectivity",
+      "dsu.find(a) == dsu.find(b)",
+      "Connectivity query",
+      "O(α(N)) amortized",
+      "O(1)",
+      "Use find, not parent[a] == parent[b]."
+    ],
+    [
+      "Metadata",
+      "dsu.component_size(x)",
+      "Get component cardinality",
+      "O(α(N)) amortized",
+      "O(1)",
+      "Read size at find(x), not at a nonroot."
+    ],
+    [
+      "Metadata",
+      "dsu.components",
+      "Read current number of components",
+      "O(1)",
+      "O(1)",
+      "Decrement only after a successful merge."
+    ],
+    [
+      "Metadata",
+      "parent[root_b] = root_a",
+      "Link roots after size/rank comparison",
+      "O(1) linking after finds",
+      "O(1)",
+      "Never link arbitrary interior nodes; root metadata is authoritative."
+    ],
+    [
+      "Batch",
+      "groups.setdefault(dsu.find(x), []).append(x)",
+      "Enumerate partition",
+      "O(N α(N)) amortized expected",
+      "O(N) output plus dictionary",
+      "DSU does not store component member lists automatically."
+    ],
+    [
+      "Edge stream",
+      "if not dsu.union(u, v): pass",
+      "Detect cycle-forming undirected edge",
+      "O(α(N)) amortized per edge",
+      "O(N) DSU total",
+      "Parallel edges/self-loops count as cycles under multigraph edge semantics."
+    ],
+    [
+      "Kruskal",
+      "ordered = sorted(edges, key=lambda e: e[2])",
+      "Sort edges for greedy MST",
+      "O(E log E)",
+      "O(E) sorted copy",
+      "Sorting generally dominates DSU; negative weights allowed."
+    ],
+    [
+      "Dynamic universe",
+      "index[label] = len(index)",
+      "Map external label to integer ID",
+      "O(1) expected after hashing",
+      "O(1) entry growth",
+      "An isolated label must be introduced explicitly if it belongs in the universe."
+    ],
+    [
+      "Rollback",
+      "token = dsu.snapshot()",
+      "Save history length",
+      "O(1)",
+      "O(1) token",
+      "Rollback DSU intentionally omits path compression."
+    ],
+    [
+      "Rollback",
+      "dsu.rollback(token)",
+      "Undo successful merges after snapshot",
+      "O(number of undone merges)",
+      "O(1) auxiliary",
+      "Tokens represent stack-prefix state, not immutable version branches."
+    ],
+    [
+      "Parity",
+      "root, parity = dsu.find(x)",
+      "Get root and xor to root",
+      "O(log N) worst in provided no-compression parity DSU",
+      "O(1)",
+      "Parity metadata is relative to parent, not an absolute color."
+    ],
+    [
+      "Limits",
+      "edges.sort(key=lambda e: e[2])",
+      "Offline threshold preprocessing",
+      "O(E log E)",
+      "O(E) worst Python sort auxiliary",
+      "Our template uses sorted copy instead of mutating caller edges."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "A partition, not graph paths",
+      "DSU tracks equivalence classes under repeated merging; it does not remember the original path or the edge that proves connectivity.",
+      [
+        "parent = list(range(4))",
+        "parent[1] = 0",
+        "parent[3] = 2",
+        "groups = [{0, 1}, {2, 3}]",
+        "assert parent[0] == 0 and parent[2] == 2"
+      ],
+      "O(N) initialization",
+      "O(N)",
+      "Parent pointers are implementation links, not necessarily input graph edges."
+    ],
+    [
+      "Only roots represent components",
+      "Follow parent pointers until parent[root]==root. Two elements can be connected even when their immediate parents differ.",
+      [
+        "parent = [0, 0, 1]",
+        "x = 2",
+        "while parent[x] != x:",
+        "    x = parent[x]",
+        "assert x == 0",
+        "assert parent[2] != parent[0]"
+      ],
+      "O(tree height)",
+      "O(1)",
+      "Comparing parent[a] and parent[b] is not a connectivity test."
+    ],
+    [
+      "Union by size",
+      "Attach the smaller root under the larger root, then update the winner’s size. An element’s depth can increase only when its component at least doubles.",
+      [
+        "parent = [0, 1, 0]",
+        "size = [2, 1, 1]",
+        "a, b = 0, 1",
+        "if size[a] < size[b]:",
+        "    a, b = b, a",
+        "parent[b] = a",
+        "size[a] += size[b]"
+      ],
+      "O(1) linking after finds",
+      "O(1)",
+      "Size entries at losing roots are stale and must not be queried directly."
+    ],
+    [
+      "Path compression",
+      "A find can redirect traversed nodes toward the root without changing the represented partition. Iterative path halving avoids recursion.",
+      [
+        "parent = [0, 0, 1, 2]",
+        "x = 3",
+        "while parent[x] != x:",
+        "    parent[x] = parent[parent[x]]",
+        "    x = parent[x]",
+        "assert x == 0"
+      ],
+      "O(α(N)) amortized with union by size",
+      "O(1) auxiliary",
+      "Compression mutates structure; it complicates rollback and relative-potential metadata."
+    ],
+    [
+      "Amortized is not worst-case constant",
+      "Balancing plus compression makes long operation sequences nearly linear; the guarantee is total sequence cost, not a promise that each find is O(1).",
+      [
+        "n = 8",
+        "doublings = 0",
+        "component_size = 1",
+        "while component_size < n:",
+        "    component_size *= 2",
+        "    doublings += 1",
+        "assert doublings == 3"
+      ],
+      "O(log N) depth without compression under size balancing",
+      "O(1)",
+      "Without balancing, attaching roots in a chain can make a single find linear."
+    ],
+    [
+      "Successful merge bookkeeping",
+      "If roots already match, no partition changes. Component count and component metadata change only on successful merges.",
+      [
+        "roots_equal = True",
+        "components = 3",
+        "merged = not roots_equal",
+        "if merged:",
+        "    components -= 1",
+        "assert components == 3"
+      ],
+      "O(1) after finds",
+      "O(1)",
+      "Repeated edges must not repeatedly decrement the component count."
+    ],
+    [
+      "Root aggregates",
+      "Sizes, sums or flags can be merged at roots when the aggregate has a well-defined combine rule. Representative ID itself need not be the smallest member.",
+      [
+        "root_sum = [5, 7]",
+        "parent = [0, 1]",
+        "parent[1] = 0",
+        "root_sum[0] += root_sum[1]",
+        "assert root_sum[0] == 12"
+      ],
+      "O(cost of combine) per successful union",
+      "O(N) metadata",
+      "A root may change; keep semantic labels such as minimum member as separate metadata."
+    ],
+    [
+      "Undirected cycles and spanning forests",
+      "An undirected edge joining already-connected endpoints closes a cycle; successful unions form a spanning forest with N-components edges.",
+      [
+        "n, components, successful_unions = 5, 2, 3",
+        "assert successful_unions == n-components",
+        "a_self_loop_closes_cycle = True"
+      ],
+      "O((N+E) α(N)) conventional upper bound including build",
+      "O(N)",
+      "This does not detect general directed cycles; direction is discarded by DSU."
+    ],
+    [
+      "Offline queries reorder work, not answers",
+      "Sort monotone threshold queries; insert each eligible edge once, answer connectivity, then place answers back at their original indices.",
+      [
+        "queries = [(0, 2, 5), (0, 1, 2)]",
+        "ordered = sorted(enumerate(queries), key=lambda item: item[1][2])",
+        "assert [index for index, query in ordered] == [1, 0]"
+      ],
+      "O(Q log Q) preprocessing",
+      "O(Q)",
+      "Strict < limit and non-strict ≤ limit are different eligibility rules."
+    ],
+    [
+      "Rollback is a different DSU",
+      "Union by size keeps find O(log N) without compression. Log one reversible root attachment per successful union, then undo in reverse.",
+      [
+        "history = []",
+        "snapshot = len(history)",
+        "history.append((1, 0, 1))",
+        "while len(history) > snapshot:",
+        "    child, parent_root, old_size = history.pop()"
+      ],
+      "O(1) snapshot; O(1) undo per logged union",
+      "O(number of successful active merges)",
+      "Compression would require logging every rewritten parent; omit it unless implementing that extra machinery."
+    ],
+    [
+      "Relative constraints require potentials",
+      "For bipartite parity, store color[x] xor color[parent[x]]. Along a parent chain xor these values; linking roots must preserve the equation.",
+      [
+        "parity_to_parent = [0, 1, 1]",
+        "parent = [0, 0, 1]",
+        "x, parity = 2, 0",
+        "while parent[x] != x:",
+        "    parity ^= parity_to_parent[x]",
+        "    x = parent[x]",
+        "assert parity == 0"
+      ],
+      "O(log N) with union by size and no compression",
+      "O(N)",
+      "Naive compression without updating relative potentials corrupts constraints."
+    ]
+  ],
+  "patterns": [
+    [
+      "Incremental connectivity",
+      "CORE",
+      "Add undirected links and ask whether endpoints connect",
+      "Union roots for each edge; compare representatives for queries.",
+      "O(N+(E+Q) α(N)) amortized",
+      "O(N)",
+      "1971 Find if Path Exists in Graph; 547 Number of Provinces",
+      "Isolated vertices are not discovered from edges alone.",
+      "Two roots are equal exactly when the processed edge set connects those vertices.",
+      "Deletions, directed reachability, shortest paths."
+    ],
+    [
+      "Components and root aggregates",
+      "CORE",
+      "Count groups, largest group, total weight per component",
+      "Maintain component count and merge root-level size/sum metadata after successful union.",
+      "O(N+E α(N)) amortized",
+      "O(N)",
+      "547 Number of Provinces; 827 Making A Large Island",
+      "Adjacent cells can share a root; deduplicate roots before adding sizes.",
+      "Each root aggregate summarizes exactly its current component.",
+      "Need all members instantly without separate member-list data."
+    ],
+    [
+      "Undirected cycle / redundant edge",
+      "CORE",
+      "First link that makes an undirected cycle",
+      "If find(u)==find(v), this edge is redundant; otherwise merge.",
+      "O(N+E α(N)) amortized",
+      "O(N)",
+      "684 Redundant Connection; 261 Graph Valid Tree",
+      "Self-loops and parallel edges matter; choose first versus last redundant contract.",
+      "Successful edges form an acyclic forest with the same connectivity as processed edges.",
+      "Directed cycle detection; incoming-parent constraints need separate reasoning."
+    ],
+    [
+      "Kruskal MST",
+      "CORE",
+      "Cheapest undirected connected spanning structure",
+      "Sort edges by weight and take only edges joining distinct components.",
+      "O(N+E log E+E α(N))",
+      "O(N+E) including sorted copy",
+      "1584 Min Cost to Connect All Points; 1135 Connecting Cities With Minimum Cost",
+      "If fewer than N-1 edges selected, no spanning tree exists for N>0.",
+      "Chosen edges are cycle-free and extendable to a minimum spanning forest by the cut property.",
+      "Directed graphs or implicit dense graphs where O(N²) Prim avoids E=Θ(N²) storage."
+    ],
+    [
+      "Identity merging",
+      "IMPORTANT",
+      "Accounts, synonyms, shared identifiers",
+      "Map each identifier to its first owner; union owners sharing it; group by final roots.",
+      "O(A+H α(A)+sorting output) expected after string costs",
+      "O(A+U+H output)",
+      "721 Accounts Merge; 839 Similar String Groups",
+      "Same display name alone is not identity; equal identifiers are.",
+      "Every observed shared identifier joins its owners, and no unsupported name-only merge occurs.",
+      "Fuzzy identity without an explicit equivalence rule."
+    ],
+    [
+      "Activation on grids",
+      "IMPORTANT",
+      "Turn water into land and track islands after each addition",
+      "Activate once, initialize one island, union active neighbors and subtract successful merges.",
+      "O(RC+Q α(RC)) amortized with dense arrays",
+      "O(RC+Q output)",
+      "305 Number of Islands II; 947 Most Stones Removed with Same Row or Column",
+      "Duplicate additions must not create another island; neighbor IDs need row/column bounds.",
+      "DSU classes among active cells are exactly the current land islands.",
+      "Land removal online without dynamic-connectivity machinery."
+    ],
+    [
+      "Offline threshold queries",
+      "IMPORTANT",
+      "Connectivity using only edges lighter than each limit",
+      "Sort edges and indexed queries; sweep eligible edges into one DSU.",
+      "O(N+E log E+Q log Q+(E+Q) α(N))",
+      "O(N+E+Q)",
+      "1697 Checking Existence of Edge Length Limited Paths",
+      "Use < limit if the question says strictly smaller; preserve original answer order.",
+      "Before each query the DSU represents exactly the threshold-eligible edge subgraph.",
+      "Online unpredictable deletions or nonmonotone eligibility predicates."
+    ],
+    [
+      "Reverse-time deletions",
+      "ADVANCED",
+      "Known sequence removes vertices/edges; ask remaining connectivity",
+      "Start from final graph and add deleted items back in reverse, accounting for duplicates.",
+      "O(N+(E+Q) α(N)) amortized after preprocessing",
+      "O(N+E+Q)",
+      "803 Bricks Falling When Hit; 1970 Last Day Where You Can Still Cross",
+      "Bricks require stable-to-roof accounting and duplicate hit handling, not raw island count.",
+      "Reverse state equals the corresponding forward graph after that operation prefix.",
+      "Unknown future operations; mixed arbitrary updates need more structure."
+    ],
+    [
+      "Rollback DSU / time segments",
+      "ADVANCED",
+      "Offline mixed additions/deletions or divide-and-conquer queries",
+      "Convert edge lifetimes to time intervals; apply unions on segment-tree entry and rollback on exit.",
+      "O((E_lifetimes log Q + Q) log N) typical excluding interval construction",
+      "O(N+E_lifetimes log Q+Q) typical",
+      "Offline dynamic connectivity (custom interview extension)",
+      "Use union by size without path compression; duplicate edges need lifetime multiplicity tracking.",
+      "At each time leaf, DSU contains exactly edges whose lifetime intervals cover that time.",
+      "Simple additions-only workloads, where compression is easier and faster."
+    ],
+    [
+      "Parity / weighted constraints",
+      "ADVANCED",
+      "Equations between node potentials, equality ratios, bipartite constraints",
+      "Store relative potential to parent and derive root-link value algebraically.",
+      "Parity template O(log N) worst per find/union without compression",
+      "O(N)",
+      "886 Possible Bipartition; 399 Evaluate Division; 990 Satisfiability of Equality Equations",
+      "Xor parity, additive difference and multiplicative ratio have different orientation equations.",
+      "For every node, stored potential composes along parent edges to its root; same-root constraints must agree.",
+      "Arbitrary inequalities or non-equivalence relations not representable by chosen potentials."
+    ]
+  ],
+  "recognize": [
+    [
+      "Undirected edges arrive; connectivity queries",
+      "Compressed DSU",
+      "Only merges; static BFS may be simpler for one query."
+    ],
+    [
+      "Count connected components",
+      "DSU count or traversal",
+      "Initialize all N vertices including isolates."
+    ],
+    [
+      "Size of a merged group",
+      "Root size aggregate",
+      "Only root size is authoritative."
+    ],
+    [
+      "First edge creating a cycle",
+      "Failed union",
+      "Undirected multigraph semantics; this is not a directed-cycle test."
+    ],
+    [
+      "Is this undirected graph a tree?",
+      "N-1 edges + connected or no failed unions + connected",
+      "Clarify N=0 convention; singleton needs zero edges."
+    ],
+    [
+      "Minimum cost to connect everyone",
+      "Kruskal",
+      "MST not shortest-path tree; disconnected means impossible."
+    ],
+    [
+      "Merge accounts with same email",
+      "Identifier-owner map + DSU",
+      "Same name without shared email does not merge."
+    ],
+    [
+      "New land additions and island counts",
+      "Active-cell DSU",
+      "Duplicate activation is a no-op."
+    ],
+    [
+      "Query paths with edges below limit",
+      "Offline threshold DSU",
+      "Sort queries if offline allowed; strictness matters."
+    ],
+    [
+      "Known deletions only",
+      "Reverse time",
+      "Final state can be built and deletions become insertions."
+    ],
+    [
+      "Mixed additions and removals offline",
+      "Rollback plus lifetime intervals",
+      "Basic DSU cannot split a component."
+    ],
+    [
+      "Same/different group constraints",
+      "Parity DSU or bipartite BFS",
+      "Inconsistent same-root equation must reject."
+    ],
+    [
+      "Ratios a/b = value",
+      "Weighted potential DSU",
+      "Define orientation; floating ratios need tolerance and nonzero assumptions."
+    ],
+    [
+      "Need actual connecting path",
+      "BFS/DFS or separately stored spanning forest",
+      "DSU parent links are not original graph edges."
+    ],
+    [
+      "Lexicographically smallest representative",
+      "Separate minimum metadata",
+      "Size balancing chooses root for efficiency, not semantic order."
+    ]
+  ],
+  "contrasts": [
+    [
+      "DSU vs BFS/DFS",
+      "DSU excels at many incremental undirected merges/queries; one static component pass is also O(N+E) and can recover graph paths."
+    ],
+    [
+      "Union by size vs rank",
+      "Size stores cardinality; rank bounds structural height and is not current height after compression. Both support near-constant amortized operations with compression."
+    ],
+    [
+      "Root ID vs semantic representative",
+      "Balancing may change the root; maintain minimum/name/aggregate separately if an application needs it."
+    ],
+    [
+      "Path compression vs rollback",
+      "Compression rewrites many parent links; simple rollback omits it and uses O(log N) balanced finds."
+    ],
+    [
+      "Undirected cycle vs directed cycle",
+      "Connected endpoints plus a new undirected edge close a cycle; directed edge orientation can prevent any directed cycle even within an undirected connected component."
+    ],
+    [
+      "Kruskal vs Prim",
+      "Kruskal sorts edges and merges components; Prim grows one tree via the cheapest cut edge, and dense implicit Prim can avoid materializing all edges."
+    ],
+    [
+      "DSU member size vs member enumeration",
+      "Size is O(α(N)) through root metadata; listing members requires a scan or separately maintained lists."
+    ],
+    [
+      "Parity vs numeric potential",
+      "Parity composes with xor and is self-inverse; additive differences and ratios require careful sign/inverse when swapping roots."
+    ],
+    [
+      "Online vs offline connectivity",
+      "Offline permits sorting thresholds or reversing deletions; online must answer in arrival order without knowing future updates."
+    ]
+  ],
+  "edges": [
+    [
+      "Empty universe",
+      "DSU(0)",
+      "components=0; no valid element queries; empty Kruskal cost convention 0."
+    ],
+    [
+      "Singleton",
+      "n=1,edges=[]",
+      "One component of size one, MST cost 0."
+    ],
+    [
+      "Invalid ID",
+      "find(-1), union(0,n)",
+      "Raise ValueError; Python negative indices must not alias another element."
+    ],
+    [
+      "Repeated union",
+      "union(0,1) twice",
+      "True then false; size/count change only once."
+    ],
+    [
+      "Self-loop",
+      "edge(2,2)",
+      "Union false; an undirected cycle-forming edge."
+    ],
+    [
+      "Parallel edges",
+      "two edges(0,1)",
+      "Second is redundant; Kruskal may take only one."
+    ],
+    [
+      "Isolated elements",
+      "n=5,edges=[(0,1)]",
+      "Four components, including 2,3,4."
+    ],
+    [
+      "Root changes",
+      "Union two large components with different root IDs",
+      "Queries must use find; stale root-indexed external caches need merging."
+    ],
+    [
+      "Negative MST edges",
+      "edges=[(0,1,-4)]",
+      "Valid MST total -4; Dijkstra restrictions do not apply."
+    ],
+    [
+      "Disconnected MST",
+      "n=3,edges=[(0,1,1)]",
+      "Return None, not a forest total presented as a spanning tree."
+    ],
+    [
+      "Strict limit tie",
+      "edge weight 5,query limit 5",
+      "Not eligible for strict-less-than query."
+    ],
+    [
+      "Duplicate grid activation",
+      "positions=[(0,0),(0,0)]",
+      "Island counts [1,1]."
+    ],
+    [
+      "Account name collision",
+      "Two Alice records, disjoint emails",
+      "Do not merge solely by name."
+    ],
+    [
+      "No-email account",
+      "[\"Alice\"]",
+      "Retain separate singleton account in template."
+    ],
+    [
+      "Rollback after no-op",
+      "snapshot; union same root; rollback",
+      "No successful change logged; state remains identical."
+    ],
+    [
+      "Parity odd cycle",
+      "0≠1,1≠2,2≠0",
+      "Third constraint inconsistent; no structural mutation on failure."
+    ],
+    [
+      "Very long operation stream",
+      "100000 unions/finds",
+      "Iterative compression prevents recursion failures and balancing avoids tall trees."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Unioning nonroots",
+      "Find both roots before linking; directly attaching an interior vertex can split its old component."
+    ],
+    [
+      "Size at arbitrary vertex",
+      "Read size[find(x)]; losing-root size is stale."
+    ],
+    [
+      "Components decremented on every edge",
+      "Only successful unions reduce components."
+    ],
+    [
+      "Claiming constant worst-case find",
+      "State inverse-Ackermann amortized bound with balancing plus compression; no-compression balanced find is O(log N)."
+    ],
+    [
+      "Ignoring initialization",
+      "Building N singleton arrays costs O(N), even if only a few edges exist."
+    ],
+    [
+      "Choosing minimum root by unbalanced linking",
+      "Keep min-element metadata separate; do not sacrifice union-by-size to force a semantic root."
+    ],
+    [
+      "Directed reachability through DSU",
+      "DSU discards orientation and cannot answer general directed paths or cycles."
+    ],
+    [
+      "Deleting an edge from basic DSU",
+      "It cannot split a class; use offline reversal or dynamic-connectivity algorithms."
+    ],
+    [
+      "Rollback with unlogged compression",
+      "Omit compression for simple rollback or log every parent rewrite and prove its costs."
+    ],
+    [
+      "Assuming DSU yields original paths",
+      "Its parent forest is an implementation artifact; use graph traversal or retain selected graph edges separately."
+    ],
+    [
+      "Merging same-name accounts",
+      "Only shared identifiers establish identity under Accounts Merge assumptions."
+    ],
+    [
+      "Threshold off-by-one",
+      "Use < or ≤ exactly as asked; test an edge equal to the query limit."
+    ],
+    [
+      "Inactive grid vertices counted",
+      "Dense DSU arrays may exist for water, but island counter includes only active cells."
+    ],
+    [
+      "Swapping weighted roots without algebra",
+      "Derive potential[root_b] relative to root_a and invert/sign-change correctly when orientation changes."
+    ],
+    [
+      "Representative map built too early",
+      "After all unions group by final find results, not roots cached before later merges."
+    ],
+    [
+      "Hidden edge-sort memory",
+      "sorted(edges) makes O(E) copy and Python sort may allocate O(E) temporary references."
+    ]
+  ],
+  "impress": [
+    [
+      "Start from the partition invariant",
+      "Explain why each successful edge merge makes exactly one fewer component and preserves equivalence."
+    ],
+    [
+      "Justify near-linear work",
+      "Mention both balancing and compression; explain size doubling for log-depth no-compression variants."
+    ],
+    [
+      "Clarify graph semantics",
+      "DSU handles undirected connectivity, not arbitrary directed relationships or shortest distance."
+    ],
+    [
+      "Show a no-op union",
+      "Demonstrate repeated edge leaves size, aggregates and component count unchanged."
+    ],
+    [
+      "Separate roots from domain labels",
+      "Root identity is unstable; keep user-visible names or minima as metadata."
+    ],
+    [
+      "State update limits",
+      "Additions work naturally; deletions need a different offline or dynamic method."
+    ],
+    [
+      "Prove Kruskal with a cut",
+      "A cheapest edge connecting distinct components is safe; DSU detects exactly the cycle condition."
+    ],
+    [
+      "Account for sorting and hashing",
+      "MST complexity is not only α(N); account/email keys and query ordering add costs."
+    ],
+    [
+      "Test threshold and activation ties",
+      "Equal edge limit and duplicate land additions expose common off-by-one/count bugs."
+    ],
+    [
+      "Use the simplest valid tool",
+      "Static connected components may favor traversal; save rollback/potentials for constraints that require them."
+    ]
+  ],
+  "memory": [
+    [
+      "Root condition",
+      "parent[r] == r",
+      "Representatives are forest roots."
+    ],
+    [
+      "Connectivity",
+      "find(a) == find(b)",
+      "Immediate parent equality is insufficient."
+    ],
+    [
+      "Size union",
+      "attach smaller root under larger root",
+      "Keeps uncompressed depth O(log N)."
+    ],
+    [
+      "Compression halving",
+      "parent[x] = parent[parent[x]]",
+      "Iterative; needs balancing for the advertised inverse-Ackermann bound."
+    ],
+    [
+      "Component count",
+      "components -= int(merged)",
+      "Repeated unions do not change the partition."
+    ],
+    [
+      "Sequence bound",
+      "O(N+M α(N)) amortized",
+      "Union by size/rank plus compression."
+    ],
+    [
+      "Forest identity",
+      "successful unions = N-components",
+      "For a fixed initialized universe."
+    ],
+    [
+      "Cycle signal",
+      "find(u)==find(v) before union",
+      "New undirected edge is redundant under graph cycle semantics."
+    ],
+    [
+      "Kruskal completion",
+      "N-1 successful selected edges for N>0",
+      "Otherwise connected spanning tree does not exist."
+    ],
+    [
+      "Root aggregate",
+      "aggregate[new_root] = combine(left,right)",
+      "Do not query stale nonroot metadata."
+    ],
+    [
+      "Strict threshold",
+      "insert edge while weight < limit",
+      "Only if query semantics are strict."
+    ],
+    [
+      "Rollback snapshot",
+      "token = len(history)",
+      "Undo successful merges in reverse; do not compress."
+    ],
+    [
+      "Parity root link",
+      "xor[root_b] = xor_a ^ xor_b ^ required",
+      "For color[a] xor color[b] == required; xor is self-inverse."
+    ]
+  ],
+  "templates": [
+    [
+      "Balanced DSU with iterative path halving",
+      "O(N+M α(N)) amortized for initialization and M operations",
+      "O(N) persistent; O(1) auxiliary per operation",
+      [
+        "class DSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('n must be a nonnegative integer')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.components = n",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid element ID')",
+        "        while self.parent[x] != x:",
+        "            self.parent[x] = self.parent[self.parent[x]]",
+        "            x = self.parent[x]",
+        "        return x",
+        "",
+        "    def union(self, a, b):",
+        "        a, b = self.find(a), self.find(b)",
+        "        if a == b:",
+        "            return False",
+        "        if self.size[a] < self.size[b]:",
+        "            a, b = b, a",
+        "        self.parent[b] = a",
+        "        self.size[a] += self.size[b]",
+        "        self.components -= 1",
+        "        return True",
+        "",
+        "    def component_size(self, x):",
+        "        return self.size[self.find(x)]"
+      ],
+      "Fixed universe integer IDs 0..n-1, n≥0. find returns unstable representative; union mutates partition and returns whether merged; component_size reads root size. Invalid size/ID raises ValueError. find also mutates parent pointers; no path output or deletions. Empty DSU has zero components but no valid find."
+    ],
+    [
+      "Undirected components and redundant edges",
+      "O(N+E α(N)) amortized",
+      "O(N) auxiliary plus O(E) returned redundant edge IDs worst",
+      [
+        "class DSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('n must be a nonnegative integer')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.components = n",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid element ID')",
+        "        while self.parent[x] != x:",
+        "            self.parent[x] = self.parent[self.parent[x]]",
+        "            x = self.parent[x]",
+        "        return x",
+        "",
+        "    def union(self, a, b):",
+        "        a, b = self.find(a), self.find(b)",
+        "        if a == b:",
+        "            return False",
+        "        if self.size[a] < self.size[b]:",
+        "            a, b = b, a",
+        "        self.parent[b] = a",
+        "        self.size[a] += self.size[b]",
+        "        self.components -= 1",
+        "        return True",
+        "",
+        "    def component_size(self, x):",
+        "        return self.size[self.find(x)]",
+        "",
+        "def undirected_stats(n, edges):",
+        "    dsu = DSU(n)",
+        "    redundant = []",
+        "    for index, (u, v) in enumerate(edges):",
+        "        if not dsu.union(u, v):",
+        "            redundant.append(index)",
+        "    return dsu.components, redundant"
+      ],
+      "Undirected edge iterable; fixed integer IDs checked by DSU. Returns final component count and input indices of every cycle-forming edge in input order, not necessarily the one special edge a particular LC task asks for. Self-loops/parallel edges included. No caller input mutation; n=0 empty edges returns (0,[])."
+    ],
+    [
+      "Kruskal minimum spanning tree with chosen edges",
+      "O(N+E log E+E α(N))",
+      "O(N+E) auxiliary including sorted copy; O(N) output",
+      [
+        "class DSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('n must be a nonnegative integer')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.components = n",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid element ID')",
+        "        while self.parent[x] != x:",
+        "            self.parent[x] = self.parent[self.parent[x]]",
+        "            x = self.parent[x]",
+        "        return x",
+        "",
+        "    def union(self, a, b):",
+        "        a, b = self.find(a), self.find(b)",
+        "        if a == b:",
+        "            return False",
+        "        if self.size[a] < self.size[b]:",
+        "            a, b = b, a",
+        "        self.parent[b] = a",
+        "        self.size[a] += self.size[b]",
+        "        self.components -= 1",
+        "        return True",
+        "",
+        "    def component_size(self, x):",
+        "        return self.size[self.find(x)]",
+        "",
+        "def kruskal(n, edges):",
+        "    dsu = DSU(n)",
+        "    ordered = list(edges)",
+        "    for u, v, w in ordered:",
+        "        if not (isinstance(u, int) and isinstance(v, int) and 0 <= u < n and 0 <= v < n):",
+        "            raise ValueError('invalid endpoint')",
+        "    ordered.sort(key=lambda edge: edge[2])",
+        "    cost, chosen = 0, []",
+        "    for u, v, w in ordered:",
+        "        if dsu.union(u, v):",
+        "            cost += w",
+        "            chosen.append((u, v, w))",
+        "    if n and dsu.components != 1:",
+        "        return None",
+        "    return cost, chosen"
+      ],
+      "Undirected (u,v,finite numeric weight) iterable; negative weights and duplicates allowed. Returns (minimum total, chosen original graph edges), None if disconnected. Empty graph returns (0,[]); singleton returns zero even with self-loops. Caller edges not sorted or mutated; ties may select any MST."
+    ],
+    [
+      "Merge accounts by shared email identity",
+      "O(A+H α(A)+sum U_g log U_g comparison cost) expected after string hashing costs",
+      "O(A+U) auxiliary plus returned names/emails",
+      [
+        "class DSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('n must be a nonnegative integer')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.components = n",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid element ID')",
+        "        while self.parent[x] != x:",
+        "            self.parent[x] = self.parent[self.parent[x]]",
+        "            x = self.parent[x]",
+        "        return x",
+        "",
+        "    def union(self, a, b):",
+        "        a, b = self.find(a), self.find(b)",
+        "        if a == b:",
+        "            return False",
+        "        if self.size[a] < self.size[b]:",
+        "            a, b = b, a",
+        "        self.parent[b] = a",
+        "        self.size[a] += self.size[b]",
+        "        self.components -= 1",
+        "        return True",
+        "",
+        "    def component_size(self, x):",
+        "        return self.size[self.find(x)]",
+        "",
+        "def merge_accounts(accounts):",
+        "    if any(not account for account in accounts):",
+        "        raise ValueError('each account needs a name')",
+        "    dsu = DSU(len(accounts))",
+        "    owner = {}",
+        "    for i, account in enumerate(accounts):",
+        "        for position in range(1, len(account)):",
+        "            email = account[position]",
+        "            if email in owner:",
+        "                dsu.union(i, owner[email])",
+        "            else:",
+        "                owner[email] = i",
+        "    emails_by_root = {}",
+        "    first_by_root = {}",
+        "    for i in range(len(accounts)):",
+        "        root = dsu.find(i)",
+        "        first_by_root.setdefault(root, i)",
+        "        emails_by_root.setdefault(root, [])",
+        "    for email, i in owner.items():",
+        "        emails_by_root[dsu.find(i)].append(email)",
+        "    out = []",
+        "    for root in sorted(first_by_root, key=first_by_root.get):",
+        "        first = first_by_root[root]",
+        "        out.append([accounts[first][0]] + sorted(emails_by_root[root]))",
+        "    return out"
+      ],
+      "Sequence accounts=[name,email,...], strings case-sensitive and identifier equality exact. Shared email joins accounts, names alone never do. Assumes names within a connected identity are compatible; output uses earliest original account name, groups ordered by earliest index, distinct emails sorted. No-email accounts retained separately, [] input→[], empty account record raises ValueError. No caller input mutation or email-list slicing."
+    ],
+    [
+      "Offline strict edge-limit connectivity queries",
+      "O(N+E log E+Q log Q+(E+Q) α(N))",
+      "O(N+E+Q) including sorted copies and output",
+      [
+        "class DSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('n must be a nonnegative integer')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.components = n",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid element ID')",
+        "        while self.parent[x] != x:",
+        "            self.parent[x] = self.parent[self.parent[x]]",
+        "            x = self.parent[x]",
+        "        return x",
+        "",
+        "    def union(self, a, b):",
+        "        a, b = self.find(a), self.find(b)",
+        "        if a == b:",
+        "            return False",
+        "        if self.size[a] < self.size[b]:",
+        "            a, b = b, a",
+        "        self.parent[b] = a",
+        "        self.size[a] += self.size[b]",
+        "        self.components -= 1",
+        "        return True",
+        "",
+        "    def component_size(self, x):",
+        "        return self.size[self.find(x)]",
+        "",
+        "def limited_paths(n, edges, queries):",
+        "    dsu = DSU(n)",
+        "    ordered_edges = list(edges)",
+        "    ordered_queries = list(queries)",
+        "    for u, v, w in ordered_edges:",
+        "        if not (isinstance(u, int) and isinstance(v, int) and 0 <= u < n and 0 <= v < n):",
+        "            raise ValueError('invalid edge endpoint')",
+        "    for u, v, limit in ordered_queries:",
+        "        if not (isinstance(u, int) and isinstance(v, int) and 0 <= u < n and 0 <= v < n):",
+        "            raise ValueError('invalid query endpoint')",
+        "    ordered_edges.sort(key=lambda edge: edge[2])",
+        "    indexed = sorted(enumerate(ordered_queries), key=lambda item: item[1][2])",
+        "    answer = [False]*len(ordered_queries)",
+        "    cursor = 0",
+        "    for index, (u, v, limit) in indexed:",
+        "        while cursor < len(ordered_edges) and ordered_edges[cursor][2] < limit:",
+        "            a, b, weight = ordered_edges[cursor]",
+        "            dsu.union(a, b)",
+        "            cursor += 1",
+        "        answer[index] = dsu.find(u) == dsu.find(v)",
+        "    return answer"
+      ],
+      "Undirected edges=(u,v,numeric weight), queries=(u,v,numeric strict limit), reusable or one-pass iterables copied internally. Returns booleans in original query order. A zero-edge path from a vertex to itself is always valid. Equal-weight edges are excluded at limit. n≥0/endpoints validated; finite comparable numeric values assumed; no mutation."
+    ],
+    [
+      "Island counts after land additions",
+      "O(RC+Q α(RC)) amortized",
+      "O(RC) auxiliary plus O(Q) output",
+      [
+        "class DSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('n must be a nonnegative integer')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.components = n",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid element ID')",
+        "        while self.parent[x] != x:",
+        "            self.parent[x] = self.parent[self.parent[x]]",
+        "            x = self.parent[x]",
+        "        return x",
+        "",
+        "    def union(self, a, b):",
+        "        a, b = self.find(a), self.find(b)",
+        "        if a == b:",
+        "            return False",
+        "        if self.size[a] < self.size[b]:",
+        "            a, b = b, a",
+        "        self.parent[b] = a",
+        "        self.size[a] += self.size[b]",
+        "        self.components -= 1",
+        "        return True",
+        "",
+        "    def component_size(self, x):",
+        "        return self.size[self.find(x)]",
+        "",
+        "def island_counts(rows, cols, additions):",
+        "    if not isinstance(rows, int) or not isinstance(cols, int) or rows < 0 or cols < 0:",
+        "        raise ValueError('invalid dimensions')",
+        "    dsu = DSU(rows*cols)",
+        "    active = [False]*(rows*cols)",
+        "    count = 0",
+        "    out = []",
+        "    for r, c in additions:",
+        "        if not (isinstance(r, int) and isinstance(c, int) and 0 <= r < rows and 0 <= c < cols):",
+        "            raise ValueError('invalid cell')",
+        "        cell = r*cols+c",
+        "        if not active[cell]:",
+        "            active[cell] = True",
+        "            count += 1",
+        "            for dr, dc in ((1,0), (-1,0), (0,1), (0,-1)):",
+        "                nr, nc = r+dr, c+dc",
+        "                if 0 <= nr < rows and 0 <= nc < cols:",
+        "                    neighbor = nr*cols+nc",
+        "                    if active[neighbor] and dsu.union(cell, neighbor):",
+        "                        count -= 1",
+        "        out.append(count)",
+        "    return out"
+      ],
+      "Initially all-water rectangular grid, four-neighbor land adjacency; additions iterable of coordinate pairs. Duplicate additions no-op. Returns count after each addition; zero-sized grid plus no additions→[], invalid coordinate raises ValueError. Dense DSU initializes water slots too, so its components field is NOT island count; separate count tracks active roots. Caller input unchanged."
+    ],
+    [
+      "Largest island after at most one flip",
+      "O(RC α(RC)) amortized",
+      "O(RC) auxiliary",
+      [
+        "class DSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('n must be a nonnegative integer')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.components = n",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid element ID')",
+        "        while self.parent[x] != x:",
+        "            self.parent[x] = self.parent[self.parent[x]]",
+        "            x = self.parent[x]",
+        "        return x",
+        "",
+        "    def union(self, a, b):",
+        "        a, b = self.find(a), self.find(b)",
+        "        if a == b:",
+        "            return False",
+        "        if self.size[a] < self.size[b]:",
+        "            a, b = b, a",
+        "        self.parent[b] = a",
+        "        self.size[a] += self.size[b]",
+        "        self.components -= 1",
+        "        return True",
+        "",
+        "    def component_size(self, x):",
+        "        return self.size[self.find(x)]",
+        "",
+        "def largest_after_flip(grid):",
+        "    rows = len(grid)",
+        "    cols = len(grid[0]) if rows else 0",
+        "    if any(len(row) != cols for row in grid):",
+        "        raise ValueError('grid must be rectangular')",
+        "    if any(value not in (0, 1) for row in grid for value in row):",
+        "        raise ValueError('grid must contain only 0/1')",
+        "    if not rows or not cols:",
+        "        return 0",
+        "    dsu = DSU(rows*cols)",
+        "    for r in range(rows):",
+        "        for c in range(cols):",
+        "            if grid[r][c] == 1:",
+        "                if r and grid[r-1][c] == 1:",
+        "                    dsu.union(r*cols+c, (r-1)*cols+c)",
+        "                if c and grid[r][c-1] == 1:",
+        "                    dsu.union(r*cols+c, r*cols+c-1)",
+        "    best = 0",
+        "    for r in range(rows):",
+        "        for c in range(cols):",
+        "            if grid[r][c] == 1:",
+        "                best = max(best, dsu.component_size(r*cols+c))",
+        "                continue",
+        "            roots = set()",
+        "            for dr, dc in ((1,0), (-1,0), (0,1), (0,-1)):",
+        "                nr, nc = r+dr, c+dc",
+        "                if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == 1:",
+        "                    roots.add(dsu.find(nr*cols+nc))",
+        "            best = max(best, 1+sum(dsu.size[root] for root in roots))",
+        "    return best"
+      ],
+      "Rectangular 0/1 grid, four-direction islands; returns maximum land component size after changing at most one zero to one. Empty shapes→0, all-water nonempty→1, all-land→RC. Deduplicates neighboring roots so the same island is not counted twice. Input unchanged; invalid shape/value raises ValueError."
+    ],
+    [
+      "Rollback DSU without path compression",
+      "O(N) initialize; O(log N) find/union worst; O(1) snapshot; O(k) rollback of k merges",
+      "O(N) arrays and O(N) active successful-merge history",
+      [
+        "class RollbackDSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('invalid size')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.components = n",
+        "        self.history = []",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid ID')",
+        "        while self.parent[x] != x:",
+        "            x = self.parent[x]",
+        "        return x",
+        "",
+        "    def union(self, a, b):",
+        "        a, b = self.find(a), self.find(b)",
+        "        if a == b:",
+        "            return False",
+        "        if self.size[a] < self.size[b]:",
+        "            a, b = b, a",
+        "        self.history.append((b, a, self.size[a]))",
+        "        self.parent[b] = a",
+        "        self.size[a] += self.size[b]",
+        "        self.components -= 1",
+        "        return True",
+        "",
+        "    def snapshot(self):",
+        "        return len(self.history)",
+        "",
+        "    def rollback(self, token):",
+        "        if not isinstance(token, int) or not 0 <= token <= len(self.history):",
+        "            raise ValueError('invalid snapshot token')",
+        "        while len(self.history) > token:",
+        "            child, root, old_size = self.history.pop()",
+        "            self.parent[child] = child",
+        "            self.size[root] = old_size",
+        "            self.components += 1"
+      ],
+      "Fixed nonnegative n, integer IDs. snapshot returns current history length, rollback restores that ancestor prefix and discards later merges. Tokens valid only for the current ancestral history, NOT persistent versions across diverging branches. No-op union logs nothing; rollback counts successful merges, not method calls. No compression; caller must manage segment-tree/time-interval scheduling separately."
+    ],
+    [
+      "Parity constraints with balanced relative-xor DSU",
+      "O(N) initialize; O(log N) worst per find/constrain",
+      "O(N) persistent; O(1) per-operation auxiliary",
+      [
+        "class ParityDSU:",
+        "    def __init__(self, n):",
+        "        if not isinstance(n, int) or n < 0:",
+        "            raise ValueError('invalid size')",
+        "        self.parent = list(range(n))",
+        "        self.size = [1]*n",
+        "        self.xor_to_parent = [0]*n",
+        "",
+        "    def find(self, x):",
+        "        if not isinstance(x, int) or not 0 <= x < len(self.parent):",
+        "            raise ValueError('invalid ID')",
+        "        parity = 0",
+        "        while self.parent[x] != x:",
+        "            parity ^= self.xor_to_parent[x]",
+        "            x = self.parent[x]",
+        "        return x, parity",
+        "",
+        "    def constrain(self, a, b, required):",
+        "        if required not in (0, 1):",
+        "            raise ValueError('parity must be 0 or 1')",
+        "        root_a, parity_a = self.find(a)",
+        "        root_b, parity_b = self.find(b)",
+        "        if root_a == root_b:",
+        "            return (parity_a ^ parity_b) == required",
+        "        if self.size[root_a] < self.size[root_b]:",
+        "            root_a, root_b = root_b, root_a",
+        "        self.parent[root_b] = root_a",
+        "        self.xor_to_parent[root_b] = parity_a ^ parity_b ^ required",
+        "        self.size[root_a] += self.size[root_b]",
+        "        return True",
+        "",
+        "    def relation(self, a, b):",
+        "        root_a, parity_a = self.find(a)",
+        "        root_b, parity_b = self.find(b)",
+        "        return None if root_a != root_b else parity_a ^ parity_b"
+      ],
+      "Constraint color[a] xor color[b] == required (0=same,1=different). constrain returns True for accepted/redundant-consistent constraint, False for contradiction and leaves state unchanged on contradiction; caller decides whether to retain a global inconsistency flag. relation returns known parity or None if unrelated. Fixed IDs validated, no compression to keep relative metadata simple; xor root link is orientation-symmetric, unlike generic additive/ratio potentials."
+    ]
+  ],
+  "practice": [
+    [
+      "1971 Find if Path Exists in Graph",
+      "Basic connectivity",
+      "Easy",
+      "O(N+E α(N)) time, O(N) DSU space",
+      "Undirected; static BFS also works."
+    ],
+    [
+      "547 Number of Provinces",
+      "Components from matrix",
+      "Medium",
+      "O(N² α(N)) DSU upper bound, O(N) auxiliary; DFS O(N²)",
+      "Do not double-count components on symmetric edges."
+    ],
+    [
+      "684 Redundant Connection",
+      "Cycle-forming edge",
+      "Medium",
+      "O(N+E α(N)) time, O(N) space",
+      "Problem’s 1-based labels require mapping; last redundant policy."
+    ],
+    [
+      "261 Graph Valid Tree",
+      "Connected + acyclic",
+      "Medium",
+      "O(N+E α(N)) time, O(N) space",
+      "N-1 edge condition plus connectivity; self-loops and parallel edges."
+    ],
+    [
+      "1319 Number of Operations to Make Network Connected",
+      "Component count and spare edges",
+      "Medium",
+      "O(N+E α(N)) time, O(N) space",
+      "Need at least N-1 cables; answer components-1."
+    ],
+    [
+      "990 Satisfiability of Equality Equations",
+      "Equality classes then inequality checks",
+      "Medium",
+      "O(E α(26)+26) time, O(26) space",
+      "Process all equalities before testing inequalities."
+    ],
+    [
+      "721 Accounts Merge",
+      "Identifier map + DSU",
+      "Medium",
+      "O(A+H α(A)+sum U_g log U_g string-comparison cost) expected, O(A+U+output) space",
+      "Names alone do not identify accounts."
+    ],
+    [
+      "947 Most Stones Removed with Same Row or Column",
+      "Bipartite row/column IDs",
+      "Medium",
+      "O(N α(N)) expected time, O(N) space after sparse mapping",
+      "Row 0 and column 0 need separate namespaces."
+    ],
+    [
+      "128 Longest Consecutive Sequence",
+      "Neighbor unions or start-only set",
+      "Medium",
+      "O(N α(N)) expected DSU upper bound; set scan O(N) expected",
+      "Deduplicate values; DSU is optional overhead."
+    ],
+    [
+      "1061 Lexicographically Smallest Equivalent String",
+      "Classes with minimum metadata",
+      "Medium",
+      "O((E+L) α(26)+26) time, O(26+L output) space",
+      "Balanced root ID need not be minimum character."
+    ],
+    [
+      "1584 Min Cost to Connect All Points",
+      "Kruskal / dense Prim",
+      "Medium",
+      "Kruskal O(N² log N) time/space O(N²); dense Prim O(N²) time O(N) auxiliary",
+      "Materializing complete graph edges costs quadratic memory."
+    ],
+    [
+      "305 Number of Islands II",
+      "Activation DSU",
+      "Hard",
+      "O(RC+Q α(RC)) dense initialization time, O(RC+Q) space",
+      "Duplicate activations and non-square bounds."
+    ],
+    [
+      "827 Making A Large Island",
+      "Root sizes and neighbor deduplication",
+      "Hard",
+      "O(RC α(RC)) time, O(RC) space",
+      "Same neighboring island may touch flipped cell from multiple directions."
+    ],
+    [
+      "1697 Checking Existence of Edge Length Limited Paths",
+      "Offline threshold sweep",
+      "Hard",
+      "O(N+E log E+Q log Q+(E+Q) α(N)) time, O(N+E+Q) space",
+      "Strict < limit; restore query order."
+    ],
+    [
+      "1579 Remove Max Number of Edges to Keep Graph Fully Traversable",
+      "Two DSUs, shared edges first",
+      "Hard",
+      "O(N+E α(N)) time, O(N) space",
+      "Use type-3 edges before exclusive ones; both travelers must connect."
+    ],
+    [
+      "803 Bricks Falling When Hit",
+      "Reverse time + roof component",
+      "Hard",
+      "O(RC+Q+(RC+Q) α(RC)) time, O(RC+Q) space",
+      "Exclude restored brick itself; duplicate hits need careful accounting."
+    ],
+    [
+      "1202 Smallest String With Swaps",
+      "Index components + sorted members",
+      "Medium",
+      "O(N log N+E α(N)) time, O(N) space plus edges input",
+      "Any permutation within a connected index component is reachable."
+    ],
+    [
+      "399 Evaluate Division",
+      "Multiplicative potential DSU or graph",
+      "Medium",
+      "O(N+(E+Q) α(N)) with correctly weighted compression, O(N) space",
+      "Zero/nonfinite ratios and inconsistent data require a contract; parity template is not a drop-in ratio DSU."
+    ]
+  ]
+}

@@ -8,7 +8,7 @@ A mobile-first, local-first revision and goal-tracking app hosted on GitHub Page
 
 - **Coding:** Save LeetCode problems with title/number suggestions, difficulty, patterns, complexity, notes, mistakes, solution links, flashcards, and review history.
 - **SQL:** Track SQL interview questions, browse DataLemur and StrataScratch tutorials, review the SQL 50, and study 14 interview patterns with interactive recall prompts.
-- **Data Structures:** Editable notebooks with formatted reading mode and individual recall ratings.
+- **Data Structures:** All 11 topics have structured interview guides matching Arrays’ eight-chapter layout, with public reference content separate from editable private notes and individual recall ratings. The nine additional guides contain 170 operation entries, 99 fundamentals, 125 patterns with invariants and limitations, 119 executable Python templates, and 180 ordered practice entries. See [DSA guide maintenance](DSA_GUIDES.md).
 - **Strings FAANG reference:** Eight independently collapsible learning chapters: 53 Python operations, 18 fundamentals, 33 patterns, 39 copyable Python templates and 44 interview problems. Navigation, copy controls, mobile layouts, and personal-note review are shared with the Arrays guide.
 - **Complexity reference:** Pattern recognition, time complexity, and space complexity.
 - **Goals & Habits:** Editable daily plans, habit streaks (daily/weekday/weekly), future to-dos, monthly goals, and a compact Settings panel for cloud sync and backups.

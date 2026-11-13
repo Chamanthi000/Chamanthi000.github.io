@@ -1,0 +1,1741 @@
+{
+  "id": "graphs",
+  "title": "Graphs",
+  "subtitle": "Model relationships as vertices and edges, then choose a frontier or ordering whose invariant matches the question.",
+  "variables": "V = number of vertices, E = number of input edges (undirected adjacency stores 2E entries), R*C = grid cells, K = number of states per vertex, W = maximum edge weight, Q = queries; S = number of supplied BFS sources. Unless specified, vertices are integer IDs 0..V-1 and adjacency endpoints are valid; inputs are not mutated. Adjacency-list traversal is O(V+E), matrix traversal O(V²). Hash-table costs are expected; long string labels cost O(label length) to hash initially and compare in the worst case, so map to integer IDs for repeated work. Python integers are arbitrary precision: stated arithmetic bounds use a unit-cost bounded-word model. Auxiliary space includes stacks/queues and algorithm state, excludes input and separately identified output. Heap bounds refer to lazy heapq implementations and count duplicate entries. H = heap size; B = allowed edge budget for bounded relaxation. heapq sift work is logarithmic, but CPython list resize can make a single heap operation linear; sequence bounds use amortization. Exact path-count DP may hold exponentially large integers; modulus bounds bit costs.",
+  "operations": [
+    [
+      "Representation",
+      "adj = [[] for _ in range(n)]",
+      "Allocate independent adjacency lists",
+      "O(V)",
+      "O(V)",
+      "Do not use [[]]*n; n must be nonnegative."
+    ],
+    [
+      "Representation",
+      "adj[u].append(v)",
+      "Add directed edge u → v",
+      "O(1) amortized",
+      "O(1) amortized growth",
+      "Keeps parallel edges; add reverse entry separately for undirected graphs."
+    ],
+    [
+      "Representation",
+      "adj[u].append((v, weight))",
+      "Store weighted outgoing edge",
+      "O(1) amortized",
+      "O(1) amortized growth",
+      "Choose (neighbor, weight) consistently, not the heap tuple order."
+    ],
+    [
+      "Representation",
+      "adj[u].append(v); adj[v].append(u)",
+      "Add undirected edge",
+      "O(1) amortized",
+      "O(1) amortized growth",
+      "Self-loops create two entries under this convention."
+    ],
+    [
+      "Representation",
+      "matrix = [[False]*n for _ in range(n)]",
+      "Allocate adjacency matrix",
+      "O(V²)",
+      "O(V²)",
+      "Good for dense graphs or many membership queries, expensive for sparse graphs."
+    ],
+    [
+      "Neighbors",
+      "for v in adj[u]: pass",
+      "Scan outgoing neighbors",
+      "O(outdegree(u))",
+      "O(1)",
+      "A full traversal must also initialize or scan isolated vertices."
+    ],
+    [
+      "Neighbors",
+      "v in adj[u]",
+      "Test adjacency in list",
+      "O(outdegree(u))",
+      "O(1)",
+      "Repeated membership may justify neighbor sets."
+    ],
+    [
+      "Neighbors",
+      "v in neighbor_sets[u]",
+      "Test adjacency in set",
+      "O(1) expected",
+      "O(1)",
+      "Sets deduplicate edges and therefore lose multigraph multiplicity."
+    ],
+    [
+      "Neighbors",
+      "matrix[u][v]",
+      "Matrix edge query",
+      "O(1)",
+      "O(1)",
+      "Matrix row scan is O(V), even for low degree."
+    ],
+    [
+      "Degree",
+      "len(adj[u])",
+      "Outgoing degree for list representation",
+      "O(1)",
+      "O(1)",
+      "For undirected self-loops, two adjacency entries count twice toward degree."
+    ],
+    [
+      "Degree",
+      "indegree[v] += 1",
+      "Accumulate incoming degree per edge",
+      "O(E) total",
+      "O(V) counters",
+      "Count every parallel directed edge, and decrement each during Kahn traversal."
+    ],
+    [
+      "Frontier",
+      "from collections import deque; q = deque([source])",
+      "Create BFS frontier",
+      "O(1)",
+      "O(1) initial",
+      "Distances should be marked at enqueue, not dequeue."
+    ],
+    [
+      "Frontier",
+      "q.append(v); u = q.popleft()",
+      "Enqueue and dequeue",
+      "O(1) per deque end operation",
+      "O(1) change; O(V) queue during BFS",
+      "list.pop(0) shifts elements."
+    ],
+    [
+      "Frontier",
+      "stack.append(v); u = stack.pop()",
+      "Iterative DFS frontier",
+      "O(1) amortized",
+      "O(V) when marked on push",
+      "Explicit enter/exit frames are needed for DFS finish times."
+    ],
+    [
+      "Frontier",
+      "import heapq; heapq.heappush(heap, (distance, vertex))",
+      "Push tentative integer-ID distance",
+      "O(log(H+2)) amortized; O(H) worst if backing list grows",
+      "O(1) entry; O(E) heap worst",
+      "H is current heap size; use (distance, counter, node) for unorderable objects."
+    ],
+    [
+      "Frontier",
+      "heapq.heappop(heap)",
+      "Extract minimum tentative distance",
+      "O(log(H+2)) amortized; O(H) worst if backing list shrinks",
+      "O(1)",
+      "Discard stale entries whose distance differs from dist[u]."
+    ],
+    [
+      "Distances",
+      "dist = [float(\"inf\")]*n",
+      "Initialize unreachable distances",
+      "O(V)",
+      "O(V)",
+      "Infinity is a sentinel; finite integer paths remain integers."
+    ],
+    [
+      "Distances",
+      "if dist[u] + w < dist[v]: dist[v] = dist[u] + w",
+      "Relax a directed weighted edge",
+      "O(1) under word model",
+      "O(1)",
+      "Use strict improvement; reachability and negative cycles determine algorithm choice."
+    ],
+    [
+      "Transpose",
+      "rev[v].append(u)",
+      "Reverse each directed edge",
+      "O(V+E) build",
+      "O(V+E)",
+      "Useful for SCC, reverse reachability and destination-distance queries."
+    ],
+    [
+      "Reconstruction",
+      "path.reverse()",
+      "Reverse predecessor chain once",
+      "O(path length)",
+      "O(1) auxiliary",
+      "Returning a path also requires O(path length) output."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "Choose the graph model",
+      "State whether vertices represent objects, positions, or complete search states; edges encode allowed transitions, not merely proximity.",
+      [
+        "states = [(0, 0), (0, 1)]",
+        "edges = [(0, 1)]",
+        "n = len(states)",
+        "adj = [[] for _ in range(n)]",
+        "for u, v in edges:",
+        "    adj[u].append(v)"
+      ],
+      "O(V+E) build",
+      "O(V+E) representation",
+      "A key or remaining budget may need to be part of the vertex identity."
+    ],
+    [
+      "Directed versus undirected",
+      "A one-way dependency is not an undirected connection. Store reverse entries only when travel is genuinely reversible.",
+      [
+        "n = 3",
+        "directed = [[] for _ in range(n)]",
+        "undirected = [[] for _ in range(n)]",
+        "for u, v in [(0, 1), (1, 2)]:",
+        "    directed[u].append(v)",
+        "    undirected[u].append(v)",
+        "    undirected[v].append(u)"
+      ],
+      "O(V+E)",
+      "O(V+E)",
+      "A directed path from a to b says nothing about b to a."
+    ],
+    [
+      "Sparse versus dense representation",
+      "Adjacency lists pay for actual neighbors; a matrix pays V² but supports constant-time edge existence.",
+      [
+        "n = 3",
+        "adj = [[1], [2], []]",
+        "matrix = [[False]*n for _ in range(n)]",
+        "for u, neighbors in enumerate(adj):",
+        "    for v in neighbors:",
+        "        matrix[u][v] = True"
+      ],
+      "O(V²+E)",
+      "O(V²)",
+      "A list of neighbor sets costs more per edge but can speed repeated membership."
+    ],
+    [
+      "Mark at discovery",
+      "Once an unweighted BFS enqueues a vertex its shortest distance is fixed; repeated enqueue wastes work and can overwrite parents.",
+      [
+        "from collections import deque",
+        "adj = [[1, 2], [2], []]",
+        "dist = [-1]*len(adj)",
+        "dist[0] = 0",
+        "q = deque([0])",
+        "while q:",
+        "    u = q.popleft()",
+        "    for v in adj[u]:",
+        "        if dist[v] == -1:",
+        "            dist[v] = dist[u] + 1",
+        "            q.append(v)"
+      ],
+      "O(V+E)",
+      "O(V)",
+      "BFS minimizes edges, not arbitrary weighted cost."
+    ],
+    [
+      "Reachability is not shortest distance",
+      "A DFS stack explores depth-first and can certify existence, but its first-found path need not have minimum edges.",
+      [
+        "adj = [[1, 2], [3], [3], []]",
+        "seen = {0}",
+        "stack = [0]",
+        "while stack:",
+        "    u = stack.pop()",
+        "    for v in adj[u]:",
+        "        if v not in seen:",
+        "            seen.add(v)",
+        "            stack.append(v)"
+      ],
+      "O(V+E) expected",
+      "O(V)",
+      "Use a deque for unweighted shortest paths."
+    ],
+    [
+      "Disconnected vertices matter",
+      "Run traversal from each unseen vertex for undirected connected components; a single source cannot cover other components.",
+      [
+        "adj = [[1], [0], []]",
+        "seen = set()",
+        "components = 0",
+        "for start in range(len(adj)):",
+        "    if start in seen:",
+        "        continue",
+        "    components += 1",
+        "    seen.add(start)",
+        "    stack = [start]",
+        "    while stack:",
+        "        u = stack.pop()",
+        "        for v in adj[u]:",
+        "            if v not in seen:",
+        "                seen.add(v)",
+        "                stack.append(v)"
+      ],
+      "O(V+E) expected",
+      "O(V)",
+      "In directed graphs this procedure is not an SCC decomposition."
+    ],
+    [
+      "Active versus completed DFS nodes",
+      "Directed back edges point to an active ancestor, not just any visited vertex. Three colors distinguish unseen, active and finished.",
+      [
+        "WHITE, GRAY, BLACK = 0, 1, 2",
+        "color = [WHITE]*3",
+        "color[0] = GRAY",
+        "color[1] = GRAY",
+        "back_edge = color[0] == GRAY",
+        "color[1] = BLACK",
+        "cross_edge_is_not_cycle_proof = color[1] == BLACK"
+      ],
+      "O(1) per color operation",
+      "O(V)",
+      "In an undirected graph the reverse tree edge is not a cycle; multigraphs need edge IDs."
+    ],
+    [
+      "Topological order is conditional",
+      "Repeatedly remove indegree-zero vertices; if fewer than V are removed, a directed cycle prevents a full order.",
+      [
+        "from collections import deque",
+        "adj = [[1], [2], []]",
+        "degree = [0]*len(adj)",
+        "for row in adj:",
+        "    for v in row:",
+        "        degree[v] += 1",
+        "q = deque(i for i, d in enumerate(degree) if d == 0)",
+        "order = []",
+        "while q:",
+        "    u = q.popleft()",
+        "    order.append(u)",
+        "    for v in adj[u]:",
+        "        degree[v] -= 1",
+        "        if degree[v] == 0:",
+        "            q.append(v)",
+        "is_dag = len(order) == len(adj)"
+      ],
+      "O(V+E)",
+      "O(V)",
+      "Different valid orders are normal; prerequisites point toward dependent courses."
+    ],
+    [
+      "Weight domains choose the frontier",
+      "Unit weights use BFS; 0/1 weights use a deque; nonnegative weights use Dijkstra; negative edges need a DAG ordering or Bellman–Ford.",
+      [
+        "unit_weights = [1, 1]",
+        "binary_weights = [0, 1]",
+        "nonnegative_weights = [2, 7]",
+        "negative_possible = [-3, 2]",
+        "can_use_dijkstra = all(w >= 0 for w in nonnegative_weights)"
+      ],
+      "O(E) to inspect weights",
+      "O(1) auxiliary",
+      "A reachable negative cycle destroys finite shortest distances downstream."
+    ],
+    [
+      "Implicit grids and multiple sources",
+      "Generate bounded neighbors on demand rather than allocating all grid edges. Enqueue every source at distance zero to compute nearest-source distances.",
+      [
+        "rows, cols = 2, 3",
+        "r, c = 0, 1",
+        "neighbors = []",
+        "for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):",
+        "    nr, nc = r+dr, c+dc",
+        "    if 0 <= nr < rows and 0 <= nc < cols:",
+        "        neighbors.append((nr, nc))"
+      ],
+      "O(1) per cell neighbor enumeration",
+      "O(1) here",
+      "Check rectangular shape, blocked cells, and whether diagonal motion is allowed."
+    ],
+    [
+      "Path output and identity",
+      "Store one predecessor per discovered state, then reverse a chain. One path is different from all paths or a count of paths.",
+      [
+        "parent = [None, 0, 1]",
+        "target = 2",
+        "path = []",
+        "while target is not None:",
+        "    path.append(target)",
+        "    target = parent[target]",
+        "path.reverse()"
+      ],
+      "O(path length)",
+      "O(path length) output",
+      "If nodes have equal values but different identities, do not merge them by value."
+    ],
+    [
+      "Iterative traversal at scale",
+      "Explicit neighbor-iterator frames avoid recursion limits and produce true DFS finish order: a node exits only after all of its descendants have exited.",
+      [
+        "adj = [[1, 2], [2], []]",
+        "seen = {0}",
+        "stack = [(0, iter(adj[0]))]",
+        "finish = []",
+        "while stack:",
+        "    u, neighbors = stack[-1]",
+        "    v = next(neighbors, None)",
+        "    if v is None:",
+        "        finish.append(u)",
+        "        stack.pop()",
+        "    elif v not in seen:",
+        "        seen.add(v)",
+        "        stack.append((v, iter(adj[v])))"
+      ],
+      "O(V+E) expected for reached subgraph",
+      "O(V)",
+      "Marking all siblings on push and reversing their exit order is not a safe substitute for actual DFS finishing order in SCC algorithms."
+    ]
+  ],
+  "patterns": [
+    [
+      "Unweighted BFS",
+      "CORE",
+      "Fewest moves or edges, equal transition cost",
+      "Use a FIFO frontier, assign distance and parent at enqueue.",
+      "O(V+E)",
+      "O(V) auxiliary",
+      "1091 Shortest Path in Binary Matrix; 127 Word Ladder",
+      "Mark at enqueue; count vertices versus edges explicitly.",
+      "Queued vertices have fixed shortest edge-count distance and are popped by nondecreasing layer.",
+      "Weighted edges with unequal cost."
+    ],
+    [
+      "DFS / connected components",
+      "CORE",
+      "Reachable regions, flood fill, count groups",
+      "Iterative stack from each unseen vertex; generate grid neighbors implicitly.",
+      "O(V+E)",
+      "O(V) auxiliary; explicit stack, no recursion",
+      "200 Number of Islands; 547 Number of Provinces",
+      "Disconnected vertices need an outer loop.",
+      "Every pushed vertex is marked once and every edge from a reached vertex is inspected.",
+      "Directed SCC or shortest-path requirements."
+    ],
+    [
+      "Multi-source BFS",
+      "CORE",
+      "Nearest zero, simultaneous spread, distance to any source",
+      "Initialize all sources at zero before any expansion.",
+      "O(V+E)",
+      "O(V)",
+      "994 Rotting Oranges; 542 01 Matrix",
+      "Adding sources one after another with separate BFS repeats work.",
+      "Each discovery is the minimum distance from the entire source set.",
+      "Different start times or weighted transitions without adapting the frontier."
+    ],
+    [
+      "Bipartite coloring",
+      "CORE",
+      "Two groups with only cross-group constraints",
+      "BFS each component, assign opposite colors; reject equal-color edge.",
+      "O(V+E)",
+      "O(V)",
+      "785 Is Graph Bipartite?; 886 Possible Bipartition",
+      "Self-loop immediately conflicts; handle disconnected graphs.",
+      "Every inspected edge connects opposite colors unless a contradiction is returned.",
+      "General k-coloring; directed reachability semantics."
+    ],
+    [
+      "Directed cycle detection",
+      "CORE",
+      "Can dependencies be completed; detect back edge",
+      "Use iterative active DFS colors or Kahn processed count.",
+      "O(V+E)",
+      "O(V)",
+      "207 Course Schedule; 802 Find Eventual Safe States",
+      "A finished neighbor is not evidence of a cycle.",
+      "GRAY vertices are exactly the current DFS ancestor chain in iterator-frame DFS.",
+      "Undirected parent-edge cycle rules."
+    ],
+    [
+      "Topological sorting",
+      "CORE",
+      "Prerequisites and DAG processing order",
+      "Maintain residual indegrees; remove zero-indegree vertices.",
+      "O(V+E)",
+      "O(V)",
+      "210 Course Schedule II; 269 Alien Dictionary",
+      "Alien Dictionary also needs invalid-prefix detection and character universe.",
+      "A removed vertex has no remaining prerequisite.",
+      "Graphs with directed cycles unless first condensed into SCCs."
+    ],
+    [
+      "DAG dynamic programming",
+      "IMPORTANT",
+      "Best/count path in an acyclic dependency graph",
+      "Topologically order vertices, then propagate each finalized prefix result.",
+      "O(V+E)",
+      "O(V)",
+      "1857 Largest Color Value in a Directed Graph; 797 All Paths From Source to Target (enumeration requires extra output work)",
+      "All-path enumeration is output-exponential; DP only counts or optimizes.",
+      "All incoming contributions are processed before a vertex is propagated.",
+      "Cyclic transitions without another state or recurrence."
+    ],
+    [
+      "Dijkstra",
+      "CORE",
+      "Minimum additive cost, all weights nonnegative",
+      "Relax via min-heap, skip stale entries; settle when popped at current minimum.",
+      "O(V + E log(E+2)) with lazy heap",
+      "O(V+E) auxiliary worst",
+      "743 Network Delay Time; 1631 Path With Minimum Effort",
+      "Do not permanently visit at insertion; minimax effort requires max relaxation.",
+      "The minimum nonstale popped distance cannot be improved by an unprocessed nonnegative path.",
+      "Any negative edge; arbitrary path cost aggregations without monotonicity proof."
+    ],
+    [
+      "0–1 BFS",
+      "IMPORTANT",
+      "Edge costs are exactly 0 or 1",
+      "Push zero-cost improvements left and unit-cost improvements right.",
+      "O(V+E)",
+      "O(V+E) for lazy deque entries worst",
+      "1368 Minimum Cost to Make at Least One Valid Path in a Grid; 2290 Minimum Obstacle Removal to Reach Corner",
+      "Do not use boolean visited on first insertion.",
+      "Deque nonstale distances are processed in nondecreasing order within adjacent distance layers.",
+      "Weights beyond {0,1}; use Dijkstra or a proved bucket variant."
+    ],
+    [
+      "Bellman–Ford",
+      "IMPORTANT",
+      "Negative edges, or bounded-edge cheapest path",
+      "Relax all edges up to V-1 passes; detect further reachable improvement.",
+      "O(VE)",
+      "O(V)",
+      "787 Cheapest Flights Within K Stops",
+      "A K-stop budget needs snapshot distances for each edge-count round.",
+      "After k full passes distances are no worse than any source path using at most k edges.",
+      "Huge nonnegative sparse graphs where Dijkstra is faster."
+    ],
+    [
+      "Floyd–Warshall",
+      "ADVANCED",
+      "Many all-pairs queries on small dense graph",
+      "Let intermediate vertices expand one at a time, k outermost.",
+      "O(V³)",
+      "O(V²) distance output",
+      "1334 Find the City With the Smallest Number of Neighbors at a Threshold Distance",
+      "Negative diagonal flags a negative cycle; not all pair answers remain meaningful.",
+      "After k, dist[i][j] is optimal among paths with processed intermediate vertices.",
+      "Large sparse single-source queries."
+    ],
+    [
+      "Minimum spanning tree",
+      "IMPORTANT",
+      "Connect all vertices with minimum total undirected edge cost",
+      "Prim grows a cut-safe tree; Kruskal sorts edges and unions components.",
+      "Prim: O(V+E log(E+2)); Kruskal: O(E log E + V)",
+      "O(V+E) Prim heap worst",
+      "1584 Min Cost to Connect All Points; 1135 Connecting Cities With Minimum Cost",
+      "Disconnected input produces a forest, not a spanning tree.",
+      "A minimum crossing edge is safe for some MST by the cut property.",
+      "Directed minimum arborescence or shortest source-target route."
+    ],
+    [
+      "Strongly connected components",
+      "ADVANCED",
+      "Mutual directed reachability, compress cycles",
+      "Kosaraju: true DFS finish order, then traverse the transpose in reverse finish order.",
+      "O(V+E)",
+      "O(V+E)",
+      "2360 Longest Cycle in a Graph; SCC condensation (general directed-graph extension)",
+      "Undirected components and DFS trees are not SCCs.",
+      "The next transpose traversal extracts one whole remaining source SCC in the original condensation ordering.",
+      "Only undirected grouping, where simpler DFS/DSU suffices."
+    ],
+    [
+      "Bridges and low-link",
+      "ADVANCED",
+      "Which undirected edges are single points of failure",
+      "DFS discovery times; propagate earliest ancestor reachable without the parent edge.",
+      "O(V+E)",
+      "O(V+E) including constructed adjacency",
+      "1192 Critical Connections in a Network",
+      "Skip the parent edge ID, not all edges to the parent; parallel edges prevent bridges.",
+      "For child v of u, low[v] > tin[u] exactly when no alternate edge escapes the child subtree.",
+      "Directed critical edges; their notion and algorithms differ."
+    ],
+    [
+      "Expanded-state BFS",
+      "IMPORTANT",
+      "Keys, obstacle budget, parity, visiting all vertices",
+      "Search (position, resource state); visited must contain all future-relevant information.",
+      "O(K(V+E)) worst",
+      "O(KV)",
+      "1293 Shortest Path in a Grid with Obstacles Elimination; 847 Shortest Path Visiting All Nodes",
+      "Position-only visited may discard the only feasible route.",
+      "Equal states have identical future choices; BFS fixes their minimum number of transitions.",
+      "Unbounded resource states without a finite bound or dominance argument."
+    ],
+    [
+      "Reverse graph elimination",
+      "IMPORTANT",
+      "Nodes that eventually cannot enter a cycle",
+      "Reverse outgoing edges, queue terminals, decrement remaining outgoing degree.",
+      "O(V+E)",
+      "O(V+E)",
+      "802 Find Eventual Safe States",
+      "Reaching some terminal is insufficient: every possible path must terminate.",
+      "Removed vertices have no outgoing edge to a still-unsafe vertex.",
+      "Existential reachability queries; use ordinary traversal instead."
+    ]
+  ],
+  "recognize": [
+    [
+      "Fewest moves with equal costs",
+      "BFS",
+      "A move is one edge; diagonal moves alter the graph."
+    ],
+    [
+      "Distance to any hospital/source",
+      "Multi-source BFS",
+      "All sources begin together; weighted roads need multi-source Dijkstra."
+    ],
+    [
+      "Count islands or provinces",
+      "Component DFS/BFS",
+      "Connectivity is undirected; land cell is a vertex."
+    ],
+    [
+      "Dependencies can finish?",
+      "Kahn / directed color DFS",
+      "A visited cross edge alone is not a cycle."
+    ],
+    [
+      "Return a valid course order",
+      "Topological order",
+      "Many orders may satisfy prerequisites."
+    ],
+    [
+      "Two teams with rival pairs",
+      "Bipartite coloring",
+      "An odd cycle, including a self-loop, is impossible."
+    ],
+    [
+      "Cheapest roads, costs nonnegative",
+      "Dijkstra",
+      "A direct expensive edge can lose to a longer cheap path."
+    ],
+    [
+      "Pay 0 or 1 per transition",
+      "0–1 BFS",
+      "Arbitrary positive integers invalidate deque ordering."
+    ],
+    [
+      "Negative edge discounts",
+      "Bellman–Ford or DAG relaxation",
+      "Report reachable negative cycles instead of finite distances."
+    ],
+    [
+      "At most k stops",
+      "Layered Bellman–Ford / state shortest path",
+      "k stops means at most k+1 edges; snapshot each round."
+    ],
+    [
+      "All pairs and small vertex count",
+      "Floyd–Warshall",
+      "V³ must fit constraints."
+    ],
+    [
+      "Connect everything cheaply",
+      "MST",
+      "Shortest-path tree minimizes source distances, not total tree weight."
+    ],
+    [
+      "Mutually reachable directed groups",
+      "SCC",
+      "One-way paths do not merge components."
+    ],
+    [
+      "Remove one edge disconnects network",
+      "Bridge low-link",
+      "Assumes undirected; preserve parallel-edge identities."
+    ],
+    [
+      "Same cell but different keys/budget",
+      "Expanded-state search",
+      "Do not collapse states unless dominance is proved."
+    ],
+    [
+      "Every possible walk eventually terminates",
+      "Reverse terminal elimination",
+      "Existence of one safe route is weaker."
+    ],
+    [
+      "Count or optimize paths in a DAG",
+      "Topological DP",
+      "Enumerating actual paths may require exponential output."
+    ]
+  ],
+  "contrasts": [
+    [
+      "BFS vs DFS",
+      "Both reach a component in O(V+E); only BFS layers give unit-weight shortest paths. DFS finish/ancestor structure supports low-link and SCC."
+    ],
+    [
+      "Dijkstra vs BFS",
+      "BFS uses FIFO under equal edge cost; Dijkstra orders tentative costs for arbitrary nonnegative weights."
+    ],
+    [
+      "Dijkstra vs Bellman–Ford",
+      "Negative edges break the settle-on-min proof; Bellman–Ford allows them and can detect reachable negative cycles."
+    ],
+    [
+      "Directed cycle vs undirected cycle",
+      "Directed cycles need active ancestors or indegree reasoning; undirected DFS skips exactly the incoming edge, not arbitrary visited neighbors."
+    ],
+    [
+      "SCC vs connected component",
+      "Undirected connectivity is symmetric already; SCC requires directed reachability both ways."
+    ],
+    [
+      "MST vs shortest-path tree",
+      "MST minimizes sum of chosen undirected edge weights; shortest-path tree minimizes each source-to-vertex distance."
+    ],
+    [
+      "Visited vertex vs visited state",
+      "A vertex label suffices only if arrival history does not change future legal moves. Keys or remaining budget require richer state."
+    ],
+    [
+      "Reachable negative cycle vs disconnected one",
+      "Single-source shortest paths fail only for vertices reachable from a reachable negative cycle; a disconnected cycle need not affect source distances."
+    ],
+    [
+      "Path count vs path enumeration",
+      "A DAG DP may count exponentially many paths in polynomial arithmetic operations; materializing them still costs total output length."
+    ]
+  ],
+  "edges": [
+    [
+      "Empty graph",
+      "adj=[]",
+      "Whole-graph routines return empty results or zero components; source-based routines reject missing source."
+    ],
+    [
+      "Isolated source",
+      "adj=[[], []], source=0",
+      "dist=[0,-1] for BFS; unreachable parent/path remains absent."
+    ],
+    [
+      "Self-loop",
+      "edge (0,0)",
+      "Cycle true, bipartite false, never a bridge; nonnegative shortest distance to self remains zero."
+    ],
+    [
+      "Parallel edges",
+      "two undirected edges between 0 and 1",
+      "Neither edge is a bridge; Kahn counts/decrements directed duplicates consistently."
+    ],
+    [
+      "Disconnected graph",
+      "0—1 and isolated 2",
+      "Traverse all components; MST routine must report disconnection."
+    ],
+    [
+      "Diamond cross edge",
+      "0→1,0→2,1→3,2→3",
+      "No directed cycle; do not flag every seen neighbor."
+    ],
+    [
+      "Zero-weight cycle",
+      "0→1 cost 0,1→0 cost 0",
+      "Strict relaxation terminates and distance stays zero."
+    ],
+    [
+      "Negative edge without cycle",
+      "0→1 cost 2,0→2 cost 5,2→1 cost -4",
+      "Dijkstra precondition fails; Bellman–Ford gives distance 1 to vertex 1."
+    ],
+    [
+      "Reachable negative cycle",
+      "0→1 cost 0,1→1 cost -1",
+      "Return cycle indicator or reject finite shortest-path result."
+    ],
+    [
+      "Unreachable negative cycle",
+      "source 0 isolated,1→1 cost -1",
+      "Single-source Bellman–Ford should not report it as source-reachable."
+    ],
+    [
+      "Deep chain",
+      "5000 vertices in a path",
+      "Iterative algorithms succeed without changing recursion limit."
+    ],
+    [
+      "Grid shape",
+      "[],[[]],[[0,0,0]],ragged rows",
+      "Empty grid yields empty distance output; ragged shape raises ValueError in grid templates."
+    ],
+    [
+      "Duplicate sources",
+      "sources=[0,0,1]",
+      "Each source should enter once at distance zero."
+    ],
+    [
+      "State dominance",
+      "Same cell reached with 0 or 2 eliminations remaining",
+      "Keep richer state, or prove later arrival cannot be useful before pruning."
+    ],
+    [
+      "Tied weights",
+      "Many equal-cost routes",
+      "Return any optimum unless deterministic path tie-breaking is required."
+    ],
+    [
+      "Integer node IDs",
+      "endpoint -1 or V",
+      "Out-of-range IDs are invalid; never let Python negative indexing silently define vertices."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Queue implemented by list.pop(0)",
+      "Use deque.popleft so V removals do not become quadratic."
+    ],
+    [
+      "Marking BFS on pop",
+      "Mark on enqueue to prevent duplicate discoveries and retain first shortest parent."
+    ],
+    [
+      "Settling Dijkstra on insertion",
+      "A tentative entry can improve; settle only at a nonstale minimum pop."
+    ],
+    [
+      "Using Dijkstra with a negative edge",
+      "Select Bellman–Ford or DAG relaxation; testing a few examples does not repair the proof."
+    ],
+    [
+      "One visited bit for path-dependent search",
+      "Include all relevant resources in the state; use dominance pruning only with a proof."
+    ],
+    [
+      "Directed cycle from any visited neighbor",
+      "Only an edge to an active GRAY ancestor certifies a directed DFS cycle."
+    ],
+    [
+      "Skipping parent vertex for bridges",
+      "Use edge IDs so another parallel parent edge can lower low-link."
+    ],
+    [
+      "Ignoring isolated vertices",
+      "Allocate n vertices from the supplied count, not only observed edge endpoints."
+    ],
+    [
+      "Reversing prerequisite orientation",
+      "For (course, prerequisite), store prerequisite→course and increment course indegree."
+    ],
+    [
+      "Recursing through arbitrary input depth",
+      "Use iterative stacks and frame iterators; do not globally raise recursion limits."
+    ],
+    [
+      "In-place rounds for stop budgets",
+      "Copy the distance array each round so one round uses only one additional edge."
+    ],
+    [
+      "Claiming O(V) lazy heap space",
+      "A no-decrease-key heap may hold O(E) entries; count them."
+    ],
+    [
+      "Conflating returned and working storage",
+      "Floyd distance matrix is O(V²) output; parent, visited, queue, recursion are auxiliary."
+    ],
+    [
+      "Mutating a grid without consent",
+      "Use separate visited/distance storage or explicitly document in-place behavior."
+    ],
+    [
+      "Stopping all-pairs DP on wrong loop order",
+      "Floyd requires k outermost for the intermediate-vertex invariant."
+    ],
+    [
+      "Assuming tree algorithms apply",
+      "Graphs can have cycles, parallel edges, disconnected vertices and multiple parents."
+    ]
+  ],
+  "impress": [
+    [
+      "Specify the model",
+      "Say directed/undirected, weighted/unit, simple/multigraph, integer IDs versus object identity."
+    ],
+    [
+      "Pick by edge costs",
+      "Explain why BFS, 0–1 BFS, Dijkstra or Bellman–Ford matches the weight domain."
+    ],
+    [
+      "Name a frontier invariant",
+      "For BFS say first discovery is shortest; for Dijkstra state nonnegative suffix cannot improve settled distance."
+    ],
+    [
+      "Trace an adversarial edge",
+      "Use a diamond for false directed-cycle logic or parallel edges for bridge logic."
+    ],
+    [
+      "Account for the input representation",
+      "Quote O(V+E) only with adjacency lists; matrix scanning is O(V²)."
+    ],
+    [
+      "Separate feasibility and output",
+      "Need boolean, distance, one path, count or every path? Each changes storage and output complexity."
+    ],
+    [
+      "Handle all components",
+      "Mention isolated vertices and outer traversal loops before coding."
+    ],
+    [
+      "Avoid depth hazards",
+      "Use an explicit frame stack for DFS exit work and long paths."
+    ],
+    [
+      "Explain mutation and tie policy",
+      "Input remains unchanged; any shortest path is accepted unless specified."
+    ],
+    [
+      "Check scale before choosing advanced tools",
+      "Compare V³ all-pairs or V*E relaxation with sparse heap processing."
+    ]
+  ],
+  "memory": [
+    [
+      "Adjacency list",
+      "space = O(V+E)",
+      "Undirected edges have two adjacency entries."
+    ],
+    [
+      "BFS discovery",
+      "dist[v] = dist[u]+1 at enqueue",
+      "First discovery is shortest for equal edge costs."
+    ],
+    [
+      "Forest edges",
+      "tree edges = V - components",
+      "For an undirected forest including isolated vertices."
+    ],
+    [
+      "Undirected degrees",
+      "sum degree = 2E",
+      "Each self-loop contributes two."
+    ],
+    [
+      "Kahn completion",
+      "len(order) == V",
+      "Otherwise the directed graph contains a cycle."
+    ],
+    [
+      "Color DFS",
+      "GRAY edge → directed cycle",
+      "GRAY means active ancestor, not merely seen."
+    ],
+    [
+      "Relaxation",
+      "candidate < dist[v]",
+      "Strict improvement avoids infinite work on zero-cost cycles."
+    ],
+    [
+      "Dijkstra stale test",
+      "if d != dist[u]: continue",
+      "Lazy heap entries may be obsolete."
+    ],
+    [
+      "0–1 deque",
+      "weight 0 → appendleft; weight 1 → append",
+      "Validate the complete weight domain."
+    ],
+    [
+      "Bellman–Ford",
+      "V-1 rounds, then improvement check",
+      "Only source-reachable relaxations count."
+    ],
+    [
+      "DAG shortest paths",
+      "topological order + relax outgoing edges",
+      "Negative edges allowed because no directed cycles."
+    ],
+    [
+      "Floyd recurrence",
+      "d[i][j] = min(d[i][j], d[i][k]+d[k][j])",
+      "k must be outermost."
+    ],
+    [
+      "Bridge criterion",
+      "low[child] > tin[parent]",
+      "Use parent edge IDs for multigraphs."
+    ],
+    [
+      "Expanded states",
+      "state = (vertex, future-relevant resource)",
+      "State count multiplies traversal cost."
+    ]
+  ],
+  "templates": [
+    [
+      "BFS distances and one shortest path",
+      "O(V+E)",
+      "O(V) auxiliary plus O(path length) returned path",
+      [
+        "from collections import deque",
+        "def bfs_path(adj, source, target):",
+        "    n = len(adj)",
+        "    if not 0 <= source < n or not 0 <= target < n:",
+        "        raise ValueError('source and target must be vertex IDs')",
+        "    dist, parent = [-1]*n, [-1]*n",
+        "    dist[source] = 0",
+        "    q = deque([source])",
+        "    while q:",
+        "        u = q.popleft()",
+        "        for v in adj[u]:",
+        "            if dist[v] == -1:",
+        "                dist[v], parent[v] = dist[u]+1, u",
+        "                q.append(v)",
+        "    if dist[target] == -1:",
+        "        return dist, []",
+        "    path, u = [], target",
+        "    while u != -1:",
+        "        path.append(u)",
+        "        u = parent[u]",
+        "    path.reverse()",
+        "    return dist, path"
+      ],
+      "Unweighted directed or undirected adjacency lists, valid integer endpoints. Returns complete distance array (-1 unreachable) and any shortest source→target vertex path; source==target gives [source]. No input mutation. Empty graph has no valid source and raises ValueError."
+    ],
+    [
+      "Undirected connected-component labels",
+      "O(V+E)",
+      "O(V) auxiliary and O(V) returned labels",
+      [
+        "def component_labels(adj):",
+        "    labels = [-1]*len(adj)",
+        "    count = 0",
+        "    for start in range(len(adj)):",
+        "        if labels[start] != -1:",
+        "            continue",
+        "        labels[start] = count",
+        "        stack = [start]",
+        "        while stack:",
+        "            u = stack.pop()",
+        "            for v in adj[u]:",
+        "                if labels[v] == -1:",
+        "                    labels[v] = count",
+        "                    stack.append(v)",
+        "        count += 1",
+        "    return count, labels"
+      ],
+      "Symmetric unweighted undirected adjacency lists with valid IDs. Returns (number of components, component label for each vertex), including isolated vertices; []→(0,[]). Parallel edges/self-loops allowed; no mutation. Not SCC for directed input."
+    ],
+    [
+      "Multi-source grid BFS with walls",
+      "O(RC + S)",
+      "O(RC) distance output and O(RC) queue worst",
+      [
+        "from collections import deque",
+        "def nearest_sources(grid, sources):",
+        "    rows = len(grid)",
+        "    cols = len(grid[0]) if rows else 0",
+        "    if any(len(row) != cols for row in grid):",
+        "        raise ValueError('grid must be rectangular')",
+        "    dist = [[-1]*cols for _ in range(rows)]",
+        "    q = deque()",
+        "    for r, c in sources:",
+        "        if not (0 <= r < rows and 0 <= c < cols) or grid[r][c] != 0:",
+        "            raise ValueError('source must be an open cell')",
+        "        if dist[r][c] == -1:",
+        "            dist[r][c] = 0",
+        "            q.append((r, c))",
+        "    while q:",
+        "        r, c = q.popleft()",
+        "        for dr, dc in ((1,0), (-1,0), (0,1), (0,-1)):",
+        "            nr, nc = r+dr, c+dc",
+        "            if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == 0 and dist[nr][nc] == -1:",
+        "                dist[nr][nc] = dist[r][c]+1",
+        "                q.append((nr, nc))",
+        "    return dist"
+      ],
+      "Grid entries 0=open, nonzero=wall, four-direction moves. S integer-coordinate source pairs consumed once; duplicate sources ignored. Returns nearest-source edge distances, -1 for walls/unreachable. Empty shapes supported if sources empty; bad shape/source raises ValueError. Input unchanged."
+    ],
+    [
+      "Directed cycle detection with active DFS frames",
+      "O(V+E)",
+      "O(V)",
+      [
+        "def has_directed_cycle(adj):",
+        "    color = [0]*len(adj)",
+        "    for start in range(len(adj)):",
+        "        if color[start]:",
+        "            continue",
+        "        color[start] = 1",
+        "        stack = [(start, iter(adj[start]))]",
+        "        while stack:",
+        "            u, neighbors = stack[-1]",
+        "            v = next(neighbors, None)",
+        "            if v is None:",
+        "                color[u] = 2",
+        "                stack.pop()",
+        "            elif color[v] == 1:",
+        "                return True",
+        "            elif color[v] == 0:",
+        "                color[v] = 1",
+        "                stack.append((v, iter(adj[v])))",
+        "    return False"
+      ],
+      "Directed integer-ID adjacency; None is not a vertex ID. Returns bool, []→False. Iterator frames preserve the actual active ancestor chain without recursion. Input unchanged; parallel forward edges do not by themselves form a cycle."
+    ],
+    [
+      "Kahn topological order",
+      "O(V+E)",
+      "O(V) auxiliary plus O(V) output",
+      [
+        "from collections import deque",
+        "def topological_order(adj):",
+        "    degree = [0]*len(adj)",
+        "    for row in adj:",
+        "        for v in row:",
+        "            degree[v] += 1",
+        "    q = deque(u for u, degree_u in enumerate(degree) if degree_u == 0)",
+        "    order = []",
+        "    while q:",
+        "        u = q.popleft()",
+        "        order.append(u)",
+        "        for v in adj[u]:",
+        "            degree[v] -= 1",
+        "            if degree[v] == 0:",
+        "                q.append(v)",
+        "    return order if len(order) == len(adj) else None"
+      ],
+      "Directed valid-ID adjacency; edges prerequisite→dependent. Returns one topological order, None on a cycle, [] for no vertices. Parallel edges counted consistently. No mutation; queue order is not lexicographically minimal."
+    ],
+    [
+      "Bipartite coloring over all components",
+      "O(V+E)",
+      "O(V)",
+      [
+        "from collections import deque",
+        "def bipartite_colors(adj):",
+        "    color = [-1]*len(adj)",
+        "    for start in range(len(adj)):",
+        "        if color[start] != -1:",
+        "            continue",
+        "        color[start] = 0",
+        "        q = deque([start])",
+        "        while q:",
+        "            u = q.popleft()",
+        "            for v in adj[u]:",
+        "                if color[v] == -1:",
+        "                    color[v] = color[u]^1",
+        "                    q.append(v)",
+        "                elif color[v] == color[u]:",
+        "                    return None",
+        "    return color"
+      ],
+      "Symmetric undirected adjacency, valid IDs. Returns 0/1 colors, None when impossible (including self-loop), [] on empty. For one-way inequality constraints first symmetrize edges. Does not mutate input."
+    ],
+    [
+      "Lazy-heap Dijkstra",
+      "O(V+E log(E+2))",
+      "O(V+E) auxiliary worst",
+      [
+        "from heapq import heappush, heappop",
+        "def dijkstra(adj, source):",
+        "    n = len(adj)",
+        "    if not 0 <= source < n:",
+        "        raise ValueError('invalid source')",
+        "    for row in adj:",
+        "        for v, w in row:",
+        "            if not 0 <= v < n or w < 0:",
+        "                raise ValueError('invalid endpoint or negative weight')",
+        "    dist = [float('inf')]*n",
+        "    dist[source] = 0",
+        "    heap = [(0, source)]",
+        "    while heap:",
+        "        cost, u = heappop(heap)",
+        "        if cost != dist[u]:",
+        "            continue",
+        "        for v, w in adj[u]:",
+        "            candidate = cost+w",
+        "            if candidate < dist[v]:",
+        "                dist[v] = candidate",
+        "                heappush(heap, (candidate, v))",
+        "    return dist"
+      ],
+      "Weighted directed or symmetric undirected adjacency as (neighbor, nonnegative finite numeric weight). Integer IDs make heap ties orderable. Returns distances, infinity for unreachable. No mutation; invalid source, endpoint or negative weight raises ValueError. For arbitrary node objects add an itertools.count tie-breaker."
+    ],
+    [
+      "0–1 BFS with stale-entry protection",
+      "O(V+E)",
+      "O(V+E) worst auxiliary including lazy entries",
+      [
+        "from collections import deque",
+        "def zero_one_bfs(adj, source):",
+        "    n = len(adj)",
+        "    if not 0 <= source < n:",
+        "        raise ValueError('invalid source')",
+        "    for row in adj:",
+        "        for v, w in row:",
+        "            if not 0 <= v < n or w not in (0, 1):",
+        "                raise ValueError('requires valid endpoints and 0/1 weights')",
+        "    dist = [float('inf')]*n",
+        "    dist[source] = 0",
+        "    q = deque([(0, source)])",
+        "    while q:",
+        "        cost, u = q.popleft()",
+        "        if cost != dist[u]:",
+        "            continue",
+        "        for v, w in adj[u]:",
+        "            candidate = cost+w",
+        "            if candidate < dist[v]:",
+        "                dist[v] = candidate",
+        "                if w == 0:",
+        "                    q.appendleft((candidate, v))",
+        "                else:",
+        "                    q.append((candidate, v))",
+        "    return dist"
+      ],
+      "Weighted directed or symmetric undirected adjacency; weights exactly 0/1. Returns distances with infinity unreachable. Checks source/endpoints/weights; no mutation. A first-enqueue visited flag would incorrectly suppress later zero-cost improvement."
+    ],
+    [
+      "Bellman–Ford with reachable-cycle rejection",
+      "O(VE + V)",
+      "O(V) auxiliary",
+      [
+        "def bellman_ford(n, edges, source):",
+        "    if n < 0 or not 0 <= source < n:",
+        "        raise ValueError('invalid vertex count or source')",
+        "    for u, v, w in edges:",
+        "        if not (0 <= u < n and 0 <= v < n):",
+        "            raise ValueError('invalid endpoint')",
+        "    dist = [float('inf')]*n",
+        "    dist[source] = 0",
+        "    for _ in range(n-1):",
+        "        changed = False",
+        "        for u, v, w in edges:",
+        "            if dist[u] != float('inf') and dist[u]+w < dist[v]:",
+        "                dist[v] = dist[u]+w",
+        "                changed = True",
+        "        if not changed:",
+        "            break",
+        "    for u, v, w in edges:",
+        "        if dist[u] != float('inf') and dist[u]+w < dist[v]:",
+        "            raise ValueError('source-reachable negative cycle')",
+        "    return dist"
+      ],
+      "n vertices; reusable sequence edges of directed (u,v,finite numeric weight); negative edges allowed. Returns finite shortest distances or infinity unreachable, but rejects any source-reachable negative cycle instead of returning partially invalid answers. Unreachable negative cycles ignored. No mutation. For a stop budget use a copied next-round array, not this in-place unbounded-path variant."
+    ],
+    [
+      "DAG shortest paths with negative edges",
+      "O(V+E)",
+      "O(V)",
+      [
+        "from collections import deque",
+        "def dag_shortest_paths(adj, source):",
+        "    n = len(adj)",
+        "    if not 0 <= source < n:",
+        "        raise ValueError('invalid source')",
+        "    degree = [0]*n",
+        "    for row in adj:",
+        "        for v, w in row:",
+        "            degree[v] += 1",
+        "    q = deque(u for u in range(n) if degree[u] == 0)",
+        "    order = []",
+        "    while q:",
+        "        u = q.popleft()",
+        "        order.append(u)",
+        "        for v, w in adj[u]:",
+        "            degree[v] -= 1",
+        "            if degree[v] == 0:",
+        "                q.append(v)",
+        "    if len(order) != n:",
+        "        raise ValueError('graph must be acyclic')",
+        "    dist = [float('inf')]*n",
+        "    dist[source] = 0",
+        "    for u in order:",
+        "        if dist[u] != float('inf'):",
+        "            for v, w in adj[u]:",
+        "                dist[v] = min(dist[v], dist[u]+w)",
+        "    return dist"
+      ],
+      "Weighted directed DAG with valid integer endpoints and finite numeric weights, including negative ones. Rejects cycles anywhere, even unreachable components. Returns distance array; infinity for unreachable. No mutation; O(V+E) without a heap."
+    ],
+    [
+      "Floyd–Warshall all pairs",
+      "O(V³ + E)",
+      "O(V²) returned matrix",
+      [
+        "def floyd_warshall(n, edges):",
+        "    if n < 0:",
+        "        raise ValueError('negative vertex count')",
+        "    dist = [[float('inf')]*n for _ in range(n)]",
+        "    for u in range(n):",
+        "        dist[u][u] = 0",
+        "    for u, v, w in edges:",
+        "        if not (0 <= u < n and 0 <= v < n):",
+        "            raise ValueError('invalid endpoint')",
+        "        dist[u][v] = min(dist[u][v], w)",
+        "    for k in range(n):",
+        "        for i in range(n):",
+        "            if dist[i][k] == float('inf'):",
+        "                continue",
+        "            for j in range(n):",
+        "                candidate = dist[i][k]+dist[k][j]",
+        "                if candidate < dist[i][j]:",
+        "                    dist[i][j] = candidate",
+        "    if any(dist[u][u] < 0 for u in range(n)):",
+        "        raise ValueError('negative cycle')",
+        "    return dist"
+      ],
+      "Directed edge iterable, finite numeric weights; add both directions for undirected input. Parallel edges use minimum weight; empty n=0 returns []. Any negative cycle anywhere raises ValueError rather than exposing invalid pair distances. No input mutation; negative undirected edges necessarily produce a negative closed walk."
+    ],
+    [
+      "Prim minimum spanning tree weight",
+      "O(V+E log(E+2))",
+      "O(V+E) auxiliary worst",
+      [
+        "from heapq import heappush, heappop",
+        "def prim_weight(adj):",
+        "    n = len(adj)",
+        "    if n == 0:",
+        "        return 0",
+        "    seen = [False]*n",
+        "    heap = [(0, 0)]",
+        "    total = count = 0",
+        "    while heap:",
+        "        weight, u = heappop(heap)",
+        "        if seen[u]:",
+        "            continue",
+        "        seen[u] = True",
+        "        total += weight",
+        "        count += 1",
+        "        for v, w in adj[u]:",
+        "            if not seen[v]:",
+        "                heappush(heap, (w, v))",
+        "    return total if count == n else None"
+      ],
+      "Symmetric undirected weighted adjacency, valid integer endpoints and finite numeric weights; negative weights/parallel edges allowed. Returns MST total, None if disconnected, 0 for empty or singleton. Self-loops ignored. Does not return chosen edges or mutate input; do not apply to directed graphs."
+    ],
+    [
+      "Iterative Kosaraju strongly connected components",
+      "O(V+E)",
+      "O(V+E) auxiliary and O(V) labels",
+      [
+        "def strongly_connected_components(adj):",
+        "    n = len(adj)",
+        "    reverse = [[] for _ in range(n)]",
+        "    for u, row in enumerate(adj):",
+        "        for v in row:",
+        "            reverse[v].append(u)",
+        "    seen = [False]*n",
+        "    finish = []",
+        "    for start in range(n):",
+        "        if seen[start]:",
+        "            continue",
+        "        seen[start] = True",
+        "        stack = [(start, iter(adj[start]))]",
+        "        while stack:",
+        "            u, neighbors = stack[-1]",
+        "            v = next(neighbors, None)",
+        "            if v is None:",
+        "                finish.append(u)",
+        "                stack.pop()",
+        "            elif not seen[v]:",
+        "                seen[v] = True",
+        "                stack.append((v, iter(adj[v])))",
+        "    labels = [-1]*n",
+        "    count = 0",
+        "    for start in reversed(finish):",
+        "        if labels[start] != -1:",
+        "            continue",
+        "        labels[start] = count",
+        "        stack = [start]",
+        "        while stack:",
+        "            u = stack.pop()",
+        "            for v in reverse[u]:",
+        "                if labels[v] == -1:",
+        "                    labels[v] = count",
+        "                    stack.append(v)",
+        "        count += 1",
+        "    return count, labels"
+      ],
+      "Directed valid integer-ID adjacency. Returns (SCC count, component label per vertex), []→(0,[]). Equal labels iff mutually reachable. Labels need not match another implementation’s numbering. True iterator-frame finishing order is essential; no recursion or input mutation."
+    ],
+    [
+      "Iterative bridges with edge IDs",
+      "O(V+E)",
+      "O(V+E) including adjacency and O(E) output worst",
+      [
+        "def bridges(n, edges):",
+        "    if n < 0:",
+        "        raise ValueError('negative vertex count')",
+        "    adj = [[] for _ in range(n)]",
+        "    for eid, (u, v) in enumerate(edges):",
+        "        if not (0 <= u < n and 0 <= v < n):",
+        "            raise ValueError('invalid endpoint')",
+        "        adj[u].append((v, eid))",
+        "        adj[v].append((u, eid))",
+        "    tin, low = [-1]*n, [-1]*n",
+        "    timer = 0",
+        "    answer = []",
+        "    for start in range(n):",
+        "        if tin[start] != -1:",
+        "            continue",
+        "        tin[start] = low[start] = timer",
+        "        timer += 1",
+        "        stack = [(start, -1, -1, iter(adj[start]))]",
+        "        while stack:",
+        "            u, parent, parent_edge, neighbors = stack[-1]",
+        "            item = next(neighbors, None)",
+        "            if item is None:",
+        "                stack.pop()",
+        "                if parent != -1:",
+        "                    if low[u] > tin[parent]:",
+        "                        answer.append(parent_edge)",
+        "                    low[parent] = min(low[parent], low[u])",
+        "                continue",
+        "            v, eid = item",
+        "            if eid == parent_edge:",
+        "                continue",
+        "            if tin[v] == -1:",
+        "                tin[v] = low[v] = timer",
+        "                timer += 1",
+        "                stack.append((v, u, eid, iter(adj[v])))",
+        "            else:",
+        "                low[u] = min(low[u], tin[v])",
+        "    return answer"
+      ],
+      "Undirected edge iterable, valid n and endpoints checked. Returns input edge IDs whose removal increases component count, in DFS exit order (not sorted). Handles self-loops, parallel edges, disconnected and empty graphs. No recursion/mutation; IDs refer to enumerate(edges), so retain input if endpoint output is desired."
+    ],
+    [
+      "Obstacle-elimination expanded-state BFS",
+      "O(RC(K+1))",
+      "O(RC(K+1))",
+      [
+        "from collections import deque",
+        "def shortest_with_eliminations(grid, k):",
+        "    if k < 0:",
+        "        raise ValueError('negative budget')",
+        "    rows = len(grid)",
+        "    cols = len(grid[0]) if rows else 0",
+        "    if any(len(row) != cols for row in grid):",
+        "        raise ValueError('grid must be rectangular')",
+        "    if any(cell not in (0, 1) for row in grid for cell in row):",
+        "        raise ValueError('cells must be 0 or 1')",
+        "    if not rows or not cols:",
+        "        return -1",
+        "    k = min(k, rows*cols)",
+        "    remaining = k-grid[0][0]",
+        "    if remaining < 0:",
+        "        return -1",
+        "    q = deque([(0, 0, remaining, 0)])",
+        "    seen = {(0, 0, remaining)}",
+        "    while q:",
+        "        r, c, left, distance = q.popleft()",
+        "        if (r, c) == (rows-1, cols-1):",
+        "            return distance",
+        "        for dr, dc in ((1,0), (-1,0), (0,1), (0,-1)):",
+        "            nr, nc = r+dr, c+dc",
+        "            if 0 <= nr < rows and 0 <= nc < cols:",
+        "                next_left = left-grid[nr][nc]",
+        "                state = (nr, nc, next_left)",
+        "                if next_left >= 0 and state not in seen:",
+        "                    seen.add(state)",
+        "                    q.append((nr, nc, next_left, distance+1))",
+        "    return -1"
+      ],
+      "Rectangular 0/1 grid, four directions, k nonnegative integer eliminations. Returns shortest edge count from top-left to bottom-right or -1, including empty grid. Entering a 1 costs one elimination, including starting cell. Input unchanged. Cap K=min(k,RC): a shortest feasible route can be simple, so more than RC eliminations cannot improve feasibility. State retains remaining budget; copy to adapt for keys or parity."
+    ],
+    [
+      "Reverse terminal elimination for eventual safety",
+      "O(V+E)",
+      "O(V+E) auxiliary plus O(V) output",
+      [
+        "from collections import deque",
+        "def eventual_safe_nodes(adj):",
+        "    n = len(adj)",
+        "    reverse = [[] for _ in range(n)]",
+        "    remaining = [len(row) for row in adj]",
+        "    for u, row in enumerate(adj):",
+        "        for v in row:",
+        "            reverse[v].append(u)",
+        "    q = deque(u for u in range(n) if remaining[u] == 0)",
+        "    safe = [False]*n",
+        "    while q:",
+        "        v = q.popleft()",
+        "        safe[v] = True",
+        "        for u in reverse[v]:",
+        "            remaining[u] -= 1",
+        "            if remaining[u] == 0:",
+        "                q.append(u)",
+        "    return [u for u in range(n) if safe[u]]"
+      ],
+      "Directed valid-ID adjacency; returns sorted IDs from which every path eventually terminates. Parallel edges counted individually, self-loops unsafe, [] returns []. Does not mutate input. Nodes merely able to reach one terminal may still be unsafe."
+    ],
+    [
+      "Snapshot relaxation with an edge budget",
+      "O(V+E + B(V+E))",
+      "O(V+E) auxiliary including copied edge iterable",
+      [
+        "def bounded_shortest_paths(n, edges, source, max_edges):",
+        "    if not isinstance(n, int) or n < 0 or not 0 <= source < n:",
+        "        raise ValueError('invalid vertex count or source')",
+        "    if not isinstance(max_edges, int) or max_edges < 0:",
+        "        raise ValueError('invalid edge budget')",
+        "    edges = list(edges)",
+        "    if any(not (0 <= u < n and 0 <= v < n) for u, v, w in edges):",
+        "        raise ValueError('invalid endpoint')",
+        "    dist = [float('inf')]*n",
+        "    dist[source] = 0",
+        "    for _ in range(max_edges):",
+        "        nxt = dist.copy()",
+        "        for u, v, w in edges:",
+        "            if dist[u] != float('inf'):",
+        "                nxt[v] = min(nxt[v], dist[u]+w)",
+        "        dist = nxt",
+        "    return dist"
+      ],
+      "Directed finite numeric edge weights, possibly negative; B=max_edges≥0. Returns cheapest walk using at most B edges (not unrestricted shortest paths); bounded negative cycles are well-defined. Each round reads only the previous snapshot. A K-stop flight permits K+1 edges. Copies edge iterable; no caller mutation. O(BV) copying matters, so not simply O(BE)."
+    ],
+    [
+      "Minimax Dijkstra on grid heights",
+      "O(RC log(RC+2))",
+      "O(RC) auxiliary",
+      [
+        "from heapq import heappush, heappop",
+        "def minimum_effort(heights):",
+        "    rows = len(heights)",
+        "    cols = len(heights[0]) if rows else 0",
+        "    if any(len(row) != cols for row in heights):",
+        "        raise ValueError('grid must be rectangular')",
+        "    if not rows or not cols:",
+        "        return None",
+        "    best = [[float('inf')]*cols for _ in range(rows)]",
+        "    best[0][0] = 0",
+        "    heap = [(0, 0, 0)]",
+        "    while heap:",
+        "        effort, r, c = heappop(heap)",
+        "        if effort != best[r][c]:",
+        "            continue",
+        "        if (r, c) == (rows-1, cols-1):",
+        "            return effort",
+        "        for dr, dc in ((1,0),(-1,0),(0,1),(0,-1)):",
+        "            nr, nc = r+dr, c+dc",
+        "            if 0 <= nr < rows and 0 <= nc < cols:",
+        "                candidate = max(effort, abs(heights[r][c]-heights[nr][nc]))",
+        "                if candidate < best[nr][nc]:",
+        "                    best[nr][nc] = candidate",
+        "                    heappush(heap, (candidate, nr, nc))"
+      ],
+      "Rectangular finite numeric heights, four directions. Returns minimum possible largest adjacent absolute difference, 0 on singleton and None for empty shapes. No input mutation. Monotone max-extension, not additive relaxation, justifies settling; negative heights themselves are fine."
+    ],
+    [
+      "Dense implicit Prim for Manhattan points",
+      "O(V²)",
+      "O(V) auxiliary",
+      [
+        "def manhattan_mst(points):",
+        "    n = len(points)",
+        "    best = [float('inf')]*n",
+        "    used = [False]*n",
+        "    if n:",
+        "        best[0] = 0",
+        "    total = 0",
+        "    for _ in range(n):",
+        "        u = min((v for v in range(n) if not used[v]), key=best.__getitem__)",
+        "        used[u] = True",
+        "        total += best[u]",
+        "        x, y = points[u]",
+        "        for v, (a, b) in enumerate(points):",
+        "            if not used[v]:",
+        "                best[v] = min(best[v], abs(x-a)+abs(y-b))",
+        "    return total"
+      ],
+      "Finite numeric coordinate pairs; implicit complete undirected graph with Manhattan weights. Returns MST total (0 on empty/singleton); duplicates produce valid zero edges. No input mutation or quadratic edge storage. Dense array scan beats heap overhead for this representation."
+    ],
+    [
+      "Count directed DAG paths without enumerating them",
+      "O(V+E) arithmetic operations",
+      "O(V) auxiliary and returned counts",
+      [
+        "from collections import deque",
+        "def dag_path_counts(adj, source, modulus=None):",
+        "    n = len(adj)",
+        "    if not 0 <= source < n:",
+        "        raise ValueError('invalid source')",
+        "    if modulus is not None and (not isinstance(modulus, int) or modulus <= 0):",
+        "        raise ValueError('modulus must be a positive integer')",
+        "    degree = [0]*n",
+        "    for row in adj:",
+        "        for v in row:",
+        "            degree[v] += 1",
+        "    q = deque(u for u in range(n) if degree[u] == 0)",
+        "    count = [0]*n",
+        "    count[source] = 1 if modulus is None else 1 % modulus",
+        "    processed = 0",
+        "    while q:",
+        "        u = q.popleft()",
+        "        processed += 1",
+        "        for v in adj[u]:",
+        "            count[v] += count[u]",
+        "            if modulus is not None:",
+        "                count[v] %= modulus",
+        "            degree[v] -= 1",
+        "            if degree[v] == 0:",
+        "                q.append(v)",
+        "    if processed != n:",
+        "        raise ValueError('DAG required')",
+        "    return count"
+      ],
+      "Directed DAG with valid integer IDs; returns number of source-to-each-vertex paths, counting the empty source path once and parallel edges as distinct choices. Rejects any cycle, including unreachable ones. No mutation; optional positive modulus bounds count sizes. Without modulus path counts may be exponential in value, so integer bit time/storage exceed unit-cost O(V+E)/O(V)."
+    ]
+  ],
+  "practice": [
+    [
+      "1971 Find if Path Exists in Graph",
+      "Reachability DFS/BFS",
+      "Easy",
+      "O(V+E) time, O(V+E) including adjacency",
+      "Start equals end; undirected edges."
+    ],
+    [
+      "733 Flood Fill",
+      "Grid component traversal",
+      "Easy",
+      "O(RC) time/space worst",
+      "New color equals original; avoid repeated revisits."
+    ],
+    [
+      "200 Number of Islands",
+      "Components",
+      "Medium",
+      "O(RC) time/space worst",
+      "Four neighbors, not eight; mutation contract."
+    ],
+    [
+      "547 Number of Provinces",
+      "Matrix components",
+      "Medium",
+      "O(V²) time, O(V) auxiliary",
+      "Input is a matrix; list complexity does not apply."
+    ],
+    [
+      "994 Rotting Oranges",
+      "Multi-source BFS",
+      "Medium",
+      "O(RC) time/space",
+      "Count fresh cells and unreachable remainder."
+    ],
+    [
+      "542 01 Matrix",
+      "Multi-source distance",
+      "Medium",
+      "O(RC) time/space",
+      "Enqueue all zeros before expansion."
+    ],
+    [
+      "785 Is Graph Bipartite?",
+      "Two-color BFS",
+      "Medium",
+      "O(V+E) time, O(V) auxiliary",
+      "Disconnected components and self-loops."
+    ],
+    [
+      "207 Course Schedule",
+      "Directed cycle / Kahn",
+      "Medium",
+      "O(V+E) time/space including adjacency",
+      "Prerequisite edge direction."
+    ],
+    [
+      "210 Course Schedule II",
+      "Topological order",
+      "Medium",
+      "O(V+E) time/space",
+      "Reject partial order on a cycle."
+    ],
+    [
+      "802 Find Eventual Safe States",
+      "Reverse terminal elimination",
+      "Medium",
+      "O(V+E) time/space",
+      "All outgoing routes must be safe."
+    ],
+    [
+      "1091 Shortest Path in Binary Matrix",
+      "BFS",
+      "Medium",
+      "O(RC) time/space",
+      "Eight directions; answer counts cells."
+    ],
+    [
+      "127 Word Ladder",
+      "Implicit BFS",
+      "Hard",
+      "O(26NL²) time upper bound for string-building neighbors, O(NL) dictionary/frontier character storage",
+      "N words length L; neighbor generation and hashing are not free."
+    ],
+    [
+      "743 Network Delay Time",
+      "Dijkstra",
+      "Medium",
+      "O(V+E log(E+2)) time, O(V+E) space",
+      "Unreachable destination means -1."
+    ],
+    [
+      "1368 Minimum Cost to Make at Least One Valid Path in a Grid",
+      "0–1 BFS",
+      "Hard",
+      "O(RC) time/space",
+      "Following an arrow costs zero; changing costs one."
+    ],
+    [
+      "787 Cheapest Flights Within K Stops",
+      "Snapshot Bellman–Ford",
+      "Medium",
+      "O(V+E+(K+1)(V+E)) time, O(V+E) auxiliary with copied edges",
+      "A stop is not an edge; use copied next-round distances."
+    ],
+    [
+      "1334 Find the City With the Smallest Number of Neighbors at a Threshold Distance",
+      "Floyd–Warshall",
+      "Medium",
+      "O(V³) time, O(V²) space",
+      "Tie favors larger city ID."
+    ],
+    [
+      "1584 Min Cost to Connect All Points",
+      "Dense Prim",
+      "Medium",
+      "O(V²) time, O(V) auxiliary without materialized complete edges",
+      "Manhattan edges are implicit; heap is not always better."
+    ],
+    [
+      "1631 Path With Minimum Effort",
+      "Minimax Dijkstra",
+      "Medium",
+      "O(RC log(RC)) time, O(RC) space",
+      "Relax with max(current effort, edge difference), not sum."
+    ],
+    [
+      "847 Shortest Path Visiting All Nodes",
+      "Multi-source state BFS",
+      "Hard",
+      "O((V+E)2^V) time, O(V2^V) space",
+      "Visit mask is part of identity."
+    ],
+    [
+      "1293 Shortest Path in a Grid with Obstacles Elimination",
+      "Resource-state BFS",
+      "Hard",
+      "O(RC(K+1)) time/space",
+      "A longer arrival with more remaining budget can matter."
+    ],
+    [
+      "1192 Critical Connections in a Network",
+      "Bridge low-link",
+      "Hard",
+      "O(V+E) time/space",
+      "Skip edge ID, propagate low on exit."
+    ],
+    [
+      "1857 Largest Color Value in a Directed Graph",
+      "Topological DP",
+      "Hard",
+      "O(26(V+E)) time, O(26V+E) space",
+      "Any directed cycle forces -1, even outside one chosen source."
+    ]
+  ]
+}

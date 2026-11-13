@@ -1,0 +1,1567 @@
+{
+  "id": "trees",
+  "title": "Trees & BSTs",
+  "subtitle": "A tree decomposes into child subproblems; a BST adds ancestor-wide ordering that lets a search discard whole subtrees.",
+  "variables": "n = nodes, h = height in nodes (empty 0, leaf 1), w = maximum level width, k = requested rank, B = serialized byte/character length, L = total materialized path output length. Trees are finite rooted binary trees with no cycles or shared children unless explicitly stated. Node identity, not equal val, identifies a vertex. Keys are mutually comparable, not NaN; numeric arithmetic/comparison costs use the fixed-word model, while Python large integers cost by bit length. Hash operations are expected O(1) on identity keys; long string key hashing/comparison costs must be added. Space includes recursion/explicit stacks and excludes output unless labeled. An unbalanced BST may have h=n; logarithmic operations require a balancing guarantee, not merely the BST property. All templates avoid depth-linear Python recursion; balanced construction recurses only O(log n).",
+  "operations": [
+    [
+      "Nodes",
+      "node.val; node.left; node.right",
+      "Read a stored field",
+      "O(1)",
+      "O(1)",
+      "A missing child is None, not a falsy value."
+    ],
+    [
+      "Nodes",
+      "node.left = child",
+      "Rewire one child pointer",
+      "O(1)",
+      "O(1)",
+      "Can create a cycle or shared child; preserve the tree contract."
+    ],
+    [
+      "Nodes",
+      "node is target",
+      "Compare vertex identity",
+      "O(1)",
+      "O(1)",
+      "Two nodes may have equal values but different identities."
+    ],
+    [
+      "Traversal",
+      "inorder(root)",
+      "Left, root, right traversal",
+      "O(n)",
+      "O(h) auxiliary",
+      "Sorted only if the BST ordering policy holds."
+    ],
+    [
+      "Traversal",
+      "preorder(root)",
+      "Root before children",
+      "O(n)",
+      "O(h) auxiliary",
+      "Push right before left on a LIFO stack."
+    ],
+    [
+      "Traversal",
+      "postorder(root)",
+      "Children before parent",
+      "O(n)",
+      "O(h) auxiliary",
+      "Useful for height, balance and subtree DP."
+    ],
+    [
+      "Traversal",
+      "levels(root)",
+      "Breadth by depth",
+      "O(n)",
+      "O(w) auxiliary",
+      "Output itself can require O(n)."
+    ],
+    [
+      "BST",
+      "search(root, key)",
+      "Follow comparisons to find a key",
+      "O(h)",
+      "O(1) iterative",
+      "Worst O(n) when skewed."
+    ],
+    [
+      "BST",
+      "insert(root, key)",
+      "Insert a unique key",
+      "O(h)",
+      "O(1) auxiliary + O(1) new node",
+      "May return a new root; duplicates rejected/ignored by policy."
+    ],
+    [
+      "BST",
+      "delete(root, key)",
+      "Remove one unique key",
+      "O(h)",
+      "O(1) iterative auxiliary",
+      "Two-child deletion can copy successor value."
+    ],
+    [
+      "BST",
+      "while node.left is not None: node = node.left",
+      "Find minimum",
+      "O(h)",
+      "O(1)",
+      "Empty root needs a separate case."
+    ],
+    [
+      "BST",
+      "while node.right is not None: node = node.right",
+      "Find maximum",
+      "O(h)",
+      "O(1)",
+      "Symmetric minimum operation."
+    ],
+    [
+      "BST",
+      "successor(root, key)",
+      "Find next larger key",
+      "O(h)",
+      "O(1)",
+      "Not simply node.right; that subtree may have a left chain."
+    ],
+    [
+      "BST",
+      "kth_smallest(root, k)",
+      "kth smallest without size augmentation",
+      "O(h+k)",
+      "O(h)",
+      "k is one-based; worst O(n)."
+    ],
+    [
+      "BST",
+      "floor_bst(root, key); ceiling_bst(root, key)",
+      "Find floor or ceiling candidate",
+      "O(h)",
+      "O(1)",
+      "Missing candidate is a valid result."
+    ],
+    [
+      "Validation",
+      "validate_bst(root)",
+      "Check ancestor-wide strict bounds",
+      "O(n)",
+      "O(h)",
+      "Comparing only parent and immediate child is insufficient."
+    ],
+    [
+      "Queries",
+      "lca(root, p, q)",
+      "Lowest common ancestor in general tree",
+      "O(n) expected",
+      "O(n) parent-map version",
+      "Check target existence and compare by identity."
+    ],
+    [
+      "Queries",
+      "bst_lca(root, a, b)",
+      "Find key split point after membership checks",
+      "O(h)",
+      "O(1)",
+      "Uses unique-key BST precondition."
+    ],
+    [
+      "Build",
+      "balanced_bst(sorted_values)",
+      "Construct balanced BST using index ranges",
+      "O(n)",
+      "O(log n) recursion + O(n) output",
+      "Slicing every recursive range adds copies."
+    ],
+    [
+      "Codec",
+      "serialize(root); deserialize(data)",
+      "Persist shape and values",
+      "O(n+B)",
+      "O(n+B)",
+      "Null markers distinguish different shapes; format validation matters."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "A node is not its value",
+      "Identity distinguishes vertices even when values repeat; default objects have identity equality and hashing.",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "a, b = Node(2), Node(2)",
+        "assert a is not b and a.val == b.val"
+      ],
+      "O(1)",
+      "O(1)",
+      "Dataclasses with value equality may be unhashable or merge conceptually different nodes."
+    ],
+    [
+      "Root and null base case",
+      "The empty tree is None; a leaf has two missing children. Value zero is a valid root.",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "root = Node(0)",
+        "is_leaf = root.left is None and root.right is None",
+        "assert is_leaf and root is not None"
+      ],
+      "O(1)",
+      "O(1)",
+      "if not node.val confuses zero with absence."
+    ],
+    [
+      "Traversal order encodes dependencies",
+      "Preorder handles a node before descendants; inorder visits between children; postorder waits for both children.",
+      [
+        "left, root, right = 'L', 'N', 'R'",
+        "preorder = [root, left, right]",
+        "inorder = [left, root, right]",
+        "postorder = [left, right, root]"
+      ],
+      "O(n) full traversal",
+      "O(h) stack plus output",
+      "A traversal value list alone usually cannot recover shape."
+    ],
+    [
+      "Height, depth and diameter units",
+      "Depth counts edges from root, height here counts nodes to a deepest leaf, diameter counts edges between two nodes.",
+      [
+        "empty_height = 0",
+        "left_height, right_height = 2, 3",
+        "height = 1 + max(left_height, right_height)",
+        "through_root_diameter_edges = left_height + right_height",
+        "assert height == 4 and through_root_diameter_edges == 5"
+      ],
+      "O(n) bottom-up metrics",
+      "O(h) traversal stack",
+      "Mixing node and edge units introduces off-by-one errors."
+    ],
+    [
+      "BST ordering is global",
+      "Every left descendant is smaller and every right descendant larger under the strict unique-key policy.",
+      [
+        "low, key, high = 5, 8, 10",
+        "assert low < key < high",
+        "# A 6 in the right subtree of root 10 violates the root bound.",
+        "root_key, right_descendant = 10, 6",
+        "assert not root_key < right_descendant"
+      ],
+      "O(n) validation",
+      "O(h)",
+      "A child can fit its parent but violate a grandparent."
+    ],
+    [
+      "Balanced is a guarantee, not a name",
+      "Strictly increasing insertions into an ordinary BST can form a chain of height n.",
+      [
+        "n = 8",
+        "skewed_height = n",
+        "balanced_height_upper = n.bit_length()",
+        "assert skewed_height > balanced_height_upper"
+      ],
+      "O(h) BST operation",
+      "O(1) iterative search",
+      "Random input is not an adversarial worst-case balance guarantee."
+    ],
+    [
+      "Inherited state versus returned summary",
+      "Bounds, depth and root-prefix sums flow down; height, gain and validity flow back up.",
+      [
+        "parent_prefix, value = 7, -2",
+        "child_prefix = parent_prefix + value",
+        "left_height, right_height = 2, 1",
+        "returned_height = 1 + max(left_height, right_height)"
+      ],
+      "O(n) when each state transition is constant",
+      "O(h)",
+      "A global mutable accumulator can leak state across calls."
+    ],
+    [
+      "Leaf-sensitive path sums",
+      "A root-to-leaf path must terminate at a leaf, not merely a node whose running sum equals target.",
+      [
+        "values = [5, -3, 2]",
+        "root_to_leaf_sum = sum(values)",
+        "assert root_to_leaf_sum == 4",
+        "# A matching prefix at an internal node is not yet a leaf path."
+      ],
+      "O(n) search",
+      "O(h)",
+      "Negative values make sum>target pruning invalid."
+    ],
+    [
+      "BST successor and deletion",
+      "For two children, copy the minimum key in the right subtree, then unlink that successor, which has no left child.",
+      [
+        "right_subtree_sorted = [6, 7, 9]",
+        "successor_key = right_subtree_sorted[0]",
+        "assert successor_key == 6"
+      ],
+      "O(h)",
+      "O(1) iterative",
+      "Copying the value does not preserve logical key identity of the original node object."
+    ],
+    [
+      "Null markers preserve shape",
+      "Preorder with explicit nulls uniquely records an ordered binary tree, including single-child direction.",
+      [
+        "left_only = [1, 2, None, None, None]",
+        "right_only = [1, None, 2, None, None]",
+        "assert left_only != right_only"
+      ],
+      "O(n) tokens plus value encoding",
+      "O(n) output",
+      "Preorder without nulls is ambiguous for a general binary tree."
+    ],
+    [
+      "Explicit frames replace recursion",
+      "Store a visit phase so child results are available only when their parent is ready to combine them.",
+      [
+        "stack = [('root', False)]",
+        "order = []",
+        "while stack:",
+        "    node, expanded = stack.pop()",
+        "    if expanded:",
+        "        order.append(node)",
+        "    else:",
+        "        stack.append((node, True))",
+        "assert order == ['root']"
+      ],
+      "O(n)",
+      "O(h)",
+      "Do not globally raise the recursion limit to handle a long chain."
+    ],
+    [
+      "Tree versus DAG",
+      "Algorithms that omit visited rely on unique parentage. Shared child references change counting and may repeat expensive work.",
+      [
+        "child = {'value': 1}",
+        "left = child",
+        "right = child",
+        "assert left is right",
+        "# This sharing is a DAG representation, not two independent tree nodes."
+      ],
+      "O(1) illustration",
+      "O(1)",
+      "Cycle input can make traversal nonterminating; templates assume valid trees."
+    ]
+  ],
+  "patterns": [
+    [
+      "Iterative depth-first traversal",
+      "CORE",
+      "Visit nodes in pre/in/post order",
+      "Use a stack or explicit enter/exit phases",
+      "O(n)",
+      "O(h) auxiliary",
+      "Binary Tree Inorder Traversal",
+      "Push right before left for preorder.",
+      "Stack stores unfinished ancestors and pending sibling work.",
+      "BFS is simpler for level boundaries."
+    ],
+    [
+      "Level-order frontier",
+      "CORE",
+      "View by depth, nearest leaf, right-side view",
+      "Expand one queue snapshot at a time",
+      "O(n)",
+      "O(w)",
+      "Binary Tree Level Order Traversal",
+      "A wide tree can need O(n) frontier memory.",
+      "Each queue layer contains exactly one depth.",
+      "Postorder summaries do not need a BFS frontier."
+    ],
+    [
+      "Bottom-up metrics",
+      "CORE",
+      "Height, balance, diameter",
+      "Return child summaries and combine once per parent",
+      "O(n)",
+      "O(h)",
+      "Balanced Binary Tree; Diameter of Binary Tree",
+      "Repeated subtree height calls can cost O(n²).",
+      "Completed child summaries are correct before combination.",
+      "Not enough when parent choices alter child state."
+    ],
+    [
+      "Ancestor bounds",
+      "CORE",
+      "Validate BST",
+      "Propagate strict lower and upper bounds",
+      "O(n)",
+      "O(h)",
+      "Validate Binary Search Tree",
+      "Immediate child comparisons miss distant violations.",
+      "Every processed key lies in all ancestor constraints.",
+      "Duplicates require a separately chosen ordering policy."
+    ],
+    [
+      "Ordered branch pruning",
+      "CORE",
+      "Search, floor, ceiling, BST LCA",
+      "Compare query with current key and discard an impossible subtree",
+      "O(h)",
+      "O(1)",
+      "Search in a Binary Search Tree",
+      "Do not claim log n without balance.",
+      "Any valid answer remains inside the selected subtree or saved candidate.",
+      "General binary trees have no ordered pruning rule."
+    ],
+    [
+      "Inorder order statistic",
+      "CORE",
+      "kth smallest, iterator, BST two-sum",
+      "Stream sorted nodes without materializing all keys",
+      "O(h+k) for kth",
+      "O(h)",
+      "Kth Smallest Element in a BST; Binary Search Tree Iterator",
+      "kth counts nodes under the chosen duplicate policy.",
+      "Next yielded node is the smallest unvisited key.",
+      "Many dynamic rank queries benefit from subtree sizes in a balanced tree."
+    ],
+    [
+      "Root-to-leaf inherited state",
+      "CORE",
+      "Path sum, depth, digit accumulation",
+      "Carry a compact prefix and check only leaf termination",
+      "O(n)",
+      "O(h)",
+      "Path Sum; Sum Root to Leaf Numbers",
+      "Do not prune on large sum when negatives exist.",
+      "Carried state equals the root-to-current path aggregate.",
+      "Arbitrary downward-start paths need prefix frequencies."
+    ],
+    [
+      "Path prefix frequencies with undo",
+      "IMPORTANT",
+      "Count downward paths of target sum",
+      "Track root-prefix frequencies on active ancestors, undo on exit",
+      "O(n) expected",
+      "O(h)",
+      "Path Sum III",
+      "Missing undo counts paths across sibling branches.",
+      "Map contains exactly prefixes before nodes on the current active path.",
+      "Paths allowed to turn upward need another decomposition."
+    ],
+    [
+      "One-arm gain and two-arm answer",
+      "IMPORTANT",
+      "Maximum path sum can turn at one node",
+      "Return one nonnegative child arm; update answer with both arms",
+      "O(n)",
+      "O(h)",
+      "Binary Tree Maximum Path Sum",
+      "Returned gain cannot fork, but a completed path may.",
+      "Returned gain is best downward path starting at node, clipped for parent use.",
+      "A path constrained to leaves needs different negative-arm handling."
+    ],
+    [
+      "Identity-based lowest common ancestor",
+      "CORE",
+      "First common ancestor of two nodes",
+      "Build parent links until both targets found, then intersect ancestor chains",
+      "O(n) expected",
+      "O(n)",
+      "Lowest Common Ancestor of a Binary Tree",
+      "Equal values do not prove target membership.",
+      "Ancestor chain of p is fixed; first q ancestor in it is lowest shared.",
+      "For many queries, binary lifting/Euler RMQ preprocessing is better."
+    ],
+    [
+      "Traversal reconstruction",
+      "IMPORTANT",
+      "Given preorder and inorder, rebuild tree",
+      "Use unique keys and an inorder pointer with a stack",
+      "O(n) expected",
+      "O(n) validation/state + O(n) output",
+      "Construct Binary Tree from Preorder and Inorder Traversal",
+      "Duplicates destroy uniqueness without extra metadata.",
+      "Stack holds open preorder ancestors whose inorder completion is pending.",
+      "Preorder and postorder alone are generally ambiguous."
+    ],
+    [
+      "Shape-preserving serialization",
+      "IMPORTANT",
+      "Store and recreate an arbitrary binary tree",
+      "Emit preorder values and null markers; consume one child slot at a time",
+      "O(n+B)",
+      "O(n+B)",
+      "Serialize and Deserialize Binary Tree",
+      "Reject truncated and extra tokens.",
+      "Each consumed token fills exactly one pending child slot.",
+      "Use a different schema for shared graphs or noninteger payloads."
+    ],
+    [
+      "BST structural edits",
+      "IMPORTANT",
+      "Insert/delete a key",
+      "Find link, handle 0/1 child or successor splice",
+      "O(h)",
+      "O(1) auxiliary",
+      "Delete Node in a BST",
+      "Keep the returned root after deleting the root.",
+      "All untouched subtrees retain their order and edited links satisfy key bounds.",
+      "Persistent/immutable trees need path copies, not in-place rewiring."
+    ],
+    [
+      "Divide sorted range",
+      "CORE",
+      "Build balanced BST from sorted unique keys",
+      "Choose midpoint and recurse on index intervals",
+      "O(n)",
+      "O(log n) recursion + O(n) output",
+      "Convert Sorted Array to Binary Search Tree",
+      "Avoid range slices.",
+      "Each range produces exactly its keys with near-equal subtree sizes.",
+      "Unsorted input first needs sorting and duplicate policy."
+    ],
+    [
+      "Structural paired traversal",
+      "IMPORTANT",
+      "Same tree, symmetric tree, subtree comparison",
+      "Traverse pairs and compare both shape and values",
+      "O(n) for equality",
+      "O(h) DFS pair stack",
+      "Same Tree; Symmetric Tree",
+      "Equal traversal values without nulls do not imply equal shape.",
+      "Each pending pair represents corresponding positions.",
+      "Naive subtree search may be O(nm); use canonical IDs or serialization matching for large inputs."
+    ],
+    [
+      "Rerooting / tree DP",
+      "ADVANCED",
+      "Answer for every possible root",
+      "Compute subtree contributions then propagate parent-side contributions",
+      "O(n) for constant summaries",
+      "O(n)",
+      "Sum of Distances in Tree",
+      "Avoid rescanning neighbors for every child.",
+      "Each directed edge summary represents the component on its far side.",
+      "Requires an undirected tree model and problem-specific transitions, not just binary node traversal."
+    ]
+  ],
+  "recognize": [
+    [
+      "Need sorted BST values",
+      "Inorder traversal",
+      "BST precondition, not any binary tree."
+    ],
+    [
+      "Height plus validity",
+      "Postorder summaries",
+      "Return both so heights are not recomputed."
+    ],
+    [
+      "Longest path in edges",
+      "Diameter child heights",
+      "No path has to pass through the root."
+    ],
+    [
+      "BST valid?",
+      "Ancestor bounds",
+      "A 6 under the right subtree of 10 is invalid even under parent 15."
+    ],
+    [
+      "kth smallest",
+      "Inorder early stop",
+      "Augment subtree sizes for many dynamic rank queries."
+    ],
+    [
+      "Keys divide at an ancestor",
+      "BST LCA",
+      "Verify both keys exist if not guaranteed."
+    ],
+    [
+      "Nodes may share values",
+      "Identity LCA",
+      "Do not compare target.val alone."
+    ],
+    [
+      "Root-to-leaf target sum",
+      "Inherited prefix",
+      "An internal prefix match is insufficient."
+    ],
+    [
+      "Any downward start, count sums",
+      "Prefix frequencies + exit undo",
+      "Sibling histories must not mix."
+    ],
+    [
+      "Any connected maximum-sum path",
+      "One-arm gain / two-arm answer",
+      "All-negative trees still need one node."
+    ],
+    [
+      "Preorder and inorder supplied",
+      "Unique-key reconstruction",
+      "Equal multisets alone do not ensure valid paired traversals."
+    ],
+    [
+      "Save exact shape",
+      "Null-marked codec",
+      "Define payload type and malformed input behavior."
+    ],
+    [
+      "Sorted static keys, build tree",
+      "Midpoint recursion",
+      "Input sorting/dedup costs are separate."
+    ],
+    [
+      "Same or mirror shape",
+      "Pair traversal",
+      "Null placement matters."
+    ],
+    [
+      "Very deep chain",
+      "Explicit stack",
+      "Avoid Python depth-linear recursion."
+    ],
+    [
+      "Many repeated ancestor queries",
+      "LCA preprocessing",
+      "Binary lifting O(n log n) build, O(log n) queries on a static tree."
+    ]
+  ],
+  "contrasts": [
+    [
+      "Binary tree vs BST",
+      "Binary describes at most two ordered child slots; BST additionally constrains all descendant keys."
+    ],
+    [
+      "Balanced vs complete vs perfect",
+      "Balanced limits height differences (definition must be stated); complete fills levels left to right; perfect fills every level."
+    ],
+    [
+      "DFS vs BFS memory",
+      "DFS stores O(h) unfinished work; BFS stores O(w) frontier. Either can be O(n)."
+    ],
+    [
+      "Height vs depth vs diameter",
+      "Height goes downward, depth goes from root, diameter is a longest undirected node-to-node path; specify node/edge units."
+    ],
+    [
+      "Identity vs equality",
+      "LCA references identify actual objects; equal values do not make separate vertices the same."
+    ],
+    [
+      "Path vs subtree",
+      "A path never forks; a subtree may contain many branches. Maximum path return state must have one arm."
+    ],
+    [
+      "BST validation vs sorted neighbors",
+      "Full inorder strict increase or ancestor bounds validates; immediate parent-child checks do not."
+    ],
+    [
+      "Mutation vs new root",
+      "Insertion/deletion may replace the root; assigning a local node variable alone does not update the caller."
+    ],
+    [
+      "Recursion vs explicit stack",
+      "Both retain O(h) state; explicit stack avoids interpreter call-depth limits."
+    ],
+    [
+      "Single-query vs preprocessed rank/LCA",
+      "Simple traversal often wins once; repeated queries can justify augmented sizes or ancestor tables."
+    ]
+  ],
+  "edges": [
+    [
+      "Empty",
+      "root=None",
+      "Traversal []; height/diameter 0; valid BST True; max path None."
+    ],
+    [
+      "Zero-valued leaf",
+      "Node(0)",
+      "Present node, height 1, path sum 0 succeeds."
+    ],
+    [
+      "Skew beyond recursion limit",
+      "3000-node chain",
+      "All depth-linear templates remain iterative."
+    ],
+    [
+      "Distant BST violation",
+      "10.right=15; 15.left=6",
+      "Validation is False."
+    ],
+    [
+      "Duplicate key",
+      "2.left=2",
+      "Invalid under strict BST policy; insertion ignores existing key."
+    ],
+    [
+      "Equal-valued targets",
+      "Two separate Node(7) objects",
+      "LCA compares identity; external equal-valued node is absent."
+    ],
+    [
+      "Same target twice",
+      "p is q in tree",
+      "General LCA returns that exact node."
+    ],
+    [
+      "Missing target",
+      "q outside tree",
+      "General LCA returns None."
+    ],
+    [
+      "Invalid rank",
+      "k=0 or k>n",
+      "kth template raises ValueError."
+    ],
+    [
+      "Delete root",
+      "Root has zero, one, or two children",
+      "Use returned root; successor splice preserves order."
+    ],
+    [
+      "All negative",
+      "[-3,-8,-2] as nodes",
+      "Maximum path is -2, not zero."
+    ],
+    [
+      "Internal sum match",
+      "root 5 has child 1, target 5",
+      "No root-to-leaf match."
+    ],
+    [
+      "Zero-sum paths",
+      "Three zero nodes in a chain",
+      "Six downward nonempty zero-sum paths."
+    ],
+    [
+      "Sibling prefix contamination",
+      "root 0 with two zero leaves",
+      "Five zero-sum downward paths, not cross-branch paths."
+    ],
+    [
+      "Malformed codec",
+      "[] tokens, extra null, truncated children",
+      "Deserializer raises ValueError; [null] is the valid empty tree."
+    ],
+    [
+      "Inconsistent traversals",
+      "pre=[1,2,3], in=[3,1,2]",
+      "Reject, despite identical distinct key sets."
+    ],
+    [
+      "Single child orientation",
+      "1.left=2 vs 1.right=2",
+      "Serialization must distinguish them."
+    ],
+    [
+      "Input is a cycle/DAG",
+      "child points to root or shared child",
+      "Outside tree-template preconditions; validate topology first if untrusted."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Assuming logarithmic BST height",
+      "Say O(h); h can equal n in an unbalanced tree."
+    ],
+    [
+      "Parent-only validation",
+      "Carry ancestor bounds or enforce strict inorder increase."
+    ],
+    [
+      "Value-based LCA",
+      "Use node identity and verify presence when not promised."
+    ],
+    [
+      "Recomputing heights",
+      "Compute each child summary once in postorder."
+    ],
+    [
+      "Returning two-arm gain",
+      "Only the finished answer may fork; parent receives one arm."
+    ],
+    [
+      "Zero answer for all negatives",
+      "Initialize nonempty path answer to -infinity or first node."
+    ],
+    [
+      "Leaf confusion",
+      "Root-to-leaf sum only accepts missing left AND missing right."
+    ],
+    [
+      "Positive-only pruning",
+      "Negative descendants can reduce a large running sum."
+    ],
+    [
+      "No prefix undo",
+      "Remove current prefix on exit so siblings do not share history."
+    ],
+    [
+      "Recursive slices",
+      "Use index boundaries for O(n) balanced construction."
+    ],
+    [
+      "Forgetting root replacement",
+      "Write root = delete_bst(root,key)."
+    ],
+    [
+      "Wrong successor",
+      "Use leftmost node of right subtree, not necessarily right child."
+    ],
+    [
+      "Ambiguous codec",
+      "Include nulls and validate the number of pending child slots."
+    ],
+    [
+      "Lost traversal order",
+      "On a LIFO stack push right before left."
+    ],
+    [
+      "Ignoring deep input",
+      "Use iterative traversal instead of globally increasing recursion limit."
+    ],
+    [
+      "Unstated duplicates",
+      "Choose reject, count-per-key, or side policy and apply consistently."
+    ]
+  ],
+  "impress": [
+    [
+      "Define the contract",
+      "State binary/general, BST policy, duplicate handling and target presence."
+    ],
+    [
+      "Name the summary",
+      "Explain exactly what a subtree returns versus what updates a global optimum."
+    ],
+    [
+      "Quote O(h)",
+      "Distinguish balanced guarantee from an ordinary BST."
+    ],
+    [
+      "Count retained state",
+      "Include frame stacks, parent maps and output copies."
+    ],
+    [
+      "Use a counterexample",
+      "Show a grandchild that defeats parent-only BST validation."
+    ],
+    [
+      "Choose path units",
+      "Declare diameter edges and height nodes before deriving formulas."
+    ],
+    [
+      "Trace undo",
+      "Demonstrate prefix-map cleanup when moving between siblings."
+    ],
+    [
+      "Verify mutation",
+      "Discuss root replacement and two-child deletion identity effects."
+    ],
+    [
+      "Offer scaling path",
+      "Use iterative depth handling; preprocess only for repeated queries."
+    ],
+    [
+      "Round-trip shape",
+      "Test a one-left-child and one-right-child tree through the codec."
+    ]
+  ],
+  "memory": [
+    [
+      "Empty / leaf height",
+      "0 / 1",
+      "This guide counts height in nodes."
+    ],
+    [
+      "Height",
+      "1 + max(left_height,right_height)",
+      "One bottom-up pass."
+    ],
+    [
+      "Diameter through node",
+      "left_height + right_height",
+      "Counts edges."
+    ],
+    [
+      "Height balance",
+      "abs(left_height-right_height) <= 1",
+      "Must also hold in both child subtrees."
+    ],
+    [
+      "Strict BST",
+      "low < key < high",
+      "Ancestor bounds, not only parent bounds."
+    ],
+    [
+      "Inorder",
+      "left -> node -> right",
+      "Strictly increasing for a unique-key BST."
+    ],
+    [
+      "BST children indices?",
+      "No fixed indices for pointer trees",
+      "Heap array formulas apply only to complete-tree array representation."
+    ],
+    [
+      "Downward gain",
+      "max(0, value + max(left_gain,right_gain))",
+      "Clip only the returned contribution, not the global nonempty answer."
+    ],
+    [
+      "Turning path",
+      "value + left_gain + right_gain",
+      "Each child gain is nonnegative."
+    ],
+    [
+      "Target path count",
+      "freq[prefix-target]",
+      "Seed zero prefix, query before adding current prefix."
+    ],
+    [
+      "Prefix undo",
+      "freq[current_prefix] -= 1 on exit",
+      "Map models active ancestors only."
+    ],
+    [
+      "Successor",
+      "min(right subtree)",
+      "For two-child BST deletion."
+    ],
+    [
+      "Null-marked preorder",
+      "n values + (n+1) null markers",
+      "Exactly 2n+1 tokens for a binary tree."
+    ]
+  ],
+  "templates": [
+    [
+      "Iterative DFS traversal orders",
+      "O(n)",
+      "O(h) auxiliary + O(n) output",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def traversals(root):",
+        "    pre, ino, post = [], [], []",
+        "    stack = [(root, 0)] if root is not None else []",
+        "    while stack:",
+        "        node, phase = stack.pop()",
+        "        if phase == 0:",
+        "            pre.append(node.val)",
+        "            stack.append((node, 1))",
+        "            if node.left is not None:",
+        "                stack.append((node.left, 0))",
+        "        elif phase == 1:",
+        "            ino.append(node.val)",
+        "            stack.append((node, 2))",
+        "            if node.right is not None:",
+        "                stack.append((node.right, 0))",
+        "        else:",
+        "            post.append(node.val)",
+        "    return pre, ino, post"
+      ],
+      "Returns (preorder,inorder,postorder) value lists; empty gives three empty lists. Does not mutate; compatible val/left/right nodes accepted. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Height balance and diameter in one pass",
+      "O(n)",
+      "O(h)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def tree_metrics(root):",
+        "    empty = (0, True, 0)",
+        "    last = empty",
+        "    stack = [(root, 0, empty)] if root is not None else []",
+        "    while stack:",
+        "        node, phase, left = stack.pop()",
+        "        if phase == 0:",
+        "            stack.append((node, 1, empty))",
+        "            last = empty",
+        "            if node.left is not None:",
+        "                stack.append((node.left, 0, empty))",
+        "        elif phase == 1:",
+        "            stack.append((node, 2, last))",
+        "            last = empty",
+        "            if node.right is not None:",
+        "                stack.append((node.right, 0, empty))",
+        "        else:",
+        "            lh, lb, ld = left",
+        "            rh, rb, rd = last",
+        "            last = (1 + max(lh, rh), lb and rb and abs(lh-rh) <= 1,",
+        "                    max(ld, rd, lh + rh))",
+        "    return last"
+      ],
+      "Returns (height_in_nodes, height_balanced_bool, diameter_in_edges); None -> (0,True,0). Explicit frames retain only O(h) summaries. No mutation. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "BST search and unique insertion",
+      "O(h) per operation",
+      "O(1) auxiliary + new node on insertion",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def search_bst(root, key):",
+        "    while root is not None and root.val != key:",
+        "        root = root.left if key < root.val else root.right",
+        "    return root",
+        "",
+        "def insert_bst(root, key):",
+        "    if root is None:",
+        "        return Node(key)",
+        "    current = root",
+        "    while True:",
+        "        if key == current.val:",
+        "            return root",
+        "        if key < current.val:",
+        "            if current.left is None:",
+        "                current.left = Node(key)",
+        "                return root",
+        "            current = current.left",
+        "        else:",
+        "            if current.right is None:",
+        "                current.right = Node(key)",
+        "                return root",
+        "            current = current.right"
+      ],
+      "Strict unique-key BST precondition. search returns matching node or None; insertion mutates links, ignores duplicates and returns root. Keys mutually comparable. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Validate strict BST",
+      "O(n)",
+      "O(h)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def validate_bst(root):",
+        "    stack = [(root, None, None)] if root is not None else []",
+        "    while stack:",
+        "        node, low, high = stack.pop()",
+        "        value = node.val",
+        "        if (low is not None and value <= low) or (high is not None and value >= high):",
+        "            return False",
+        "        if node.right is not None:",
+        "            stack.append((node.right, value, high))",
+        "        if node.left is not None:",
+        "            stack.append((node.left, low, value))",
+        "    return True"
+      ],
+      "Comparable non-None, non-NaN keys. Strict ordering rejects duplicate values; None root is valid. Does not mutate; None is used only as an unbounded endpoint. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Kth smallest by inorder",
+      "O(h+k) for valid rank; O(n) invalid oversized rank",
+      "O(h)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def kth_smallest(root, k):",
+        "    if k <= 0:",
+        "        raise ValueError('k is one-based')",
+        "    stack, current = [], root",
+        "    while stack or current is not None:",
+        "        while current is not None:",
+        "            stack.append(current)",
+        "            current = current.left",
+        "        current = stack.pop()",
+        "        k -= 1",
+        "        if k == 0:",
+        "            return current.val",
+        "        current = current.right",
+        "    raise ValueError('k exceeds node count')"
+      ],
+      "Strict BST precondition and integer rank k. Returns value, raises ValueError for invalid rank (including empty tree). Does not mutate. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Iterative BST deletion",
+      "O(h)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def delete_bst(root, key):",
+        "    parent, current = None, root",
+        "    while current is not None and current.val != key:",
+        "        parent, current = current, (current.left if key < current.val else current.right)",
+        "    if current is None:",
+        "        return root",
+        "    if current.left is not None and current.right is not None:",
+        "        successor_parent, successor = current, current.right",
+        "        while successor.left is not None:",
+        "            successor_parent, successor = successor, successor.left",
+        "        current.val = successor.val",
+        "        parent, current = successor_parent, successor",
+        "    child = current.left if current.left is not None else current.right",
+        "    if parent is None:",
+        "        return child",
+        "    if parent.left is current:",
+        "        parent.left = child",
+        "    else:",
+        "        parent.right = child",
+        "    return root"
+      ],
+      "Strict unique-key BST; mutates links and may copy successor val into the found node. Returns possibly replaced root; missing key is a no-op. Node-object identity is not a stable identity for a key after deletion. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "General tree LCA with presence checks",
+      "O(n) expected",
+      "O(n)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def lca(root, p, q):",
+        "    if root is None or p is None or q is None:",
+        "        return None",
+        "    parent = {root: None}",
+        "    stack = [root]",
+        "    while stack and (p not in parent or q not in parent):",
+        "        node = stack.pop()",
+        "        for child in (node.left, node.right):",
+        "            if child is not None:",
+        "                parent[child] = node",
+        "                stack.append(child)",
+        "    if p not in parent or q not in parent:",
+        "        return None",
+        "    ancestors = set()",
+        "    current = p",
+        "    while current is not None:",
+        "        ancestors.add(current)",
+        "        current = parent[current]",
+        "    current = q",
+        "    while current not in ancestors:",
+        "        current = parent[current]",
+        "    return current"
+      ],
+      "Returns node identity or None when either target absent. Node class must retain identity equality/hash (provided Node does); p is q is supported. No mutation. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "BST LCA by existing keys",
+      "O(h)",
+      "O(1)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def bst_lca(root, a, b):",
+        "    def contains(key):",
+        "        current = root",
+        "        while current is not None:",
+        "            if current.val == key:",
+        "                return True",
+        "            current = current.left if key < current.val else current.right",
+        "        return False",
+        "    if not contains(a) or not contains(b):",
+        "        return None",
+        "    low, high = min(a, b), max(a, b)",
+        "    current = root",
+        "    while current is not None:",
+        "        if current.val < low:",
+        "            current = current.right",
+        "        elif current.val > high:",
+        "            current = current.left",
+        "        else:",
+        "            return current",
+        "    return None"
+      ],
+      "Strict unique-key BST; query by comparable key values, not arbitrary node references. Returns split node, or None if either key missing; no mutation. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Root-to-leaf path sum",
+      "O(n)",
+      "O(h)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def has_path_sum(root, target):",
+        "    stack = [(root, root.val)] if root is not None else []",
+        "    while stack:",
+        "        node, total = stack.pop()",
+        "        if node.left is None and node.right is None and total == target:",
+        "            return True",
+        "        if node.right is not None:",
+        "            stack.append((node.right, total + node.right.val))",
+        "        if node.left is not None:",
+        "            stack.append((node.left, total + node.left.val))",
+        "    return False"
+      ],
+      "Numeric values may be negative; only root-to-leaf nonempty paths count. None -> False; no mutation. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Count downward target-sum paths",
+      "O(n) expected",
+      "O(h)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def count_paths(root, target):",
+        "    frequencies = {0: 1}",
+        "    answer = 0",
+        "    stack = [(root, 0, False)] if root is not None else []",
+        "    while stack:",
+        "        node, prefix, exiting = stack.pop()",
+        "        if exiting:",
+        "            frequencies[prefix] -= 1",
+        "            if frequencies[prefix] == 0:",
+        "                del frequencies[prefix]",
+        "            continue",
+        "        prefix += node.val",
+        "        answer += frequencies.get(prefix - target, 0)",
+        "        frequencies[prefix] = frequencies.get(prefix, 0) + 1",
+        "        stack.append((node, prefix, True))",
+        "        if node.right is not None:",
+        "            stack.append((node.right, prefix, False))",
+        "        if node.left is not None:",
+        "            stack.append((node.left, prefix, False))",
+        "    return answer"
+      ],
+      "Integer node values and target; counts all nonempty downward ancestor-to-descendant paths, not only root/leaf paths. None -> 0; no mutation. Deletes zero-count keys to keep O(h) map size. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Maximum nonempty path sum",
+      "O(n)",
+      "O(h)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def max_path_sum(root):",
+        "    if root is None:",
+        "        return None",
+        "    best = float('-inf')",
+        "    last = 0",
+        "    stack = [(root, 0, 0)]",
+        "    while stack:",
+        "        node, phase, left = stack.pop()",
+        "        if phase == 0:",
+        "            stack.append((node, 1, 0))",
+        "            last = 0",
+        "            if node.left is not None:",
+        "                stack.append((node.left, 0, 0))",
+        "        elif phase == 1:",
+        "            stack.append((node, 2, last))",
+        "            last = 0",
+        "            if node.right is not None:",
+        "                stack.append((node.right, 0, 0))",
+        "        else:",
+        "            right = last",
+        "            best = max(best, node.val + left + right)",
+        "            last = max(0, node.val + max(left, right))",
+        "    return best"
+      ],
+      "Finite numeric values, no NaN. Path may start/end anywhere but cannot revisit a node or fork. Returns nonempty best sum; None root -> None. No mutation. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Iterative integer tree codec",
+      "O(n+B)",
+      "O(n+B)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "import json",
+        "def serialize(root):",
+        "    tokens, stack = [], [root]",
+        "    while stack:",
+        "        node = stack.pop()",
+        "        if node is None:",
+        "            tokens.append(None)",
+        "        else:",
+        "            if type(node.val) is not int:",
+        "                raise ValueError('integer values required')",
+        "            tokens.append(node.val)",
+        "            stack.append(node.right)",
+        "            stack.append(node.left)",
+        "    return json.dumps(tokens, separators=(',', ':'))",
+        "",
+        "def deserialize(data):",
+        "    try:",
+        "        tokens = json.loads(data)",
+        "    except (ValueError, TypeError) as error:",
+        "        raise ValueError('invalid JSON') from error",
+        "    if not isinstance(tokens, list) or not tokens:",
+        "        raise ValueError('nonempty token list required')",
+        "    if any(x is not None and type(x) is not int for x in tokens):",
+        "        raise ValueError('only integer or null tokens')",
+        "    if tokens[0] is None:",
+        "        if len(tokens) != 1:",
+        "            raise ValueError('extra tokens after empty tree')",
+        "        return None",
+        "    root = Node(tokens[0])",
+        "    stack = [(root, 0)]",
+        "    for token in tokens[1:]:",
+        "        if not stack:",
+        "            raise ValueError('extra tokens')",
+        "        parent, side = stack.pop()",
+        "        child = None if token is None else Node(token)",
+        "        if side == 0:",
+        "            parent.left = child",
+        "            stack.append((parent, 1))",
+        "        else:",
+        "            parent.right = child",
+        "        if child is not None:",
+        "            stack.append((child, 0))",
+        "    if stack:",
+        "        raise ValueError('truncated tree')",
+        "    return root"
+      ],
+      "Preorder JSON list with null child markers, integer payloads (bool rejected). serialize returns text; deserialize builds new nodes or raises ValueError for malformed shape/types. Empty tree is [null]. Neither mutates existing nodes. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Reconstruct from preorder and inorder",
+      "O(n) expected",
+      "O(n) auxiliary + O(n) output",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def build_tree(preorder, inorder):",
+        "    n = len(preorder)",
+        "    if len(inorder) != n or len(set(preorder)) != n or set(preorder) != set(inorder):",
+        "        raise ValueError('matching unique keys required')",
+        "    if not n:",
+        "        return None",
+        "    root = Node(preorder[0])",
+        "    stack, i = [root], 0",
+        "    for value in preorder[1:]:",
+        "        if i >= n or not stack:",
+        "            raise ValueError('inconsistent traversals')",
+        "        node = stack[-1]",
+        "        child = Node(value)",
+        "        if node.val != inorder[i]:",
+        "            node.left = child",
+        "        else:",
+        "            while stack and i < n and stack[-1].val == inorder[i]:",
+        "                node = stack.pop()",
+        "                i += 1",
+        "            node.right = child",
+        "        stack.append(child)",
+        "    while stack and i < n and stack[-1].val == inorder[i]:",
+        "        stack.pop()",
+        "        i += 1",
+        "    if stack or i != n:",
+        "        raise ValueError('inconsistent traversals')",
+        "    return root"
+      ],
+      "Finite sequences of unique hashable keys with consistent equality. Returns new tree; []/[] -> None. Invalid lengths, duplicates, mismatched keys or inconsistent orders raise ValueError. Does not mutate; O(n) slicing copy included in stated auxiliary bound. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Sorted array to balanced BST",
+      "O(n)",
+      "O(log(n+1)) recursion + O(n) output",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def balanced_bst(values):",
+        "    if any(values[i-1] >= values[i] for i in range(1, len(values))):",
+        "        raise ValueError('strictly increasing values required')",
+        "    def build(left, right):",
+        "        if left >= right:",
+        "            return None",
+        "        mid = (left + right) // 2",
+        "        return Node(values[mid], build(left, mid), build(mid + 1, right))",
+        "    return build(0, len(values))"
+      ],
+      "Strictly increasing comparable non-NaN sequence; validates ordering. Builds fresh height-balanced nodes without slicing; empty -> None. Recursion is logarithmic, not input-tree-depth dependent. Tree topology must be finite with no shared children or cycles."
+    ],
+    [
+      "Invert a binary tree in place",
+      "O(n)",
+      "O(h)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def invert(root):",
+        "    stack = [root] if root is not None else []",
+        "    while stack:",
+        "        node = stack.pop()",
+        "        node.left, node.right = node.right, node.left",
+        "        if node.left is not None:",
+        "            stack.append(node.left)",
+        "        if node.right is not None:",
+        "            stack.append(node.right)",
+        "    return root"
+      ],
+      "Mutates each existing node by swapping child links and returns same root identity (None -> None). Inversion generally destroys BST ordering; applying twice restores topology. Tree topology must be finite with no shared children or cycles."
+    ]
+  ],
+  "practice": [
+    [
+      "104. Maximum Depth of Binary Tree",
+      "Inherited depth / postorder",
+      "Easy",
+      "O(n); O(h) DFS space",
+      "Empty depth is 0."
+    ],
+    [
+      "94. Binary Tree Inorder Traversal",
+      "Iterative inorder",
+      "Easy",
+      "O(n); O(h) auxiliary",
+      "Do not forget repeated left descent."
+    ],
+    [
+      "144. Binary Tree Preorder Traversal",
+      "Stack order",
+      "Easy",
+      "O(n); O(h) auxiliary",
+      "Push right first."
+    ],
+    [
+      "145. Binary Tree Postorder Traversal",
+      "Visit phases",
+      "Easy",
+      "O(n); O(h) auxiliary",
+      "Combine only after children."
+    ],
+    [
+      "226. Invert Binary Tree",
+      "Pointer swapping",
+      "Easy",
+      "O(n); O(h) DFS auxiliary",
+      "Mutation affects caller references."
+    ],
+    [
+      "100. Same Tree",
+      "Paired structure",
+      "Easy",
+      "O(n) worst; O(h) auxiliary",
+      "Compare null placement, not values alone."
+    ],
+    [
+      "101. Symmetric Tree",
+      "Mirror pairs",
+      "Easy",
+      "O(n); O(h) DFS auxiliary",
+      "Pair outer and inner children."
+    ],
+    [
+      "112. Path Sum",
+      "Root-to-leaf prefix",
+      "Easy",
+      "O(n); O(h) auxiliary",
+      "Internal match is not enough."
+    ],
+    [
+      "108. Convert Sorted Array to Binary Search Tree",
+      "Midpoint ranges",
+      "Easy",
+      "O(n); O(log n) auxiliary",
+      "No slices needed."
+    ],
+    [
+      "700. Search in a Binary Search Tree",
+      "Branch pruning",
+      "Easy",
+      "O(h); O(1) auxiliary",
+      "Worst case h=n."
+    ],
+    [
+      "701. Insert into a Binary Search Tree",
+      "Find empty link",
+      "Medium",
+      "O(h); O(1) auxiliary",
+      "Keep new root."
+    ],
+    [
+      "102. Binary Tree Level Order Traversal",
+      "BFS frontier",
+      "Medium",
+      "O(n); O(w) auxiliary",
+      "Output O(n) separate."
+    ],
+    [
+      "110. Balanced Binary Tree",
+      "Postorder height + validity",
+      "Easy",
+      "O(n); O(h) auxiliary",
+      "Not just root height difference."
+    ],
+    [
+      "543. Diameter of Binary Tree",
+      "Two heights",
+      "Easy",
+      "O(n); O(h) auxiliary",
+      "Answer may lie entirely below root."
+    ],
+    [
+      "98. Validate Binary Search Tree",
+      "Ancestor bounds",
+      "Medium",
+      "O(n); O(h) auxiliary",
+      "Equal keys are invalid."
+    ],
+    [
+      "230. Kth Smallest Element in a BST",
+      "Inorder rank",
+      "Medium",
+      "O(h+k); O(h) auxiliary",
+      "One-based rank."
+    ],
+    [
+      "173. Binary Search Tree Iterator",
+      "Lazy inorder stack",
+      "Medium",
+      "O(1) amortized next; O(h) space",
+      "Single next can descend O(h)."
+    ],
+    [
+      "235. Lowest Common Ancestor of a Binary Search Tree",
+      "Split point",
+      "Medium",
+      "O(h); O(1) auxiliary",
+      "Presence generally guaranteed by LC."
+    ],
+    [
+      "236. Lowest Common Ancestor of a Binary Tree",
+      "Identity ancestry",
+      "Medium",
+      "O(n); O(n) parent-map space",
+      "Do not compare only values."
+    ],
+    [
+      "450. Delete Node in a BST",
+      "Successor splice",
+      "Medium",
+      "O(h); O(1) iterative auxiliary",
+      "Root deletion and successor right child."
+    ],
+    [
+      "105. Construct Binary Tree from Preorder and Inorder Traversal",
+      "Stack reconstruction",
+      "Medium",
+      "O(n) expected; O(n) auxiliary",
+      "Unique keys."
+    ],
+    [
+      "437. Path Sum III",
+      "Prefix frequencies with undo",
+      "Medium",
+      "O(n) expected; O(h) auxiliary",
+      "Paths can start at any ancestor."
+    ],
+    [
+      "124. Binary Tree Maximum Path Sum",
+      "Gain and turning answer",
+      "Hard",
+      "O(n); O(h) auxiliary",
+      "All-negative input."
+    ],
+    [
+      "297. Serialize and Deserialize Binary Tree",
+      "Null-marked codec",
+      "Hard",
+      "O(n+B); O(n+B) space",
+      "Include shape and robust token consumption."
+    ]
+  ]
+}

@@ -1,0 +1,1407 @@
+{
+  "id": "heaps",
+  "title": "Heaps & Priority Queues",
+  "subtitle": "A heap exposes the best current candidate without sorting every candidate, so the invariant is about the root rather than the whole array.",
+  "variables": "n = input items, k = selection size/rank, u = distinct keys, r = input streams/lists, N = total merged items, V/E = vertices/edges, H = physical heap entries including stale records, a = live tasks, T = produced schedule length, B = payload/key size when relevant. Standard-library heapq is a min-heap on a list; max-heaps here use negative numeric keys for Python 3.10 compatibility. Comparisons/arithmetic use a fixed-word model; Python big integers cost by bit length. Hash operations are expected O(1), with O(B) initial hashing/comparison costs for long keys. Heap push/pop comparison work is logarithmic; Python list capacity growth/shrink makes allocation bounds amortized across operations (a resize may copy O(n) references). Auxiliary space excludes output unless stated; stale heap entries and sorted copies are included. Keys must be consistently ordered, with no NaN. Ties require explicit counters when payloads are unorderable.",
+  "operations": [
+    [
+      "Construction",
+      "import heapq; h = []",
+      "Create empty heap",
+      "O(1)",
+      "O(1)",
+      "An ordinary list until heap operations preserve the invariant."
+    ],
+    [
+      "Construction",
+      "heapq.heapify(h)",
+      "Build heap in place",
+      "O(n)",
+      "O(1) auxiliary",
+      "Returns None; mutates list order."
+    ],
+    [
+      "Construction",
+      "h = list(items); heapq.heapify(h)",
+      "Build without input mutation",
+      "O(n)",
+      "O(n)",
+      "Copy cost counts."
+    ],
+    [
+      "Inspection",
+      "h[0]",
+      "Peek minimum",
+      "O(1)",
+      "O(1)",
+      "IndexError when empty."
+    ],
+    [
+      "Inspection",
+      "len(h); bool(h)",
+      "Size or emptiness",
+      "O(1)",
+      "O(1)",
+      "Lazy queues may contain dead entries, so physical size is not live size."
+    ],
+    [
+      "Update",
+      "heapq.heappush(h, x)",
+      "Insert item",
+      "O(log(n+1)) amortized",
+      "O(1) incremental amortized",
+      "An underlying list resize may cost O(n) individually."
+    ],
+    [
+      "Update",
+      "heapq.heappop(h)",
+      "Remove smallest",
+      "O(log n)",
+      "O(1) auxiliary",
+      "IndexError when empty; remaining list is still a heap."
+    ],
+    [
+      "Update",
+      "heapq.heappushpop(h, x)",
+      "Push then pop minimum",
+      "O(log(n+1)) worst",
+      "O(1) auxiliary",
+      "On an empty heap returns x and leaves it empty; may reject x without storing it."
+    ],
+    [
+      "Update",
+      "heapq.heapreplace(h, x)",
+      "Pop minimum then insert x",
+      "O(log n)",
+      "O(1) auxiliary",
+      "Requires nonempty heap; returned value can exceed x."
+    ],
+    [
+      "Selection",
+      "heapq.nlargest(k, items)",
+      "Select k largest in descending order",
+      "O(n log(k+1)) typical when k<=n",
+      "O(k)",
+      "Implementation may sort when k>=known input size; costs include comparisons."
+    ],
+    [
+      "Selection",
+      "heapq.nsmallest(k, items)",
+      "Select k smallest in ascending order",
+      "O(n log(k+1)) typical when k<=n",
+      "O(k)",
+      "k=1 can use a scan; materialized output."
+    ],
+    [
+      "Streaming",
+      "heapq.merge(*sorted_streams)",
+      "Lazy sorted merge iterator",
+      "O(r + N log(r+1)) total",
+      "O(r)",
+      "Every stream must already be sorted; do not heapify all N items."
+    ],
+    [
+      "Keys",
+      "heapq.heappush(h, (-score, serial, item))",
+      "Numeric max-priority with stable tie",
+      "O(log(n+1)) amortized",
+      "O(1) entry growth",
+      "Negate score, not arbitrary payload; serial is unique."
+    ],
+    [
+      "Keys",
+      "(priority, next(counter), payload)",
+      "Avoid comparing payloads on ties",
+      "O(1) tuple creation",
+      "O(1)",
+      "Counter establishes FIFO among equal priorities if entries remain live."
+    ],
+    [
+      "Array model",
+      "parent = (i-1)//2",
+      "Parent index for i>0",
+      "O(1)",
+      "O(1)",
+      "Root has no parent; floor of -1 is not a root-parent index."
+    ],
+    [
+      "Array model",
+      "left = 2*i+1; right = 2*i+2",
+      "Child indices",
+      "O(1)",
+      "O(1)",
+      "Check child < len(h) before access."
+    ],
+    [
+      "Search",
+      "x in h",
+      "Find arbitrary item",
+      "O(n)",
+      "O(1)",
+      "Heap ordering does not support binary search over the array."
+    ],
+    [
+      "Traversal",
+      "list(h)",
+      "Copy heap-array layout",
+      "O(n)",
+      "O(n)",
+      "Not a sorted sequence."
+    ],
+    [
+      "Traversal",
+      "sorted(h)",
+      "Sorted copy of entries",
+      "O(n log n)",
+      "O(n)",
+      "Original heap remains unchanged; tuples sort all fields."
+    ],
+    [
+      "Delete/update",
+      "live[key] = entry; heapq.heappush(h, entry)",
+      "Lazy logical deletion or priority update",
+      "O(log(H+1)) amortized push; pop draining s stale records O((s+1) log(H+1))",
+      "O(H)",
+      "heapq has no public indexed decrease-key API; track live versions. Rebuild itself is O(H); threshold rebuilding yields amortized, not individual worst-case, guarantees."
+    ],
+    [
+      "Cleanup",
+      "h = [entry for entry in h if live(entry)]; heapq.heapify(h)",
+      "Compact stale records",
+      "O(H)",
+      "O(H) new list",
+      "Threshold rebuilds can bound physical memory; rebuilding on every edit is costly."
+    ],
+    [
+      "Concurrency",
+      "from queue import PriorityQueue",
+      "Thread-coordinated priority queue",
+      "O(log n) heap work plus synchronization",
+      "O(n)",
+      "Blocking semantics are separate from algorithmic priority ordering."
+    ]
+  ],
+  "fundamentals": [
+    [
+      "Partial order, not sorting",
+      "A min-heap guarantees parent <= children; siblings and unrelated subtrees need not be sorted.",
+      [
+        "import heapq",
+        "h = [7, 2, 9, 1]",
+        "heapq.heapify(h)",
+        "assert h[0] == 1",
+        "assert all(h[(i-1)//2] <= h[i] for i in range(1, len(h)))"
+      ],
+      "O(n) build",
+      "O(1) auxiliary after list allocation",
+      "h[1] is not necessarily the second-smallest value."
+    ],
+    [
+      "Root replacement semantics",
+      "pushpop keeps the larger of new item and old root; replace always removes old root and inserts new item.",
+      [
+        "import heapq",
+        "a, b = [3, 5], [3, 5]",
+        "assert heapq.heappushpop(a, 1) == 1 and a[0] == 3",
+        "assert heapq.heapreplace(b, 1) == 3 and b[0] == 1"
+      ],
+      "O(log n)",
+      "O(1)",
+      "Use heapreplace for bounded Top-K only after checking the candidate beats the root."
+    ],
+    [
+      "Negative numeric max keys",
+      "Negating numeric scores turns a min-heap into a largest-score-first queue without relying on newer APIs.",
+      [
+        "import heapq",
+        "h = [-x for x in [2, 8, -1]]",
+        "heapq.heapify(h)",
+        "assert -heapq.heappop(h) == 8"
+      ],
+      "O(n) build; O(log n) pop",
+      "O(n)",
+      "Remember to un-negate every extracted score."
+    ],
+    [
+      "Tie-safe payloads",
+      "Tuple comparison proceeds to the next field on ties. A unique serial prevents comparing unorderable dictionaries or nodes.",
+      [
+        "import heapq",
+        "from itertools import count",
+        "serial = count()",
+        "h = []",
+        "heapq.heappush(h, (4, next(serial), {'id': 'a'}))",
+        "heapq.heappush(h, (4, next(serial), {'id': 'b'}))",
+        "assert heapq.heappop(h)[2]['id'] == 'a'"
+      ],
+      "O(log n) push/pop",
+      "O(n)",
+      "(priority, payload) can raise TypeError when equal priorities reach dict payloads."
+    ],
+    [
+      "Top-K direction",
+      "To retain the largest k, expose the smallest retained value at a min-heap root so the worst retained candidate is easy to evict.",
+      [
+        "import heapq",
+        "h, k = [], 2",
+        "for x in [5, 1, 7, 3]:",
+        "    if len(h) < k:",
+        "        heapq.heappush(h, x)",
+        "    elif x > h[0]:",
+        "        heapq.heapreplace(h, x)",
+        "assert sorted(h) == [5, 7]"
+      ],
+      "O(n log(k+1))",
+      "O(k)",
+      "Using a max-heap of size k retains the wrong boundary for largest-k selection."
+    ],
+    [
+      "Why heapify is linear",
+      "Most nodes are leaves or nearly leaves. Sum of sift distances over internal nodes is linear, unlike repeated insertion.",
+      [
+        "n = 16",
+        "# At most n/2^(height+1) nodes can have a given positive height.",
+        "bound = sum((n / (2 ** (height + 1))) * height for height in range(1, 6))",
+        "assert bound < n"
+      ],
+      "O(n) heapify",
+      "O(1) heapify auxiliary",
+      "Do not infer O(n log n) just from a logarithmic worst-case sift."
+    ],
+    [
+      "Streaming merge frontier",
+      "Only the next unconsumed item of each sorted stream can be the global next minimum.",
+      [
+        "import heapq",
+        "streams = [[1, 4], [], [1, 3]]",
+        "merged = list(heapq.merge(*streams))",
+        "assert merged == [1, 1, 3, 4]"
+      ],
+      "O(r+N log(r+1))",
+      "O(r) auxiliary + O(N) output",
+      "One unsorted stream invalidates the frontier proof."
+    ],
+    [
+      "Two-heap median",
+      "Partition lower and upper halves, keep all lower values <= all upper values, and balance sizes within one.",
+      [
+        "import heapq",
+        "lower, upper = [-2, -1], [5, 9]",
+        "heapq.heapify(lower)",
+        "assert -lower[0] <= upper[0]",
+        "median = (-lower[0] + upper[0]) / 2",
+        "assert median == 3.5"
+      ],
+      "O(log n) per update",
+      "O(n)",
+      "Both order and size invariants are necessary."
+    ],
+    [
+      "Stale records and authoritative state",
+      "When a priority improves, old records remain physically present; a version or authoritative distance decides whether a popped entry is current.",
+      [
+        "best = {'a': 2}",
+        "records = [(5, 'a'), (2, 'a')]",
+        "valid = [(distance, node) for distance, node in records if distance == best[node]]",
+        "assert valid == [(2, 'a')]"
+      ],
+      "O(1) expected freshness check",
+      "O(H) heap storage",
+      "Claiming O(V) heap memory for lazy Dijkstra ignores old relaxations. A freshness check is O(1) expected, but each stale heap extraction is O(log H); many may occur in one logical pop."
+    ],
+    [
+      "Greedy choice needs proof",
+      "A heap accelerates the next choice but does not prove that making that choice is optimal.",
+      [
+        "import heapq",
+        "lengths = [2, 3, 7]",
+        "heapq.heapify(lengths)",
+        "a = heapq.heappop(lengths)",
+        "b = heapq.heappop(lengths)",
+        "heapq.heappush(lengths, a + b)",
+        "assert a + b == 5"
+      ],
+      "O(n log n) full optimal-merge process",
+      "O(n)",
+      "Optimal merge needs nonnegative lengths and an exchange argument."
+    ],
+    [
+      "Comparison model and invalid keys",
+      "All stored keys must obey a consistent ordering. NaN can violate useful minimum assumptions.",
+      [
+        "x = float('nan')",
+        "assert not (x < 1) and not (x >= 1)",
+        "# Reject NaN before constructing an ordered priority model."
+      ],
+      "O(1) fixed-size key checks",
+      "O(1)",
+      "Mixing str and int priorities raises TypeError; never hide this in a tie payload."
+    ]
+  ],
+  "patterns": [
+    [
+      "Bounded Top-K",
+      "CORE",
+      "Largest k or kth largest",
+      "Retain k largest in a min-heap; evict only worse boundary",
+      "O(n log(k+1))",
+      "O(k)",
+      "Kth Largest Element in an Array",
+      "Returned heap array is not sorted.",
+      "Heap contains the largest min(k,seen) values including multiplicity.",
+      "Static one-rank queries may favor quickselect; full ordering favors sorting."
+    ],
+    [
+      "Frequency Top-K",
+      "CORE",
+      "Most frequent values",
+      "Count first, then heap over u distinct frequency entries",
+      "O(n+u log(k+1)) expected",
+      "O(u+k)",
+      "Top K Frequent Elements",
+      "Specify equal-frequency output order.",
+      "Heap retains best frequency/tie ranks among processed unique keys.",
+      "Buckets can be O(n) expected when counts bounded by n."
+    ],
+    [
+      "K-way merge",
+      "CORE",
+      "Merge sorted lists/streams",
+      "Keep one frontier item per nonempty stream",
+      "O(r+N log(r+1))",
+      "O(r) auxiliary",
+      "Merge k Sorted Lists",
+      "Tie counter before unorderable nodes.",
+      "Every unseen stream item is at least that stream frontier.",
+      "Unsorted streams invalidate the frontier."
+    ],
+    [
+      "Online kth largest",
+      "CORE",
+      "Rank while items arrive",
+      "Keep min-heap of at most k; root exists as kth after k arrivals",
+      "O(log(k+1)) amortized per add",
+      "O(k)",
+      "Kth Largest Element in a Stream",
+      "Before k arrivals define a missing-rank result.",
+      "Heap stores k largest values seen, counting duplicates.",
+      "Sliding-window deletions require expiration support."
+    ],
+    [
+      "Two-heap median",
+      "CORE",
+      "Running middle value",
+      "Max-heap lower half, min-heap upper half, rebalance",
+      "O(log n) add; O(1) query",
+      "O(n)",
+      "Find Median from Data Stream",
+      "No arbitrary removal in the basic design.",
+      "Lower has equal size or one extra; every lower <= every upper.",
+      "Sliding median needs lazy deletions, valid-size accounting and stale-root pruning."
+    ],
+    [
+      "Dijkstra lazy frontier",
+      "CORE",
+      "Nonnegative weighted shortest paths",
+      "Pop minimum tentative distance, skip stale, relax edges",
+      "O(V+E log(E+2)) expected",
+      "O(V+E)",
+      "Network Delay Time",
+      "Negative edges invalidate finalization.",
+      "A fresh popped distance is globally minimal and final under nonnegative weights.",
+      "Unit weights favor BFS; zero/one weights favor deque BFS."
+    ],
+    [
+      "Meeting-room reuse",
+      "CORE",
+      "Minimum concurrent resource count",
+      "Sort by start, remove finished endpoints, track peak active heap",
+      "O(n log n)",
+      "O(n)",
+      "Meeting Rooms II",
+      "Decide whether touching intervals overlap.",
+      "Heap contains exactly intervals active at current start.",
+      "If only peak count is needed, a sorted event sweep is also suitable."
+    ],
+    [
+      "Cooldown scheduling",
+      "IMPORTANT",
+      "Same task needs a separation interval",
+      "Use max remaining count plus FIFO release times; jump idle gaps",
+      "O(T+n log(u+1)) expected",
+      "O(u) auxiliary + O(T) output",
+      "Task Scheduler",
+      "Appending huge idle output has unavoidable O(T) cost.",
+      "Available heap has released tasks; cooldown queue has monotonically increasing release times.",
+      "Count-only equal-duration scheduling has a direct formula; heterogeneous durations need other reasoning."
+    ],
+    [
+      "Greedy rearrangement",
+      "IMPORTANT",
+      "No equal adjacent symbols",
+      "Take most frequent available symbol and withhold the last used symbol",
+      "O(n log(u+1)) expected",
+      "O(u) auxiliary + O(n) output",
+      "Reorganize String",
+      "Do not reinsert the last symbol before choosing its successor.",
+      "Heap excludes the immediately previous symbol; counts match unplaced symbols.",
+      "Distance greater than one needs a release-time cooldown queue."
+    ],
+    [
+      "Smallest covering range",
+      "IMPORTANT",
+      "Pick at least one from every sorted list",
+      "Min frontier heap plus tracked maximum; advance only the minimum list",
+      "O(r+N log(r+1))",
+      "O(r)",
+      "Smallest Range Covering Elements from K Lists",
+      "Stop once one list is exhausted.",
+      "Current min/max span one representative from every list.",
+      "An empty list makes coverage impossible; unsorted lists break monotonicity."
+    ],
+    [
+      "Best-first Cartesian pairs",
+      "IMPORTANT",
+      "k smallest sums from two sorted arrays",
+      "Start one row frontier per relevant first-array item; advance its column",
+      "O(k log(min(k,n)+1))",
+      "O(min(k,n)) auxiliary + O(k) output",
+      "Find K Pairs with Smallest Sums",
+      "Duplicates at different indices are distinct pair choices.",
+      "Each row frontier is its smallest unseen pair; heap merges sorted rows.",
+      "Unsorted arrays must be sorted or handled differently."
+    ],
+    [
+      "Lazy keyed priority updates",
+      "IMPORTANT",
+      "Cancel/update queued tasks",
+      "Map each live key to current entry; invalidate old entries and compact",
+      "O(log(a+2)) amortized; individual pop O((a+1) log(a+2))",
+      "O(a) after compaction",
+      "Design Task Manager",
+      "Physical stale size differs from live size; one pop may drain many stale entries, and rebuild is O(a+1).",
+      "Only the mapped entry version can execute for a task key. Threshold H>2a+16 rebuilds after enough invalidations; each stale entry is removed once and charged to its creating edit.",
+      "Strict worst-case latency or indexed decrease-key needs another heap design."
+    ],
+    [
+      "Optimal merge / Huffman",
+      "IMPORTANT",
+      "Minimize repeated combine cost",
+      "Always combine the two smallest nonnegative weights",
+      "O(n log n)",
+      "O(n)",
+      "Minimum Cost to Connect Sticks",
+      "Combining largest first need not minimize cost.",
+      "There exists an optimal merge tree with the two smallest weights as deepest siblings.",
+      "Negative merge costs or extra combination constraints require a new proof."
+    ],
+    [
+      "Sweep-line selected candidates",
+      "IMPORTANT",
+      "Choose best interval/item among those currently eligible",
+      "Sort arrivals and heap active candidates; discard expired roots",
+      "O(n log n)",
+      "O(n)",
+      "Minimum Interval to Include Each Query",
+      "Expired interior records may remain until they reach the root.",
+      "Root after pruning is best eligible active candidate.",
+      "Deletion by arbitrary value is not supplied by heapq."
+    ],
+    [
+      "Max-capital eligibility",
+      "ADVANCED",
+      "Choose up to k projects under current capital",
+      "Sort requirements, heap profits of newly affordable projects",
+      "O(n log n+k log n)",
+      "O(n)",
+      "IPO",
+      "Stop or skip nonpositive profits when choosing up to k.",
+      "Every currently affordable project is in the choice frontier.",
+      "Profits with hidden dependencies invalidate the simple greedy exchange."
+    ]
+  ],
+  "recognize": [
+    [
+      "Largest k while scanning",
+      "Bounded min-heap",
+      "Root is worst retained, not globally largest."
+    ],
+    [
+      "kth largest after every arrival",
+      "Online kth heap",
+      "Before k arrivals answer may be missing."
+    ],
+    [
+      "Top frequencies",
+      "Counter + bounded heap",
+      "Buckets are another option when n-sized storage is acceptable."
+    ],
+    [
+      "Several already sorted inputs",
+      "K-way frontier",
+      "Only one candidate per stream."
+    ],
+    [
+      "Equal priorities with dicts/nodes",
+      "Unique serial tuple",
+      "Do not rely on payload comparability."
+    ],
+    [
+      "Running median",
+      "Two heaps",
+      "Keep both partition ordering and size balance."
+    ],
+    [
+      "Nonnegative weighted edges",
+      "Dijkstra",
+      "Negative edge -> not this algorithm."
+    ],
+    [
+      "Shortest distance with 0/1 costs",
+      "0–1 BFS",
+      "Heap is not required."
+    ],
+    [
+      "Minimum simultaneous rooms",
+      "End-time heap or sweep",
+      "Touching endpoint convention changes count."
+    ],
+    [
+      "Repeated tasks separated by idle time",
+      "Heap + release queue",
+      "Count-only uniform case can use formula."
+    ],
+    [
+      "Rearrange with no neighbors equal",
+      "Max counts with withheld previous",
+      "Feasibility requires largest count <= ceil(n/2)."
+    ],
+    [
+      "Range covering every sorted list",
+      "Min frontier plus current maximum",
+      "One empty list makes answer None."
+    ],
+    [
+      "Smallest pair sums",
+      "Sorted row-frontier merge",
+      "Pairs are index choices, even when values duplicate."
+    ],
+    [
+      "Cancel or change task priority",
+      "Lazy versioned entries",
+      "Rebuild to bound stale memory."
+    ],
+    [
+      "Combine objects with minimum total cost",
+      "Two-min merge",
+      "Requires nonnegative weights and unconstrained combining."
+    ],
+    [
+      "Best currently affordable project",
+      "Eligibility sweep + max profit",
+      "Heap does not prove greedy by itself."
+    ]
+  ],
+  "contrasts": [
+    [
+      "Heap vs sorted array",
+      "Heap gives O(1) best and logarithmic updates, not random rank access; sorted arrays give rank access but linear insert shifts."
+    ],
+    [
+      "Heapify vs repeated push",
+      "Bottom-up heapify is O(n); pushing n items individually costs O(n log n) worst comparison work."
+    ],
+    [
+      "pushpop vs heapreplace",
+      "pushpop may immediately return the new item; replace unconditionally removes the old root and requires nonempty heap."
+    ],
+    [
+      "Largest k vs smallest k",
+      "Retain largest with min-heap; retain smallest with negative-key max-heap. Expose the worst retained boundary."
+    ],
+    [
+      "Heap vs quickselect",
+      "Heap handles streams with O(k) storage and predictable logarithmic updates; quickselect is static, mutating, expected linear with suitable pivots."
+    ],
+    [
+      "FIFO vs priority queue",
+      "FIFO respects arrival sequence; priority selection needs explicit fairness/tie order."
+    ],
+    [
+      "Dijkstra vs BFS vs Bellman–Ford",
+      "BFS is for equal costs, Dijkstra for nonnegative costs, Bellman–Ford supports negative edges and can detect reachable negative cycles."
+    ],
+    [
+      "Logical deletion vs physical deletion",
+      "Canceling a mapped version is constant expected logical work; stale array entries require later pruning or rebuild."
+    ],
+    [
+      "Two heaps vs balanced order-statistic tree",
+      "Two heaps efficiently expose a middle split; arbitrary rank and arbitrary deletions need more machinery."
+    ]
+  ],
+  "edges": [
+    [
+      "Empty selection",
+      "a=[], k=0",
+      "Return []; k=1 raises ValueError."
+    ],
+    [
+      "Invalid k",
+      "k<0 or k>len(a)",
+      "Reject in exact-k static template."
+    ],
+    [
+      "All equal values",
+      "[4,4,4], k=2",
+      "Return two copies, not one distinct value."
+    ],
+    [
+      "Top-K tie frequency",
+      "a and b have equal counts",
+      "String-frequency template chooses lexicographically earlier key."
+    ],
+    [
+      "Unorderable payload ties",
+      "Two Node(1) heads",
+      "Unique counters prevent TypeError."
+    ],
+    [
+      "Empty input streams",
+      "[[],[1],[]]",
+      "Merge returns [1]; no streams -> []."
+    ],
+    [
+      "Median before input",
+      "MedianStream().median()",
+      "Raise ValueError."
+    ],
+    [
+      "Even median with large ints",
+      "[10**30,10**30+1]",
+      "Exact Fraction avoids float rounding."
+    ],
+    [
+      "Stale shorter path",
+      "s->a=5,s->b=1,b->a=1",
+      "Return a=2 and ignore old distance 5."
+    ],
+    [
+      "Zero-weight cycle",
+      "0->1=0,1->0=0",
+      "Strict improvements prevent infinite reinsertion."
+    ],
+    [
+      "Negative edge anywhere",
+      "Unreachable component has weight -1",
+      "Dijkstra template validates and rejects entire supplied graph."
+    ],
+    [
+      "Touching intervals",
+      "[0,1),[1,2)",
+      "Reuse one room."
+    ],
+    [
+      "Zero-length interval",
+      "[2,2)",
+      "Empty half-open interval needs no room."
+    ],
+    [
+      "Cooldown no variety",
+      "AAA, cooldown=2",
+      "Seven schedule slots: A,None,None,A,None,None,A."
+    ],
+    [
+      "Impossible rearrangement",
+      "aaab",
+      "Return empty string."
+    ],
+    [
+      "Covering range empty list",
+      "[[1],[]]",
+      "Return None."
+    ],
+    [
+      "Pair count exceeds product",
+      "a=[1],b=[2],k=10",
+      "Return only [[1,2]]."
+    ],
+    [
+      "Repeated priority replacement",
+      "Same task updated thousands of times",
+      "Only latest entry executes; compaction bounds stale memory."
+    ]
+  ],
+  "mistakes": [
+    [
+      "Reading heap array as sorted",
+      "Only h[0] is guaranteed minimum."
+    ],
+    [
+      "Wrong Top-K direction",
+      "Largest-k retention needs a min-heap with smallest retained at root."
+    ],
+    [
+      "Replacing without candidate check",
+      "heapreplace can evict a good root for a worse new candidate."
+    ],
+    [
+      "Comparing nodes on ties",
+      "Insert a unique serial before unorderable payload fields."
+    ],
+    [
+      "Mutating priority in place",
+      "Rebuild or push a new version; changing a key silently breaks heap order."
+    ],
+    [
+      "Using list.remove as heap delete",
+      "Arbitrary removal is linear and requires heap repair; use lazy versions or an indexed design."
+    ],
+    [
+      "No stale check",
+      "Old Dijkstra distances or task versions must be ignored."
+    ],
+    [
+      "Incorrect heap memory",
+      "Lazy heaps may grow with updates/edges, not just unique items."
+    ],
+    [
+      "Universal log-n claim",
+      "List growth is amortized and comparison cost may depend on key size."
+    ],
+    [
+      "Maxheap API portability",
+      "Use negative numeric keys for Python 3.10+ rather than newer max-heap functions."
+    ],
+    [
+      "Unsorted merge input",
+      "Heap merging needs each source internally sorted."
+    ],
+    [
+      "Equal-time overlap error",
+      "For half-open intervals end<=start frees the resource."
+    ],
+    [
+      "Median size-only balance",
+      "Also enforce every lower value <= every upper value."
+    ],
+    [
+      "Cooldown off-by-one",
+      "After using slot t, next allowed slot is t+cooldown+1."
+    ],
+    [
+      "Heap proves greedy",
+      "State the exchange/frontier argument, not just the data structure."
+    ],
+    [
+      "NaN priorities",
+      "Reject inconsistent ordered keys; do not rely on undefined practical minima."
+    ]
+  ],
+  "impress": [
+    [
+      "Define the root",
+      "Say what the root means: best candidate or worst retained selection boundary."
+    ],
+    [
+      "Compare alternatives",
+      "Contrast sort, quickselect, heap and buckets using input/stream constraints."
+    ],
+    [
+      "Prove the frontier",
+      "For a merge, each unseen item is bounded by its own stream head."
+    ],
+    [
+      "State ties",
+      "Use a serial for payload safety and a defined user-visible tie rule."
+    ],
+    [
+      "Account for stale memory",
+      "Separate live map size from physical heap length and justify compaction."
+    ],
+    [
+      "Give a counterexample",
+      "Show why negative edges break Dijkstra finalization or replace can hurt Top-K."
+    ],
+    [
+      "Explain heapify",
+      "Sum node heights rather than multiplying n by maximum height."
+    ],
+    [
+      "Separate output cost",
+      "A materialized idle schedule must pay O(T) even when heap work is small."
+    ],
+    [
+      "Check mutation",
+      "heapify mutates; linked-list merging rewires and may consume original topology."
+    ],
+    [
+      "Verify invariants",
+      "Check root order, two-heap partition and freshness after operations."
+    ]
+  ],
+  "memory": [
+    [
+      "Heap parent",
+      "(i-1)//2 for i>0",
+      "Zero-based complete-tree layout."
+    ],
+    [
+      "Heap children",
+      "2*i+1, 2*i+2",
+      "Bounds-check before reading."
+    ],
+    [
+      "Heap build",
+      "O(n)",
+      "Bottom-up sift work is linear."
+    ],
+    [
+      "Largest k",
+      "min-heap of size k",
+      "Root is kth largest after at least k arrivals."
+    ],
+    [
+      "Numeric max key",
+      "(-score, unique_serial, payload)",
+      "Only numeric score is negated."
+    ],
+    [
+      "Safe replace",
+      "if candidate > h[0]: heapreplace(h,candidate)",
+      "For largest-k retention."
+    ],
+    [
+      "Merge frontier",
+      "one live head per sorted stream",
+      "Heap size at most number of streams."
+    ],
+    [
+      "Median sizes",
+      "len(lower) in {len(upper),len(upper)+1}",
+      "Lower is stored negated."
+    ],
+    [
+      "Median order",
+      "-lower[0] <= upper[0]",
+      "When both heaps nonempty."
+    ],
+    [
+      "Fresh Dijkstra entry",
+      "popped_distance == dist[node]",
+      "Skip superseded records."
+    ],
+    [
+      "Release time",
+      "used_time + cooldown + 1",
+      "cooldown counts slots between equal tasks."
+    ],
+    [
+      "Uniform task lower bound",
+      "max(n, (fmax-1)*(cooldown+1)+number_of_max_frequency_tasks)",
+      "Count-only optimum for unit tasks with uniform cooldown."
+    ],
+    [
+      "Reorganization feasibility",
+      "max_frequency <= (n+1)//2",
+      "No equal adjacent characters."
+    ],
+    [
+      "Smallest range",
+      "width = current_max - heap_min",
+      "Advance only the minimum stream."
+    ]
+  ],
+  "templates": [
+    [
+      "Exact top k largest values",
+      "O(n log(k+1)) for k>=1; O(1) for k=0",
+      "O(k) auxiliary/output",
+      [
+        "import heapq",
+        "def top_k(a, k):",
+        "    if not 0 <= k <= len(a):",
+        "        raise ValueError('require 0 <= k <= n')",
+        "    if k == 0:",
+        "        return []",
+        "    heap = []",
+        "    for x in a:",
+        "        if len(heap) < k:",
+        "            heapq.heappush(heap, x)",
+        "        elif x > heap[0]:",
+        "            heapq.heapreplace(heap, x)",
+        "    return sorted(heap, reverse=True)"
+      ],
+      "Finite comparable numbers, integer k. Returns exactly k values in descending order including duplicates; no mutation. Invalid k raises ValueError."
+    ],
+    [
+      "Streaming kth largest",
+      "O(log(k+1)) amortized add",
+      "O(k)",
+      [
+        "import heapq",
+        "class KthLargest:",
+        "    def __init__(self, k, values=()):",
+        "        if k <= 0:",
+        "            raise ValueError('k must be positive')",
+        "        self.k, self.heap = k, []",
+        "        for value in values:",
+        "            self.add(value)",
+        "    def add(self, value):",
+        "        if len(self.heap) < self.k:",
+        "            heapq.heappush(self.heap, value)",
+        "        elif value > self.heap[0]:",
+        "            heapq.heapreplace(self.heap, value)",
+        "        return self.heap[0] if len(self.heap) == self.k else None"
+      ],
+      "Positive integer k, comparable numeric stream without NaN. add returns kth largest including duplicates, or None until k arrivals; does not retain the whole stream. Initialization O(m log(k+1))."
+    ],
+    [
+      "Top frequent words with lexical ties",
+      "O(n+u log(k+1)+k log(k+1)) expected, excluding string costs",
+      "O(u+k)",
+      [
+        "from collections import Counter",
+        "import heapq",
+        "def frequent_words(words, k):",
+        "    counts = Counter(words)",
+        "    if not 0 <= k <= len(counts):",
+        "        raise ValueError('invalid number of distinct words')",
+        "    ranked = heapq.nsmallest(k, counts, key=lambda word: (-counts[word], word))",
+        "    return ranked"
+      ],
+      "Sequence/iterable of strings; output k distinct words by descending frequency then ascending lexicographic order. k=0 returns []; invalid k raises ValueError. No mutation; long-string hashing/comparison adds cost."
+    ],
+    [
+      "Merge sorted iterables",
+      "O(r+N log(r+1))",
+      "O(r) auxiliary + O(N) output",
+      [
+        "import heapq",
+        "from itertools import count",
+        "def merge_sorted(streams):",
+        "    serial = count()",
+        "    heap = []",
+        "    for stream in streams:",
+        "        iterator = iter(stream)",
+        "        try:",
+        "            value = next(iterator)",
+        "        except StopIteration:",
+        "            continue",
+        "        heap.append((value, next(serial), iterator))",
+        "    heapq.heapify(heap)",
+        "    out = []",
+        "    while heap:",
+        "        value, _, iterator = heapq.heappop(heap)",
+        "        out.append(value)",
+        "        try:",
+        "            value = next(iterator)",
+        "        except StopIteration:",
+        "            continue",
+        "        heapq.heappush(heap, (value, next(serial), iterator))",
+        "    return out"
+      ],
+      "Each finite stream is sorted nondecreasing with mutually comparable values. Returns merged value list. Consumes iterators, does not mutate source lists. Equal-value interstream order is insertion-serial order, not guaranteed source-index stability."
+    ],
+    [
+      "Merge k disjoint linked lists",
+      "O(r+N log(r+1))",
+      "O(r) auxiliary; nodes reused",
+      [
+        "import heapq",
+        "from itertools import count",
+        "class Node:",
+        "    def __init__(self, val, next=None):",
+        "        self.val, self.next = val, next",
+        "",
+        "def merge_lists(heads):",
+        "    serial = count()",
+        "    heap = [(node.val, next(serial), node) for node in heads if node is not None]",
+        "    heapq.heapify(heap)",
+        "    dummy = tail = Node(0)",
+        "    while heap:",
+        "        _, _, node = heapq.heappop(heap)",
+        "        following = node.next",
+        "        tail.next = node",
+        "        tail = node",
+        "        if following is not None:",
+        "            heapq.heappush(heap, (following.val, next(serial), following))",
+        "    tail.next = None",
+        "    return dummy.next"
+      ],
+      "Sorted nondecreasing acyclic singly linked lists whose nodes are pairwise disjoint. Returns merged head, None if all empty. Mutates/reuses next links; original separate list topology is consumed. Unique serial avoids Node comparison on ties."
+    ],
+    [
+      "Exact integer streaming median",
+      "O(log n) amortized add; O(1) median under fixed-word arithmetic",
+      "O(n)",
+      [
+        "import heapq",
+        "from fractions import Fraction",
+        "class MedianStream:",
+        "    def __init__(self):",
+        "        self.lower, self.upper = [], []",
+        "    def add(self, value):",
+        "        if type(value) is not int:",
+        "            raise ValueError('integer values required')",
+        "        heapq.heappush(self.lower, -value)",
+        "        heapq.heappush(self.upper, -heapq.heappop(self.lower))",
+        "        if len(self.upper) > len(self.lower):",
+        "            heapq.heappush(self.lower, -heapq.heappop(self.upper))",
+        "    def median(self):",
+        "        if not self.lower:",
+        "            raise ValueError('empty stream')",
+        "        if len(self.lower) > len(self.upper):",
+        "            return -self.lower[0]",
+        "        return Fraction(-self.lower[0] + self.upper[0], 2)"
+      ],
+      "Accepts Python ints, bool rejected. Returns int for odd count and exact Fraction for even count, avoiding float precision/overflow. Convert with float only when approximate judge/API output is desired. Big-integer/Fraction arithmetic is not unit-cost."
+    ],
+    [
+      "Dijkstra with tie-safe stale records",
+      "O(V+E log(E+2)) expected",
+      "O(V+E)",
+      [
+        "import heapq",
+        "from itertools import count",
+        "def dijkstra(adj, source):",
+        "    for edges in adj.values():",
+        "        for _, weight in edges:",
+        "            if weight < 0 or weight != weight or weight == float('inf'):",
+        "                raise ValueError('finite nonnegative weights required')",
+        "    serial = count()",
+        "    dist = {source: 0}",
+        "    heap = [(0, next(serial), source)]",
+        "    while heap:",
+        "        distance, _, node = heapq.heappop(heap)",
+        "        if distance != dist[node]:",
+        "            continue",
+        "        for neighbor, weight in adj.get(node, ()):",
+        "            candidate = distance + weight",
+        "            if candidate < dist.get(neighbor, float('inf')):",
+        "                dist[neighbor] = candidate",
+        "                heapq.heappush(heap, (candidate, next(serial), neighbor))",
+        "    return dist"
+      ],
+      "Directed mapping to reusable lists of (hashable neighbor, finite nonnegative int/float weight). Missing vertex key is a sink. Returns reachable distances only; absent source gives {source:0}; no mutation. Counter supports unorderable vertices. For floats, accumulated distances must remain representable and comparisons are subject to rounding."
+    ],
+    [
+      "Minimum rooms for half-open intervals",
+      "O(n log n)",
+      "O(n)",
+      [
+        "import heapq",
+        "def min_rooms(intervals):",
+        "    ordered = sorted(intervals)",
+        "    if any(end < start for start, end in ordered):",
+        "        raise ValueError('end precedes start')",
+        "    active = []",
+        "    best = 0",
+        "    for start, end in ordered:",
+        "        if start == end:",
+        "            continue",
+        "        while active and active[0] <= start:",
+        "            heapq.heappop(active)",
+        "        heapq.heappush(active, end)",
+        "        best = max(best, len(active))",
+        "    return best"
+      ],
+      "Finite numeric (start,end) intervals interpreted as [start,end). Zero-length intervals ignored; invalid reversed endpoints raise ValueError. Returns peak active count; [] -> 0. Sorts a copy, no input mutation."
+    ],
+    [
+      "Construct a uniform-cooldown schedule",
+      "O(T+n log(u+1)) expected",
+      "O(u) auxiliary + O(T) output",
+      [
+        "import heapq",
+        "from collections import Counter, deque",
+        "from itertools import count",
+        "def cooldown_schedule(tasks, cooldown):",
+        "    if cooldown < 0:",
+        "        raise ValueError('cooldown must be nonnegative')",
+        "    counts = Counter(tasks)",
+        "    if None in counts:",
+        "        raise ValueError('None is reserved for idle slots')",
+        "    serial = count()",
+        "    available = [(-amount, next(serial), task) for task, amount in counts.items()]",
+        "    heapq.heapify(available)",
+        "    waiting = deque()",
+        "    out, time = [], 0",
+        "    while available or waiting:",
+        "        while waiting and waiting[0][0] <= time:",
+        "            _, amount, task = waiting.popleft()",
+        "            heapq.heappush(available, (amount, next(serial), task))",
+        "        if not available:",
+        "            release = waiting[0][0]",
+        "            out.extend([None] * (release - time))",
+        "            time = release",
+        "            continue",
+        "        amount, _, task = heapq.heappop(available)",
+        "        out.append(task)",
+        "        amount += 1",
+        "        if amount < 0:",
+        "            waiting.append((time + cooldown + 1, amount, task))",
+        "        time += 1",
+        "    return out"
+      ],
+      "Hashable unit-duration tasks except None; nonnegative integer uniform cooldown. Returns a minimum-length schedule with None idle slots, each input task occurrence used once. Does not mutate input; may allocate a large output when cooldown is huge."
+    ],
+    [
+      "Reorganize string without equal neighbors",
+      "O(n log(u+1)) expected",
+      "O(u) auxiliary + O(n) output",
+      [
+        "import heapq",
+        "from collections import Counter",
+        "def reorganize(text):",
+        "    counts = Counter(text)",
+        "    if counts and max(counts.values()) > (len(text) + 1) // 2:",
+        "        return ''",
+        "    heap = [(-amount, char) for char, amount in counts.items()]",
+        "    heapq.heapify(heap)",
+        "    out = []",
+        "    previous_amount, previous_char = 0, ''",
+        "    while heap:",
+        "        amount, char = heapq.heappop(heap)",
+        "        out.append(char)",
+        "        if previous_amount < 0:",
+        "            heapq.heappush(heap, (previous_amount, previous_char))",
+        "        previous_amount, previous_char = amount + 1, char",
+        "    return ''.join(out) if previous_amount == 0 else ''"
+      ],
+      "String input, character identity uses Python code points (not grapheme clusters). Returns any anagram with no adjacent equal chars, or empty string if impossible/empty. Does not mutate input."
+    ],
+    [
+      "Smallest range covering sorted lists",
+      "O(r+N log(r+1))",
+      "O(r)",
+      [
+        "import heapq",
+        "def smallest_range(lists):",
+        "    if not lists or any(not row for row in lists):",
+        "        return None",
+        "    heap = [(row[0], i, 0) for i, row in enumerate(lists)]",
+        "    heapq.heapify(heap)",
+        "    high = max(row[0] for row in lists)",
+        "    best = (heap[0][0], high)",
+        "    while True:",
+        "        low, i, j = heapq.heappop(heap)",
+        "        if (high-low, low) < (best[1]-best[0], best[0]):",
+        "            best = (low, high)",
+        "        j += 1",
+        "        if j == len(lists[i]):",
+        "            return best",
+        "        value = lists[i][j]",
+        "        high = max(high, value)",
+        "        heapq.heappush(heap, (value, i, j))"
+      ],
+      "Nonempty sorted nondecreasing integer lists. Returns inclusive (low,high) covering at least one element per list; minimizes width then low. No lists or any empty list -> None. No mutation; sortedness is a caller precondition."
+    ],
+    [
+      "K smallest pair sums from sorted arrays",
+      "O(m+q log(m+1)), m=min(k,len(a)), q=min(k,len(a)*len(b))",
+      "O(m) auxiliary + O(q) output",
+      [
+        "import heapq",
+        "def smallest_pairs(a, b, k):",
+        "    if k < 0:",
+        "        raise ValueError('k must be nonnegative')",
+        "    if not a or not b or k == 0:",
+        "        return []",
+        "    heap = [(a[i] + b[0], i, 0) for i in range(min(k, len(a)))]",
+        "    heapq.heapify(heap)",
+        "    out = []",
+        "    while heap and len(out) < k:",
+        "        _, i, j = heapq.heappop(heap)",
+        "        out.append([a[i], b[j]])",
+        "        j += 1",
+        "        if j < len(b):",
+        "            heapq.heappush(heap, (a[i] + b[j], i, j))",
+        "    return out"
+      ],
+      "Sorted nondecreasing integer sequences; nonnegative integer k. Returns up to k value pairs in nondecreasing sum order, ties by source indices. Equal values at distinct indices remain distinct choices. No mutation."
+    ],
+    [
+      "Versioned mutable priority queue with compaction",
+      "O(log(a+2)) amortized edit/remove/pop; individual pop O((a+1) log(a+2)), rebuild O(a+1)",
+      "O(a+1) after compaction; O(a+1) temporary rebuild",
+      [
+        "import heapq",
+        "from itertools import count",
+        "class MutablePriorityQueue:",
+        "    def __init__(self):",
+        "        self.heap, self.live = [], {}",
+        "        self.serial = count()",
+        "    def _compact(self):",
+        "        if len(self.heap) > 2 * len(self.live) + 16:",
+        "            self.heap = list(self.live.values())",
+        "            heapq.heapify(self.heap)",
+        "    def set(self, key, priority, payload):",
+        "        entry = (priority, next(self.serial), key, payload)",
+        "        self.live[key] = entry",
+        "        heapq.heappush(self.heap, entry)",
+        "        self._compact()",
+        "    def remove(self, key):",
+        "        if key not in self.live:",
+        "            return False",
+        "        del self.live[key]",
+        "        self._compact()",
+        "        return True",
+        "    def pop(self):",
+        "        while self.heap:",
+        "            entry = heapq.heappop(self.heap)",
+        "            priority, _, key, payload = entry",
+        "            if self.live.get(key) is entry:",
+        "                del self.live[key]",
+        "                self._compact()",
+        "                return key, priority, payload",
+        "        raise IndexError('empty priority queue')",
+        "    def __len__(self):",
+        "        return len(self.live)"
+      ],
+      "Hashable stable keys; consistently comparable finite numeric priorities; arbitrary unorderable payloads. set inserts/replaces key, ties execute in most-recent set serial order; remove returns bool; pop returns (key,priority,payload), raises IndexError when no live items. New versions invalidate old entries by identity. With compaction H <= 2a+16 after edits, a single pop can drain O(a+1) stale entries at O(log(a+2)) each: O((a+1) log(a+2)) worst case. A threshold rebuild costs O(a+1), while set can cost O(a+1) on a rebuild and remove likewise. Amortized O(log(a+2)) bounds charge each stale extraction to the edit that created it and each rebuild to the many invalidations since the preceding rebuild; use the maximum live size across a sequence for a uniform sequence bound."
+    ]
+  ],
+  "practice": [
+    [
+      "1046. Last Stone Weight",
+      "Negative-key max-heap",
+      "Easy",
+      "O(n log n); O(n) space",
+      "Reinsert only nonzero remainder."
+    ],
+    [
+      "703. Kth Largest Element in a Stream",
+      "Bounded min-heap",
+      "Easy",
+      "O(log(k+1)) add; O(k) space",
+      "Duplicates count toward rank."
+    ],
+    [
+      "215. Kth Largest Element in an Array",
+      "Bounded heap / quickselect",
+      "Medium",
+      "Heap O(n log(k+1)); O(k) space",
+      "k is one-based."
+    ],
+    [
+      "347. Top K Frequent Elements",
+      "Counter + heap or buckets",
+      "Medium",
+      "Heap O(n+u log(k+1)) expected; O(u) space",
+      "Frequency ties."
+    ],
+    [
+      "973. K Closest Points to Origin",
+      "Bounded max-distance heap",
+      "Medium",
+      "O(n log(k+1)); O(k) auxiliary",
+      "Use squared distance and tie serial/index."
+    ],
+    [
+      "692. Top K Frequent Words",
+      "Frequency plus lexical ranking",
+      "Medium",
+      "O(n+u log(k+1)) expected ignoring string cost; O(u) space",
+      "Lexicographic order on equal frequency."
+    ],
+    [
+      "23. Merge k Sorted Lists",
+      "Head frontier",
+      "Hard",
+      "O(r+N log(r+1)); O(r) auxiliary",
+      "Tie-safe nodes and disjoint list precondition."
+    ],
+    [
+      "295. Find Median from Data Stream",
+      "Two heaps",
+      "Hard",
+      "O(log n) add; O(1) median; O(n) space",
+      "Partition and size invariants."
+    ],
+    [
+      "253. Meeting Rooms II",
+      "End-time frontier",
+      "Medium",
+      "O(n log n); O(n) auxiliary",
+      "Half-open endpoint reuse."
+    ],
+    [
+      "621. Task Scheduler",
+      "Max counts + cooldown / formula",
+      "Medium",
+      "Count formula O(n+u) expected; O(u) space",
+      "Idle gaps and equally maximal counts."
+    ],
+    [
+      "767. Reorganize String",
+      "Withhold previous symbol",
+      "Medium",
+      "O(n log(u+1)); O(n+u) space",
+      "Impossible largest frequency."
+    ],
+    [
+      "373. Find K Pairs with Smallest Sums",
+      "Sorted row merge",
+      "Medium",
+      "O(k log(min(k,n)+1)); O(k) output",
+      "Repeated values represent distinct index pairs."
+    ],
+    [
+      "632. Smallest Range Covering Elements from K Lists",
+      "Min head plus maximum",
+      "Hard",
+      "O(r+N log(r+1)); O(r) auxiliary",
+      "Stop on first exhausted list."
+    ],
+    [
+      "743. Network Delay Time",
+      "Dijkstra",
+      "Medium",
+      "O(V+E log(E+2)); O(V+E) auxiliary",
+      "Return -1 when some node unreachable."
+    ],
+    [
+      "1167. Minimum Cost to Connect Sticks",
+      "Optimal merge",
+      "Medium",
+      "O(n log n); O(n) space",
+      "Combine the two smallest."
+    ],
+    [
+      "502. IPO",
+      "Eligibility sweep + profit heap",
+      "Hard",
+      "O(n log n+k log n); O(n) space",
+      "Only affordable projects enter the profit heap."
+    ],
+    [
+      "1851. Minimum Interval to Include Each Query",
+      "Offline sweep + lazy expiry",
+      "Hard",
+      "O(n log n+q log q+q log n); O(n+q) space",
+      "Preserve original query positions."
+    ],
+    [
+      "480. Sliding Window Median",
+      "Two heaps with deletion bookkeeping",
+      "Hard",
+      "O(n log n) with bounded/rebuilt lazy heaps; O(n) space",
+      "Prune stale roots and count live sizes, not raw lengths."
+    ],
+    [
+      "355. Design Twitter",
+      "K-way recent-feed merge",
+      "Medium",
+      "O(r+k log(r+1)) per bounded k feed; O(r) frontier",
+      "Follow/unfollow and self-feed rules."
+    ],
+    [
+      "3408. Design Task Manager",
+      "Lazy keyed priorities",
+      "Medium",
+      "O(log(a+2)) amortized updates/pops with compaction; O(a) space",
+      "LC tie policy is larger taskId first, unlike generic FIFO ties."
+    ]
+  ]
+}
