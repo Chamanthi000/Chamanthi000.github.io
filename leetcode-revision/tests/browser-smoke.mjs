@@ -46,16 +46,16 @@ try{
     assert.ok((await page.locator('.ag-section').count())>=8,'Missing Arrays guide sections');
     assert.ok((await page.locator('.ag-pattern').count())>=29,'Missing Arrays patterns');
     assert.ok((await page.locator('.ag-detail').count())>=35,'Missing fundamentals/templates');
-    const allSections=page.locator('.ag > details.ag-section[data-ag-section]');
+    const allSections=page.locator('.ds-topic[data-id="arrays"] .ag > details.ag-section[data-ag-section]');
     assert.equal(await allSections.count(),8,'Expected eight collapsible major sections');
     assert.equal(await page.locator('details[data-ag-section="ag-operations"]').evaluate(el=>el.open),false,'Sections should start collapsed');
     await page.locator('[data-ag-open="ag-operations"]').click();
     assert.equal(await page.locator('details[data-ag-section="ag-operations"]').evaluate(el=>el.open),true,'Navigation should open chosen section');
     await page.locator('details[data-ag-section="ag-operations"] > summary').click();
     assert.equal(await page.locator('details[data-ag-section="ag-operations"]').evaluate(el=>el.open),false,'Tapping header should collapse it');
-    await page.locator('[data-ag-expand-all]').click();
+    await page.locator('.ds-topic[data-id="arrays"] [data-ag-expand-all]').click();
     assert.equal(await allSections.evaluateAll(items=>items.filter(el=>el.open).length),8,'Expand all should open eight sections');
-    await page.locator('[data-ag-collapse-all]').click();
+    await page.locator('.ds-topic[data-id="arrays"] [data-ag-collapse-all]').click();
     assert.equal(await allSections.evaluateAll(items=>items.filter(el=>el.open).length),0,'Collapse all should close eight sections');
 
     const opened=await page.evaluate(()=>{
@@ -66,6 +66,32 @@ try{
     assert.ok(['auto','scroll'].includes(opened.codeOverflow),'Code blocks need horizontal scrolling');
     assert.ok(opened.codeFont>=12,'Code blocks too small to read');
     capture(device.name+' expanded Arrays guide / code readability','PASS');
+
+    await page.locator('.ds-topic[data-id="strings"] > summary').click();
+    const strings=page.locator('.ds-topic[data-id="strings"] .sg');
+    await strings.locator('#sg-operations').waitFor();
+    const sections=strings.locator('details.ag-section[data-ag-section^="sg-"]');
+    assert.equal(await sections.count(),8,'Strings should have eight collapsible sections');
+    assert.ok((await strings.locator('.ag-pattern').count())>=33,'Missing Strings algorithm patterns');
+    assert.ok((await strings.locator('.ag-detail').count())>=50,'Missing Strings fundamentals/templates');
+    assert.equal(await strings.locator('details[data-ag-section="sg-operations"]').evaluate(el=>el.open),false);
+    await strings.locator('[data-ag-open="sg-operations"]').click();
+    assert.equal(await strings.locator('details[data-ag-section="sg-operations"]').evaluate(el=>el.open),true,'Strings navigation does not open target');
+    await strings.locator('details[data-ag-section="sg-operations"] > summary').click();
+    assert.equal(await strings.locator('details[data-ag-section="sg-operations"]').evaluate(el=>el.open),false);
+    await strings.locator('[data-ag-expand-all]').click();
+    assert.equal(await sections.evaluateAll(nodes=>nodes.filter(node=>node.open).length),8,'Expand all should only open Strings chapters');
+    await strings.locator('[data-ag-collapse-all]').click();
+    assert.equal(await sections.evaluateAll(nodes=>nodes.filter(node=>node.open).length),0,'Collapse all should only close Strings chapters');
+    const stringReadability=await page.evaluate(()=>{
+      const pre=document.querySelector('.sg .ag-code pre');
+      return {width:document.documentElement.scrollWidth,viewport:innerWidth,font:pre&&parseFloat(getComputedStyle(pre).fontSize),scroll:pre&&getComputedStyle(pre).overflowX};
+    });
+    assert.ok(stringReadability.width<=stringReadability.viewport+6,device.name+' Strings guide has horizontal page overflow');
+    assert.ok(stringReadability.font>=12,'Strings code text too small');
+    assert.ok(['auto','scroll'].includes(stringReadability.scroll),'Strings code must horizontally scroll');
+    capture(device.name+' Strings guide / nested sections / code readability','PASS');
+
    }
 
   }
