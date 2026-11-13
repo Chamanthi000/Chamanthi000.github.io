@@ -383,3 +383,35 @@ body.rev-index .ds-note-input{max-width:920px;margin-inline:auto}
  body.rev-index .ds-core-guide h4::after{display:none}
  body.rev-index .ds-core-guide ul{padding-left:20px}
 }
+
+
+/* DSA active-recall guide v7 */
+body.rev-index .ds-cheatsheet-intro{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px;padding:14px 15px;border:1px solid #d1e2d4;border-radius:13px;background:#fff}
+body.rev-index .ds-cheatsheet-intro strong{display:block;font:800 14px/1.35 'Plus Jakarta Sans',sans-serif;color:#29583d}
+body.rev-index .ds-cheatsheet-intro p{margin:4px 0 0;font-size:13px;line-height:1.55;color:#5d7664}
+body.rev-index .ds-cheatsheet-intro>span{flex:0 0 auto;padding:6px 9px;border-radius:999px;background:#e8f2e7;color:#2f6846;font:800 10px/1.2 'Plus Jakarta Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase}
+body.rev-index .ds-study-loop{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:8px;align-items:center;margin:0 0 14px;padding:11px 12px;border:1px solid #d4e4d6;border-radius:12px;background:linear-gradient(110deg,#f3f8f1,#fbfdf9);color:#45634e}
+body.rev-index .ds-study-loop>strong{font:800 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#2d5f42;white-space:nowrap}
+body.rev-index .ds-study-loop>span{display:flex;align-items:center;gap:6px;font-size:11px;line-height:1.35}
+body.rev-index .ds-study-loop b{display:inline-grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:7px;background:#dfeee0;color:#326b49;font:800 10px 'Plus Jakarta Sans',sans-serif}
+body.rev-index .ds-recall-title{padding:12px 14px!important;border:1px solid #cfe0d2!important;border-radius:11px!important;background:#f1f7ef!important;color:#285d3f!important}
+body.rev-index .ds-functions-title{padding-top:4px}
+body.rev-index .ds-functions-title::before{content:'⌘';display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#e8f0e7;color:#356847;font-size:12px}
+body.rev-index .ds-clues-title::before{content:'?';display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#edf3e8;color:#507045;font-size:12px}
+body.rev-index .ds-complexity-title::before{content:'O';display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#e8f0ea;color:#315f44;font:800 11px ui-monospace,SFMono-Regular,Consolas,monospace}
+body.rev-index .ds-traps-title{color:#7a4d32!important;border-bottom-color:#ead8ca!important}
+body.rev-index .ds-traps-title::before{content:'!';display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#f8eee7;color:#9a5c37;font-size:12px}
+body.rev-index .ds-selftest-title{padding:12px 14px!important;border:1px dashed #bdd6c2!important;border-radius:11px!important;background:#fbfdf9!important;color:#315f43!important}
+body.rev-index .ds-selftest-title::before{content:'✓';display:inline-grid;place-items:center;width:25px;height:25px;border-radius:8px;background:#e8f2e7;color:#2f6c49;font-size:12px}
+body.rev-index .ds-topic-nav{position:sticky;top:0;z-index:4;background:rgba(252,253,250,.96);backdrop-filter:blur(8px);padding-top:7px}
+@media(max-width:900px){
+ body.rev-index .ds-study-loop{grid-template-columns:1fr 1fr}
+ body.rev-index .ds-study-loop>strong{grid-column:1/-1}
+}
+@media(max-width:700px){
+ body.rev-index .ds-cheatsheet-intro{align-items:flex-start}
+ body.rev-index .ds-cheatsheet-intro>span{display:none}
+ body.rev-index .ds-study-loop{grid-template-columns:1fr;padding:10px}
+ body.rev-index .ds-study-loop>strong{grid-column:auto}
+ body.rev-index .ds-study-loop>span{font-size:12px}
+}
