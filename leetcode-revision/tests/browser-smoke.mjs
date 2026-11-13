@@ -37,6 +37,23 @@ try{
    assert.ok(metrics.documentWidth<=metrics.viewport+6,device.name+' '+name+' overflows horizontally by '+(metrics.documentWidth-metrics.viewport)+'px');
    assert.ok(metrics.fontSize>=15,device.name+' '+name+' renders undersized body text');
    capture(device.name+' '+name+' responsive layout','PASS');
+   if(name==='Coding'){
+    await page.locator('#dsToggle').click();
+    await page.locator('.ds-topic[data-id="arrays"] > summary').click();
+    await page.locator('#ag-operations').waitFor();
+    assert.ok((await page.locator('.ag-section').count())>=8,'Missing Arrays guide sections');
+    assert.ok((await page.locator('.ag-pattern').count())>=29,'Missing Arrays patterns');
+    assert.ok((await page.locator('.ag-detail').count())>=35,'Missing fundamentals/templates');
+    const opened=await page.evaluate(()=>{
+     const pre=document.querySelector('.ag-code pre');
+     return {width:document.documentElement.scrollWidth,viewport:innerWidth,codeOverflow:pre&&getComputedStyle(pre).overflowX,codeFont:pre&&parseFloat(getComputedStyle(pre).fontSize)};
+    });
+    assert.ok(opened.width<=opened.viewport+6,device.name+' expanded Arrays guide overflows by '+(opened.width-opened.viewport)+'px');
+    assert.ok(['auto','scroll'].includes(opened.codeOverflow),'Code blocks need horizontal scrolling');
+    assert.ok(opened.codeFont>=12,'Code blocks too small to read');
+    capture(device.name+' expanded Arrays guide / code readability','PASS');
+   }
+
   }
   await context.close();
  }
