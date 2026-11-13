@@ -159,7 +159,22 @@ window.RecallSyncConflicts={
 const conflictButton=document.getElementById('downloadConflictCopies');
 if(conflictButton)conflictButton.addEventListener('click',()=>window.RecallSyncConflicts.download());
 
-function putLocal(kind,items){if(!state.user)return;const snapshot=state.snapshots[kind]||[];const cloudIds=new Map(snapshot.map(x=>[idOf(kind,x),x]));for(const item of items){const id=idOf(kind,item);if(!id)continue;const old=cloudIds.get(id);if(old&&String(old.updatedAt||old.createdAt||'')>String(item.updatedAt||item.createdAt||''))archiveConflict(kind,item,old);if(!old||String(item.updatedAt||item.createdAt||'')>String(old.updatedAt||old.createdAt||'')){queue(kind,item)}}}
+function putLocal(kind,items){
+ if(!state.user)return;
+ const snapshot=state.snapshots[kind]||[];
+ const cloudIds=new Map(snapshot.map(item=>[idOf(kind,item),item]));
+ for(const item of items){
+  const id=idOf(kind,item);if(!id)continue;
+  const old=cloudIds.get(id);
+  const localStamp=String(item.updatedAt||item.createdAt||''),remoteStamp=String(old?.updatedAt||old?.createdAt||'');
+  if(old&&remoteStamp>=localStamp&&!sameRecord(item,old)){
+    archiveConflict(kind,item,old);
+    // A newer/equally dated cloud record wins, but the device copy remains in conflict backups.
+    continue;
+  }
+  if(!old||localStamp>remoteStamp)queue(kind,item);
+ }
+}
 function arm(key,delay){
  clearTimeout(state.timers.get(key));
  state.timers.set(key,setTimeout(async()=>{
@@ -213,10 +228,16 @@ state.initial.add(kind);
 const existing=window.RecallLocal?.(kind)||[];
 // Migrate existing browser data only if newer than cloud copy. Never discard local records.
 const byId=new Map(remote.map(x=>[idOf(kind,x),x]));
-for(const item of existing){const cloud=byId.get(idOf(kind,item));if(!cloud||String(item.updatedAt||item.createdAt||'')>String(cloud.updatedAt||cloud.createdAt||''))queue(kind,item)}
+for(const item of existing){
+ const cloud=byId.get(idOf(kind,item));
+ const localStamp=String(item.updatedAt||item.createdAt||'');
+ const cloudStamp=String(cloud?.updatedAt||cloud?.createdAt||'');
+ if(!cloud||localStamp>cloudStamp)queue(kind,item);
+ else if(localStamp===cloudStamp&&!sameRecord(item,cloud))archiveConflict(kind,item,cloud);
+}
 }
 const pendingIds=new Set([...state.pending.keys()].filter(k=>k.startsWith(kind+':')).map(k=>k.slice(kind.length+1)));
-for(const item of window.RecallLocal?.(kind)||[]){const cloud=remote.find(x=>idOf(kind,x)===idOf(kind,item));if(cloud&&!pendingIds.has(idOf(kind,item))&&String(cloud.updatedAt||'')>String(item.updatedAt||''))archiveConflict(kind,item,cloud)}
+for(const item of window.RecallLocal?.(kind)||[]){const cloud=remote.find(x=>idOf(kind,x)===idOf(kind,item));if(cloud&&!pendingIds.has(idOf(kind,item))&&String(cloud.updatedAt||cloud.createdAt||'')>=String(item.updatedAt||item.createdAt||'')&&!sameRecord(cloud,item))archiveConflict(kind,item,cloud)}
 const output=new Map(remote.map(x=>[idOf(kind,x),x]));
 for(const item of window.RecallLocal?.(kind)||[]){const id=idOf(kind,item),old=output.get(id);if(pendingIds.has(id)||(!old&&!state.initial.has(kind)))output.set(id,item)}
 state.snapshots[kind]=[...output.values()];send(kind);
