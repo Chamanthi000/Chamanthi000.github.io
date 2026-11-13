@@ -206,7 +206,7 @@ for(const u of state.unsub)u();for(const timer of state.timers.values())clearTim
 if(!user){statusText('Saved on this device · Sign in to sync all devices');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 if(login)login.hidden=true;if(logout)logout.hidden=false;statusText('Connecting live cloud sync…');
 for(const kind of page){
-const unsub=onSnapshot(list(kind),async snapshot=>{
+const unsub=onSnapshot(list(kind),{includeMetadataChanges:true},async snapshot=>{
 const remote=snapshot.docs.map(x=>x.data()).filter(x=>isMember(kind,x));state.snapshots[kind]=remote;
 if(!state.initial.has(kind)){
 state.initial.add(kind);
@@ -220,7 +220,11 @@ for(const item of window.RecallLocal?.(kind)||[]){const cloud=remote.find(x=>idO
 const output=new Map(remote.map(x=>[idOf(kind,x),x]));
 for(const item of window.RecallLocal?.(kind)||[]){const id=idOf(kind,item),old=output.get(id);if(pendingIds.has(id)||(!old&&!state.initial.has(kind)))output.set(id,item)}
 state.snapshots[kind]=[...output.values()];send(kind);
-if(!state.pending.size)statusText('✓ Live sync connected · '+(user.email||'Google account'));
+if(!state.pending.size){
+ if(snapshot.metadata?.fromCache)statusText('⏳ Cached cloud data · Waiting for online verification');
+ else if(page.every(k=>state.initial.has(k)))statusText('✓ Live sync connected · '+(user.email||'Google account')+' · Private version history enabled');
+ else statusText('Connecting remaining notebooks to private cloud…');
+}
 },e=>{statusText('⚠ Sync error: '+e.message+'. Check Firestore rules.');console.error(e)});
 state.unsub.push(unsub);
 }}
@@ -234,7 +238,7 @@ requestLogin=async()=>{try{await signInWithPopup(auth,provider)}catch(e){
 }};initialized=true;window.dispatchEvent(new Event('recall-firebase-ready'));show('Firebase ready · Sign in with Google to enable cloud sync');
 if(logout)logout.onclick=()=>signOut(auth);
 window.addEventListener('recall-cloud-local',e=>{const {kind,items}=e.detail||{};if(!kinds.includes(kind))return;if(!state.user){statusText('Saved on this device · Sign in for cloud sync');return}putLocal(kind,items)});
-window.addEventListener('online',()=>{if(!state.user)return;for(const key of state.pending.keys())arm(key,0)});
+window.addEventListener('online',()=>{if(!state.user)return;statusText('Back online · Retrying queued cloud saves…');for(const key of state.pending.keys())arm(key,0)});
 window.RecallCloud={
   get user(){return state.user},
   sync(kind,items){if(state.user)putLocal(kind,items)},
