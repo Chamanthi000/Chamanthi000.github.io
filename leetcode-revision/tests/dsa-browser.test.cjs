@@ -22,7 +22,8 @@ const seed = [
   { id: 'arrays', title: 'Arrays', notes: 'Arrays original notes', createdAt: '2026-01-01', updatedAt: '2026-01-02', extraMetadata: 'keep me' },
   { id: 'strings', title: 'Strings', notes: '', stringMergeVersion: 1, stringIntegratedNotes: 'Strings archived additions', stringLegacyBackup: 'Strings original archive', updatedAt: '2026-01-03' },
   ...topics.map(id => ({ id, title: id, notes: privateText, updatedAt: '2026-01-04' })),
-  { id: 'custom-existing', title: 'Existing notebook', notes: 'Custom notes stay editable', updatedAt: '2026-01-05' }
+  { id: 'custom-existing', title: 'Existing notebook', notes: privateText + ' Hidden legacy text', updatedAt: '2026-01-05', customMetadata: { keep: true } },
+  { id: 'custom-deleted', title: 'Old removed notebook', notes: 'Retain tombstone history', deleted: true, updatedAt: '2026-01-06' }
 ];
 const files = new Map([
   ['/arrays.js', path.join(root, 'array-interview-guide.js')],
@@ -77,7 +78,9 @@ async function run() {
   }, { seed, key: KEY, open: OPEN });
   await page.goto(base);
   await page.locator('#dsToggle').click();
-  assert.equal(await page.locator('.ds-topic').count(), 12);
+  assert.equal(await page.locator('.ds-topic').count(), 11);
+  const canonicalIds = ['arrays','strings',...topics];
+  assert.deepEqual(await page.locator('.ds-topic').evaluateAll(nodes=>nodes.map(node=>node.dataset.id)),canonicalIds);
   assert.equal(await page.locator('.dg > .ag-section').count(), 72);
   assert.equal(await page.locator('.dg > .ag-section[open]').count(), 0);
   assert.equal(await page.locator('.dg img, .dg script').count(), 0);
@@ -143,29 +146,63 @@ async function run() {
   await topic('hash-maps').locator('[data-ag-section="dg-hash-maps-memorize"] [data-ds-copy]').first().click();
   assert.equal(await page.evaluate(() => window.fixtureCopied), code);
 
-  // Existing and newly added custom notebooks are visible, editable and removable.
-  await page.locator('[data-nav-id="custom-existing"]').click();
-  assert.equal(await topic('custom-existing').locator('[data-remove]').count(), 1);
-  assert.equal(await topic('arrays').locator('[data-remove]').count(), 0);
-  await page.locator('#dsNewTitle').fill('New fixture notebook');
-  await page.locator('#dsAdd').click();
-  const custom = page.locator('.ds-topic').filter({ has: page.locator('.ds-topic-name', { hasText: 'New fixture notebook' }) });
-  const customId = await custom.getAttribute('data-id');
-  await custom.locator('textarea').fill('New fixture notes');
-  await custom.locator('[data-edit-id]').click();
-  await custom.locator('[data-edit-id]').click();
-  assert.equal(await custom.locator('textarea').inputValue(), 'New fixture notes');
-  await custom.locator('[data-edit-id]').click();
-  page.once('dialog', dialog => dialog.accept());
-  await custom.locator('[data-remove]').click();
-  assert.equal(await page.locator('[data-nav-id="' + customId + '"]').count(), 0);
-  assert.equal(await page.evaluate(id => window.RecallStructures().find(item => item.id === id).deleted, customId), true);
+  // The fixed DSA list ends at Union Find; hidden records stay intact.
+  assert.equal(await page.locator('[data-nav-id="custom-existing"]').count(), 0);
+  assert.equal(await page.locator('[data-id="custom-existing"]').count(), 0);
+  assert.equal(await page.locator('#dsAdd, #dsNewTitle, [data-remove]').count(), 0);
+  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'), 'union-find');
+  assert.equal(await page.locator('[data-nav-id]').last().getAttribute('data-nav-id'), 'union-find');
+  assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item => item.id === 'custom-existing')), seed.find(item => item.id === 'custom-existing'));
+  await page.locator('#dsSearch').fill('Existing notebook');
+  assert.equal(await page.locator('.ds-topic').count(), 0);
+  await page.locator('#dsSearch').fill('');
+  assert.equal(await page.locator('.ds-topic').count(), 11);
+  assert.match(await page.locator('#dsSummary').textContent(), /^11 data structures/);
 
   // Cloud merge remains event-based and preserves unrelated private fields.
   const remote = { id: 'trees', title: 'trees', notes: 'Cloud fixture only', updatedAt: '2099-01-01', customMetadata: 'preserved' };
   await page.evaluate(item => window.dispatchEvent(new CustomEvent('recall-cloud-data', { detail: { kind: 'structures', items: [item] } })), remote);
   assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item => item.id === 'trees')), remote);
   assert.equal(await page.evaluate(() => window.RecallStructures().find(item => item.id === 'strings').stringLegacyBackup), 'Strings original archive');
+
+  // Old cloud-only extra sections must not reappear or lose their notes.
+  const cloudExtra = {id:'legacy-dynamic-programming',title:'Dynamic Programming',notes:'Private legacy cloud notes',updatedAt:'2099-02-01',customMetadata:{preserve:true}};
+  const updatedHidden = {...seed.find(item=>item.id==='custom-existing'),notes:privateText+' New remote hidden version',updatedAt:'2099-03-01'};
+  await page.evaluate(()=>window.addEventListener('recall-cloud-local',event=>{window.fixtureSyncRecords=event.detail.items;}));
+  await page.evaluate(items => window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind:'structures',items}})), [cloudExtra,updatedHidden]);
+  assert.deepEqual(await page.evaluate(()=>window.fixtureSyncRecords.find(item=>item.id==='custom-existing')),updatedHidden);
+  assert.deepEqual(await page.locator('.ds-topic').evaluateAll(nodes=>nodes.map(node=>node.dataset.id)),canonicalIds);
+  assert.deepEqual(await page.evaluate(()=>window.RecallStructures().find(item=>item.id==='custom-deleted')),seed.find(item=>item.id==='custom-deleted'));
+  await page.locator('#dsSearch').fill('New remote hidden version');
+  assert.equal(await page.locator('.ds-topic').count(),0);
+  await page.locator('#dsSearch').fill('');
+
+  assert.equal(await page.locator('.ds-topic').count(),11);
+  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'),'union-find');
+  assert.equal(await page.locator('[data-nav-id="legacy-dynamic-programming"]').count(),0);
+  assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item=>item.id==='legacy-dynamic-programming')),cloudExtra);
+  await page.reload();
+  await page.locator('#dsToggle').click();
+  assert.equal(await page.locator('.ds-topic').count(),11);
+  assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item=>item.id==='legacy-dynamic-programming')),cloudExtra);
+  const sharedRecords = await page.evaluate(()=>window.RecallStructures());
+  const secondDevice = await newContext({viewport:{width:820,height:1180}});
+  const secondPage = await secondDevice.newPage();
+  secondPage.on('pageerror',error=>errors.push(error.message));
+  await secondPage.goto(base);
+  await secondPage.locator('#dsToggle').click();
+  await secondPage.evaluate(items=>window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind:'structures',items}})), sharedRecords);
+  assert.equal(await secondPage.locator('.ds-topic').count(),11);
+  assert.equal(await secondPage.locator('[data-nav-id]').last().getAttribute('data-nav-id'),'union-find');
+  assert.deepEqual(await secondPage.evaluate(()=>window.RecallStructures().find(item=>item.id==='legacy-dynamic-programming')),cloudExtra);
+  assert.deepEqual(await secondPage.evaluate(()=>window.RecallStructures().find(item=>item.id==='custom-existing')),updatedHidden);
+  assert.deepEqual(await secondPage.locator('.ds-topic').evaluateAll(nodes=>nodes.map(node=>node.dataset.id)),canonicalIds);
+  await secondPage.reload();
+  await secondPage.locator('#dsToggle').click();
+  assert.equal(await secondPage.locator('.ds-topic').count(),11);
+  assert.equal(await secondPage.locator('.ds-topic').last().getAttribute('data-id'),'union-find');
+  assert.match(await secondPage.locator('#dsSummary').textContent(), /^11 data structures/);
+  await secondDevice.close();
 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.locator('[data-nav-id="hash-maps"]').click();
@@ -210,7 +247,7 @@ async function run() {
   assert.equal(await deniedPage.locator('[data-id="trees"] .ag-section[open]').count(), 8);
   await denied.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: browser notes/editing, scoped state and reload, search all nine guides, keyboard/copy, custom add/delete, cloud merge, mobile, empty/missing/all-missing guides, denied storage.');
+  console.log('PASS: browser notes/editing, scoped state and reload, search all nine guides, keyboard/copy, hidden-note preservation, two-device cloud merge/reload, mobile, empty/missing/all-missing guides, denied storage.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   if (browser) await browser.close();

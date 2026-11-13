@@ -13,6 +13,8 @@ A mobile-first, local-first revision and goal-tracking app hosted on GitHub Page
 - **Complexity reference:** Pattern recognition, time complexity, and space complexity.
 - **Goals & Habits:** Editable daily plans, habit streaks (daily/weekday/weekly), future to-dos, monthly goals, and a compact Settings panel for cloud sync and backups.
 
+DSA Revision intentionally ends at **Union Find**. Older extra notebooks are hidden from the topic list, navigation, search and counts, but their private notes and sync/backup records are preserved. Refresh the website on each device to load this shared display rule; an already-open or offline page may still show an older version.
+
 ### Understanding progress numbers
 
 - **Saved:** Records in your Coding or SQL notebook; saving a problem does **not** mean it was solved.

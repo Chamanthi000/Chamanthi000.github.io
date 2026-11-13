@@ -82,6 +82,26 @@ test('Strings guide supplies collapsible interview reference while preserving pr
  assert.ok(dsRevision.includes('const personalHtml=!legacyGuide&&personal'));
  assert.ok(guide.html.includes('KMP')&&guide.html.includes('casefold')&&guide.html.includes('Minimum Window Substring'));
 });
+test('DSA ends at Union Find without deleting hidden private records',()=>{
+ const prefix='const presets=';
+ const raw=dsRevision.slice(dsRevision.indexOf(prefix)+prefix.length).split(';')[0];
+ const presets=JSON.parse(raw);
+ assert.equal(presets.length,11);
+ assert.equal(presets.at(-1).id,'union-find');
+ const line=dsRevision.split(String.fromCharCode(10)).find(text=>text.startsWith('const isVisibleTopic='));
+ assert.ok(line,'Display must have an explicit canonical-topic predicate');
+ const visible=new Function('presetRank',line+'return isVisibleTopic;')(new Map(presets.map((item,i)=>[item.id,i])));
+ for(const item of presets)assert.equal(visible(item),true);
+ assert.equal(visible({id:'custom-old',notes:'Keep this private text'}),false);
+ assert.equal(visible({id:'graphs',deleted:true}),false);
+ assert.ok(dsRevision.includes('records.filter(x=>isVisibleTopic(x)&&'));
+ assert.ok(dsRevision.includes('records.filter(isVisibleTopic)'));
+ assert.ok(dsRevision.includes('window.RecallStructures=()=>records'));
+ assert.ok(dsRevision.includes("detail:{kind:'structures',items:records}"));
+ assert.ok(!dsRevision.includes('id="dsAdd"'));
+ assert.ok(!dsRevision.includes('data-remove='));
+});
+
 test('Due means solved AND scheduled, never just saved',()=>{
  const snippet=code.match(/function due\(n\)\{[^}]*\}/)?.[0];
  assert.ok(snippet);
