@@ -239,6 +239,8 @@ requestLogin=async()=>{try{await signInWithPopup(auth,provider)}catch(e){
 if(logout)logout.onclick=()=>signOut(auth);
 window.addEventListener('recall-cloud-local',e=>{const {kind,items}=e.detail||{};if(!kinds.includes(kind))return;if(!state.user){statusText('Saved on this device · Sign in for cloud sync');return}putLocal(kind,items)});
 window.addEventListener('online',()=>{if(!state.user)return;statusText('Back online · Retrying queued cloud saves…');for(const key of state.pending.keys())arm(key,0)});
+window.addEventListener('offline',()=>{if(state.user)statusText('⚠ Offline · Changes saved on this device; cloud sync will retry on reconnection')});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.user&&state.pending.size){for(const key of state.pending.keys())arm(key,0)}});
 window.RecallCloud={
   get user(){return state.user},
   sync(kind,items){if(state.user)putLocal(kind,items)},
