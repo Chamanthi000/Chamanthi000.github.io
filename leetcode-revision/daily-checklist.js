@@ -262,7 +262,7 @@ function readSharedPlan(){
  if(!raw||raw.length>12000)return null;
  try{
   const p=JSON.parse(raw);
-  if(p.v!==1||typeof p.date!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(p.date)||isoDate(new Date(p.date+'T12:00:00'))!==p.date)return null;
+  if(p.v!==1||typeof p.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(p.date)||isoDate(new Date(p.date+'T12:00:00'))!==p.date)return null;
   if(!Array.isArray(p.tasks)||p.tasks.length<1||p.tasks.length>30)return null;
   const tasks=p.tasks.map((entry,i)=>{
    if(!Array.isArray(entry)||entry.length!==3)return null;
