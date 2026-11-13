@@ -1757,3 +1757,190 @@ body.rev-index #dataStructureRevision .ds-topic summary{min-height:62px}
 body.rev-index #dataStructureRevision .ds-topic-copy{gap:0}
 body.rev-index #dataStructureRevision .ds-topic-nav{grid-template-columns:1fr}
 body.rev-index #dataStructureRevision .ds-nav-label{display:none}
+
+
+/* Restore original Data Structure Revision look v15 */
+body.rev-index #dataStructureRevision{
+  margin:0 0 17px!important;
+  overflow:hidden!important;
+  border:1px solid #dfe9df!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 4px 14px rgba(40,93,70,.035)!important;
+}
+body.rev-index #dataStructureRevision .ds-toggle{
+  min-height:72px!important;
+  padding:17px 20px!important;
+  border-radius:0!important;
+  background:linear-gradient(110deg,#f1f7ef,#fbfdf9)!important;
+}
+body.rev-index #dataStructureRevision .ds-toggle strong{
+  font-size:15px!important;
+  letter-spacing:0!important;
+}
+body.rev-index #dataStructureRevision .ds-toggle small{
+  margin-top:4px!important;
+  font-size:12px!important;
+  line-height:1.4!important;
+}
+body.rev-index #dataStructureRevision .ds-mark{
+  width:39px!important;
+  height:39px!important;
+  border-radius:12px!important;
+}
+body.rev-index #dataStructureRevision .ds-body{
+  padding:15px 20px 20px!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+body.rev-index #dataStructureRevision .ds-cheatsheet-intro,
+body.rev-index #dataStructureRevision .ds-view-switch,
+body.rev-index #dataStructureRevision .ds-study-loop,
+body.rev-index #dataStructureRevision .ds-add-row{
+  display:none!important;
+}
+body.rev-index #dataStructureRevision .ds-toolbar{
+  margin-bottom:10px!important;
+}
+body.rev-index #dataStructureRevision .ds-search{
+  min-height:auto!important;
+  padding:11px 12px!important;
+  border:1px solid #dbe6dc!important;
+  border-radius:10px!important;
+  background:#fbfdfa!important;
+  box-shadow:none!important;
+}
+body.rev-index #dataStructureRevision .ds-meta{
+  margin:4px 0 12px!important;
+}
+body.rev-index #dataStructureRevision .ds-topic-nav{
+  position:static!important;
+  z-index:auto!important;
+  display:flex!important;
+  grid-template-columns:none!important;
+  gap:8px!important;
+  overflow-x:auto!important;
+  margin:0 0 3px!important;
+  padding:3px 1px 12px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  scrollbar-width:thin;
+}
+body.rev-index #dataStructureRevision .ds-topic-chip{
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  min-height:36px!important;
+  padding:8px 12px!important;
+  border:1px solid #d8e5da!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#41604b!important;
+  font:700 12px 'Plus Jakarta Sans',sans-serif!important;
+  white-space:nowrap!important;
+}
+body.rev-index #dataStructureRevision .ds-topic-chip.has-notes{
+  border-color:#c8ddcb!important;
+  background:#f0f7ef!important;
+  color:#28593d!important;
+}
+body.rev-index #dataStructureRevision .ds-topic-chip.has-notes::after{
+  content:' •'!important;
+  color:#449366!important;
+}
+body.rev-index #dataStructureRevision .ds-list{
+  display:grid!important;
+  gap:9px!important;
+  margin-top:13px!important;
+}
+body.rev-index #dataStructureRevision .ds-topic{
+  overflow:hidden!important;
+  border:1px solid #e2eae0!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+body.rev-index #dataStructureRevision .ds-topic[open]{
+  border-color:#c6dcca!important;
+  box-shadow:0 3px 14px rgba(53,95,67,.07)!important;
+}
+body.rev-index #dataStructureRevision .ds-topic summary{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-height:49px!important;
+  padding:14px 15px!important;
+  background:#fff!important;
+}
+body.rev-index #dataStructureRevision .ds-topic summary:hover{
+  background:#f9fcf8!important;
+}
+body.rev-index #dataStructureRevision .ds-topic[open] summary{
+  border-bottom:1px solid #e2ebe2!important;
+  background:linear-gradient(110deg,#eef6ed,#fbfdf9)!important;
+}
+body.rev-index #dataStructureRevision .ds-topic-icon,
+body.rev-index #dataStructureRevision .ds-topic-desc,
+body.rev-index #dataStructureRevision .ds-topic-time{
+  display:none!important;
+}
+body.rev-index #dataStructureRevision .ds-topic-name{
+  flex:1!important;
+  color:#31533e!important;
+  font-size:14px!important;
+  font-weight:800!important;
+  line-height:1.4!important;
+}
+body.rev-index #dataStructureRevision .ds-topic-side{
+  display:contents!important;
+}
+body.rev-index #dataStructureRevision .ds-topic-symbol{
+  display:inline!important;
+  width:auto!important;
+  height:auto!important;
+  padding:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#69a482!important;
+  font-size:15px!important;
+}
+body.rev-index #dataStructureRevision .ds-note-count{
+  display:inline-block!important;
+  padding:4px 8px!important;
+  border:1px solid #dde7df!important;
+  border-radius:999px!important;
+  background:#f8fbf8!important;
+  color:#809487!important;
+  font-size:11px!important;
+  white-space:nowrap!important;
+}
+body.rev-index #dataStructureRevision .ds-editor{
+  padding:0 14px 14px!important;
+  background:#fff!important;
+}
+body.rev-index #dataStructureRevision .ds-readview{
+  max-width:none!important;
+  margin:0!important;
+}
+body.rev-index #dataStructureRevision .ds-note-input{
+  min-height:245px!important;
+  max-height:650px!important;
+  padding:15px!important;
+  border:1px solid #dce5da!important;
+  border-radius:11px!important;
+  background:#fbfcfa!important;
+  font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace!important;
+}
+@media(max-width:700px){
+  body.rev-index #dataStructureRevision .ds-body{padding:13px!important}
+  body.rev-index #dataStructureRevision .ds-toggle{padding:14px!important}
+  body.rev-index #dataStructureRevision .ds-topic-nav{padding-bottom:10px!important}
+  body.rev-index #dataStructureRevision .ds-topic-chip{min-height:40px!important;padding:9px 12px!important}
+  body.rev-index #dataStructureRevision .ds-topic summary{padding:14px 12px!important}
+  body.rev-index #dataStructureRevision .ds-topic-name{font-size:15px!important}
+  body.rev-index #dataStructureRevision .ds-editor{padding:0 10px 12px!important}
+  body.rev-index #dataStructureRevision .ds-note-input{min-height:300px!important;font-size:14px!important;line-height:1.75!important}
+}
