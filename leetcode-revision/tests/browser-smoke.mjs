@@ -82,6 +82,25 @@ try{
  await page.locator('#settingsSection > summary').click();
  assert.ok(await page.locator('#backupEverything').isVisible());
  capture('Weekly goal persists and Settings expands','PASS');
+ const plan={v:1,date:'2026-11-13',tasks:[['07:00','','Wake up'],['07:00','08:00','Breakfast and skincare'],['22:00','','Sleep']]};
+ await page.goto(origin+'/goals.html?dailyPlan='+encodeURIComponent(JSON.stringify(plan)),{waitUntil:'domcontentloaded'});
+ assert.equal(await page.locator('#dailyImportBanner').count(),1);
+ await page.locator('#dailyImportBanner button').click();
+ assert.equal(await page.locator('#dailyDate').inputValue(),'2026-11-13');
+ assert.equal(await page.locator('#dailyTasks .dailyRow').count(),3);
+ assert.equal(await page.locator('#dailyImportBanner').count(),0);
+ const savedPlan=await page.evaluate(()=>JSON.parse(localStorage.getItem('recall-goals-habits-v1')));
+ assert.equal(savedPlan.habits.find(h=>h.id==='__recall_daily_2026-11-13').tasks[0].name,'Wake up');
+ assert.ok(!savedPlan.habits.some(h=>h.id==='__recall_daily_template_v1'));
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.locator('#dailyDate').fill('2026-11-13');
+ await page.locator('#dailyDate').dispatchEvent('change');
+ assert.equal(await page.locator('#dailyTasks .dailyRow').count(),3);
+ capture('Shared plan saves only chosen date and persists after reload','PASS');
+ const invalid={v:1,date:'2026-11-31',tasks:[['07:00','','Wrong date']]};
+ await page.goto(origin+'/goals.html?dailyPlan='+encodeURIComponent(JSON.stringify(invalid)),{waitUntil:'domcontentloaded'});
+ assert.equal(await page.locator('#dailyImportBanner').count(),0);
+ capture('Malformed shared checklist is safely rejected','PASS');
  await context.close();
  console.log(JSON.stringify({result:'PASS',checks:report.length,report},null,2));
 }catch(error){
