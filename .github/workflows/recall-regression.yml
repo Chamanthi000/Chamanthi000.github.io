@@ -24,6 +24,8 @@ jobs:
           node-version: "22"
       - name: Test progress, reminders, storage, and accessibility
         run: node --test leetcode-revision/tests/recall.test.mjs
+      - name: Validate Strings Python examples and interview templates
+        run: python3 leetcode-revision/tests/strings-guide-validation.py
 
   browser:
     runs-on: ubuntu-24.04
