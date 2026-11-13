@@ -198,7 +198,7 @@ function arm(key,delay){
    }
    if(state.pending.get(key)===value)state.pending.delete(key);
    state.retries.delete(key);
-   statusText(state.pending.size?'✓ Saved on device · Cloud syncing…':'✓ Synced to private cloud · Version history protected');
+   statusText(state.pending.size?'✓ Saved on device · Cloud syncing…':outcome.archived?'✓ Synced to cloud · Previous version archived':'✓ Synced to private cloud · Device backups retained');
   }catch(e){
    const count=(state.retries.get(key)||0)+1;state.retries.set(key,count);
    if(state.pending.get(key)===value)arm(key,Math.min(60000,1000*2**Math.min(count,6)));
