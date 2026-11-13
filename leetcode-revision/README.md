@@ -30,13 +30,28 @@ Open a Data Structure notebook or the SQL pattern guide and choose **Need practi
 
 - Coding problems, SQL problems, Data Structure notes, concept ratings, goals, and habits are saved to browser localStorage first.
 - Optional **Google sign-in** privately syncs records between devices through Firebase Firestore. Firestore rules restrict access to each signed-in account. A blocked popup may fall back to redirect-based sign-in.
-- Failed cloud writes display a warning and automatically retry. If a remote record differs from an older local copy, a conflict archive is retained on that device for downloading and comparison.
-- The Goals & Habits page's **Settings, sync & backups** panel has full JSON export, guarded import, restore preview, and before-restore safety download.
+- Each edit is first saved in browser localStorage. With the **same Google account on every device**, Firebase then synchronizes Coding/SQL problems, data-structure notebooks (including Arrays), concept reviews, goals, habits, dated plans, future tasks, and monthly goals.
+- Cloud writes now use Firestore transactions: stale or same-timestamp conflicting edits cannot silently overwrite a newer cloud version. Divergent local/cloud copies are kept in local conflict archives for review.
+- **Private cloud version history:** on a successful update, the prior cloud record is retained periodically in a separate per-record history document under your signed-in account. Up to 12 historical versions per record are kept, subject to a size cap. These typed history documents are excluded from problem totals and never published to GitHub.
+- The **Download cloud version history** button appears on Coding and Goals. This exports a private JSON of previous cloud versions. Keep this download in a personal, access-controlled location; it is a version-history archive, not the ordinary one-click full-account restore format.
+- Failed cloud writes display a warning and retry after reconnection (or when the signed-in page is reopened). Browser persistence remains primary while offline; Firestore transactions require a live connection. Do **not** assume a pending edit has synced until the status confirms a cloud write.
+- The Goals & Habits page's **Settings, sync & backups** panel has full JSON export of current data, guarded import, restore preview, and before-restore safety download.
 - The normal restore path merges imported records instead of clearing unrelated records. Matching record IDs are replaced by the selected imported version after confirmation; inspect the preview.
 - Automatic versions are retained in IndexedDB on that device (up to 20 snapshots). Periodically download a backup to a private location to protect against lost devices or browser data clearing.
 - The public GitHub repository is for application source. **Do not put private notes, passwords, or a GitHub token in this public repository.** The obsolete public-GitHub notes-sync interface was removed.
 
 **Notifications:** Browser reminders work while the Goals & Habits page is open. They are not reliable background push notifications when the page or browser is closed. Export upcoming deadlines to a calendar with alarms for offline reminders.
+
+
+### How to keep every device aligned
+
+1. On each iPhone, iPad, and desktop browser, open [Recall](https://chamanthi000.github.io/leetcode-revision/) and **sign in to the same Google email**. Verify the small signed-in email label. Different accounts do not automatically share notes.
+2. Edit and save normally. **Saved on device** means only the local copy is confirmed; **Syncing to cloud** means the remote save is still pending; **Synced to private cloud** means Firebase acknowledged it. If offline, keep the local copy and reopen the site after reconnecting to sync.
+3. Under **Goals & Habits → Settings, sync & backups**, use **Back up everything** periodically to download a full restorable JSON. **Download cloud history** gives separate older-version archives. Store files somewhere private outside the browser (iCloud Drive, private Google Drive, etc.).
+4. If an unexpected version appears, check **Version conflict copies** before changing that record again. Recall does not promise automatic merging of two simultaneously edited versions of the same note; it preserves recoverable copies instead.
+5. The public learning-guide code updates across all devices after GitHub Pages deploys. Personal notes are **not** stored in the public GitHub repository, and view-only preferences are not necessarily synced.
+
+**Limits:** The website cannot guarantee instantaneous off-device saves while offline, or permanent survival of every failure scenario. Automatic IndexedDB snapshots live on the current device; private Firebase keeps the latest server copy plus bounded history when Google sign-in is connected. A downloaded external backup remains the best independent safety copy.
 
 ## Automated tests
 
