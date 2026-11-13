@@ -77,6 +77,17 @@ assert set(env["repeated_windows"]("AAAAACCCCCAAAAACCCCCCAAAAAGGGTTT")) == {
     "AAAAACCCCC", "CCCCCAAAAA"
 }
 assert env["all_occurrences"]("aaaa", "aa") == [0, 1, 2]
+assert env["remove_k_duplicates"]("deeedbbcccbdaa", 3) == "aa"
+assert len(env["generate_parentheses"](3)) == 5
+assert env["partition_palindromes"]("aab") == [["a","a","b"],["aa","b"]]
+assert env["min_palindrome_cuts"]("aab") == 1
+assert env["manacher_longest"]("babad") in ("bab","aba")
+assert env["manacher_longest"]("cbbd") == "bb"
+assert env["manacher_longest"]("") == ""
+assert env["rabin_karp"]("aaaa", "aa") == [0, 1, 2]
+matches=set(env["aho_corasick"]("ushers",["he","she","his","hers"]))
+assert {(2,0),(1,1),(2,3)} <= matches
+
 print(
     f"PASS: {len(data['fundamentals'])} executable fundamentals; "
     f"{len(data['templates'])} compiled Python templates; "
