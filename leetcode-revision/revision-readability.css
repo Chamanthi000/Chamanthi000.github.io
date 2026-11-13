@@ -351,3 +351,35 @@ body.rev-index .ds-edit-toggle{border-radius:999px}
  body.rev-index .ds-readview pre{font-size:12.5px;line-height:1.7;padding:13px 12px}
  body.rev-index .ds-note-input{min-height:300px;font-size:14px;line-height:1.75;padding:14px}
 }
+
+
+/* Data Structure Revision · FAANG core guides v5 */
+body.rev-index .ds-core-guide{position:relative}
+body.rev-index .ds-guide-kicker{display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;padding:6px 9px;border-radius:999px;background:#e6f1e5;color:#2b6644;font:800 10px/1.2 'Plus Jakarta Sans',sans-serif;letter-spacing:.085em;text-transform:uppercase}
+body.rev-index .ds-core-guide>.ds-guide-kicker::before{content:'◆';font-size:7px;color:#5b9b70}
+body.rev-index .ds-personal-notes{margin-top:30px;padding-top:24px;border-top:2px solid #dce9dd}
+body.rev-index .ds-personal-notes>.ds-guide-kicker{background:#f3f5ef;color:#62705d}
+body.rev-index .ds-personal-notes>.ds-guide-kicker::before{content:'✎';font-size:11px;color:#7b8d76}
+body.rev-index .ds-core-guide h4{scroll-margin-top:18px}
+body.rev-index .ds-core-guide h4:not(:first-of-type){margin-top:32px}
+body.rev-index .ds-core-guide h4::after{content:'';height:1px;flex:1;background:linear-gradient(90deg,#dbe8dc,transparent);margin-left:4px}
+body.rev-index .ds-core-guide p{color:#304b39}
+body.rev-index .ds-core-guide ul{padding-left:22px}
+body.rev-index .ds-core-guide li{padding-left:5px}
+body.rev-index .ds-core-guide pre{margin:15px 0 22px;background:#20372c;border-color:#315442}
+body.rev-index .ds-core-guide .ds-fact{background:#eef6ee;border-color:#cfe2d2}
+body.rev-index .ds-topic[open] .ds-note-count{background:#eaf4e9;border-color:#c7ddca;color:#2e6845;font-weight:800}
+body.rev-index .ds-readview{max-width:920px;margin-inline:auto}
+body.rev-index .ds-readview code{font-variant-ligatures:none}
+body.rev-index .ds-readview p+pre,body.rev-index .ds-readview ul+pre{margin-top:11px}
+body.rev-index .ds-readview pre+ .ds-fact{margin-top:4px}
+body.rev-index .ds-readview .ds-big-o{vertical-align:baseline}
+body.rev-index .ds-editor>.ds-meta{max-width:920px;margin:11px auto 0}
+body.rev-index .ds-note-input{max-width:920px;margin-inline:auto}
+@media(max-width:700px){
+ body.rev-index .ds-guide-kicker{font-size:9px;margin-bottom:11px}
+ body.rev-index .ds-personal-notes{margin-top:24px;padding-top:19px}
+ body.rev-index .ds-core-guide h4:not(:first-of-type){margin-top:27px}
+ body.rev-index .ds-core-guide h4::after{display:none}
+ body.rev-index .ds-core-guide ul{padding-left:20px}
+}
