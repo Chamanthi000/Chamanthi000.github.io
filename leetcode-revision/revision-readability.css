@@ -291,3 +291,63 @@ body.rev-goals #syncSummary{font-size:13px;color:#8c5f79;line-height:1.5}
  body.rev-page .concept-controls{padding:12px}
  body.rev-page .concept-rate{padding:11px}
 }
+
+
+/* Data Structure Revision · study-mode polish v2 */
+body.rev-index .ds-revision{border-color:#d5e5d8;box-shadow:0 8px 28px rgba(43,88,59,.06)}
+body.rev-index .ds-body{padding-top:15px}
+body.rev-index .ds-meta{gap:14px;margin:4px 0 12px}
+body.rev-index .ds-meta-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+body.rev-index .ds-collapse-all{border:1px solid #d7e4d8;background:#f8fbf7;color:#3c674c;border-radius:999px;padding:7px 11px;font:700 12px 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+body.rev-index .ds-collapse-all:hover{background:#edf5ec}
+body.rev-index .ds-topic-nav{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding:3px 1px 12px;margin:0 0 3px;overscroll-behavior-inline:contain}
+body.rev-index .ds-topic-chip{flex:0 0 auto;border:1px solid #d8e5da;background:#fff;color:#41604b;border-radius:999px;padding:8px 12px;font:700 12px 'Plus Jakarta Sans',sans-serif;cursor:pointer;white-space:nowrap;min-height:36px}
+body.rev-index .ds-topic-chip:hover{background:#eef6ee;border-color:#bad4c0}
+body.rev-index .ds-topic-chip.has-notes{background:#f0f7ef;border-color:#c8ddcb;color:#28593d}
+body.rev-index .ds-topic-chip.has-notes::after{content:' •';color:#449366}
+body.rev-index .ds-list{gap:11px}
+body.rev-index .ds-topic{border-radius:14px;transition:border-color .15s,box-shadow .15s,background .15s}
+body.rev-index .ds-topic summary{position:relative;background:#fff}
+body.rev-index .ds-topic summary:hover{background:#f9fcf8}
+body.rev-index .ds-topic[open] summary{background:linear-gradient(110deg,#eef6ed,#fbfdf9);border-bottom:1px solid #e2ebe2}
+body.rev-index .ds-topic[open]{border-color:#bcd6c1;box-shadow:0 8px 24px rgba(43,88,59,.08)}
+body.rev-index .ds-topic-symbol{transition:transform .18s ease}
+body.rev-index .ds-topic[open] .ds-topic-symbol{transform:rotate(90deg)}
+body.rev-index .ds-note-count{border:1px solid #dde7df;border-radius:999px;padding:4px 8px;background:#f8fbf8;white-space:nowrap}
+body.rev-index .ds-readview{background:linear-gradient(180deg,#fcfefb,#f9fcf8);border-color:#d9e7db;padding:22px 24px}
+body.rev-index .ds-readview h4{display:flex;align-items:center;gap:10px;margin:28px 0 13px;padding:0 0 10px;font-size:17px;color:#245b3d}
+body.rev-index .ds-readview h4:first-child{margin-top:0}
+body.rev-index .ds-section-no{display:inline-grid;place-items:center;flex:0 0 auto;width:28px;height:28px;border-radius:9px;background:#e3f0e4;color:#2f704a;font:800 12px 'Plus Jakarta Sans',sans-serif}
+body.rev-index .ds-readview p{max-width:72ch;margin-bottom:18px}
+body.rev-index .ds-readview ul{max-width:72ch;margin:7px 0 20px}
+body.rev-index .ds-readview li{margin:6px 0}
+body.rev-index .ds-readview pre{position:relative;border:1px solid #345647;box-shadow:inset 0 1px rgba(255,255,255,.05)}
+body.rev-index .ds-fact{display:grid;grid-template-columns:minmax(105px,145px) minmax(0,1fr);gap:12px;align-items:start;max-width:72ch;margin:10px 0;padding:12px 14px;border:1px solid #d5e5d7;border-radius:11px;background:#f1f7f0}
+body.rev-index .ds-fact strong{text-transform:uppercase;letter-spacing:.04em;font:800 11px/1.5 'Plus Jakarta Sans',sans-serif;color:#4f735b}
+body.rev-index .ds-fact span{font-size:15px;line-height:1.65;color:#304b39}
+body.rev-index .ds-big-o{display:inline-block;padding:1px 6px;margin:0 1px;border:1px solid #c9ddcd;border-radius:7px;background:#e8f2e7;color:#245a3b;font:800 13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+body.rev-index .ds-example{display:flex;gap:10px;align-items:flex-start;max-width:72ch;margin:10px 0 15px;padding:11px 13px;border-left:3px solid #8ab99a;background:#f7faf6;border-radius:0 10px 10px 0}
+body.rev-index .ds-example strong{flex:0 0 auto;color:#34714e;font:800 12px/1.6 'Plus Jakarta Sans',sans-serif;text-transform:uppercase;letter-spacing:.03em}
+body.rev-index .ds-example span{font-size:15px;line-height:1.65;color:#36503e}
+body.rev-index .ds-note-input{border-color:#d1e0d4;box-shadow:inset 0 1px 2px rgba(30,70,44,.03)}
+body.rev-index .ds-edit-toggle{border-radius:999px}
+@media(max-width:700px){
+ body.rev-index .ds-body{padding:12px}
+ body.rev-index .ds-meta{align-items:flex-start}
+ body.rev-index .ds-meta-actions{width:100%;margin-left:0;justify-content:space-between}
+ body.rev-index .ds-topic-nav{margin-left:-2px;margin-right:-2px;padding-bottom:10px}
+ body.rev-index .ds-topic-chip{min-height:40px;padding:9px 12px;font-size:12px}
+ body.rev-index .ds-topic summary{padding:14px 12px}
+ body.rev-index .ds-topic-name{font-size:15px}
+ body.rev-index .ds-note-count{font-size:11px;padding:3px 7px}
+ body.rev-index .ds-editor{padding:0 10px 12px}
+ body.rev-index .ds-readview{padding:16px 14px;border-radius:10px}
+ body.rev-index .ds-readview h4{font-size:16px;gap:8px;margin-top:24px}
+ body.rev-index .ds-readview p,body.rev-index .ds-readview li{font-size:15px;line-height:1.78}
+ body.rev-index .ds-fact{grid-template-columns:1fr;gap:4px;padding:11px 12px}
+ body.rev-index .ds-fact span,body.rev-index .ds-example span{font-size:14px}
+ body.rev-index .ds-example{display:block;padding:10px 12px}
+ body.rev-index .ds-example strong{display:block;margin-bottom:3px}
+ body.rev-index .ds-readview pre{font-size:12.5px;line-height:1.7;padding:13px 12px}
+ body.rev-index .ds-note-input{min-height:300px;font-size:14px;line-height:1.75;padding:14px}
+}
