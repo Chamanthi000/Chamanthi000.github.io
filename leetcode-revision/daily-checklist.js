@@ -106,6 +106,7 @@ function render(){
  $('dailyDate').value=selected;
  $('dailyDateBox').hidden=templateMode;
  $('dailyGoToday').hidden=templateMode;
+ $('dailyOpenTomorrow').hidden=templateMode;
  $('dailyTemplateMode').textContent=templateMode?'← Back to checklist':'Edit recurring template';
  $('dailyStats').textContent=templateMode?tasks.length+' template tasks':done+' / '+tasks.length+' completed';
  $('dailyPercent').textContent=templateMode?'':pct+'%';
@@ -218,6 +219,7 @@ $('dailyPlanTomorrow').onclick=()=>{
  render();
  $('dailyChecklist').scrollIntoView({behavior:'smooth',block:'start'});
 };
+$('dailyOpenTomorrow').onclick=$('dailyPlanTomorrow').onclick;
 function checkReminders(){
  const current=isoDate();
  if(current!==lastDate){
