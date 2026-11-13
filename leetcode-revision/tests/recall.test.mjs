@@ -148,11 +148,62 @@ test('Restoring an older archive merges instead of deleting new categories',asyn
  assert.deepEqual(out,['reloaded']);
 });
 
+test('Private cloud transactions preserve older versions and reject stale or tied edits',async()=>{
+ assert.ok(firebase.includes('runTransaction'));
+ assert.ok(firebase.includes("recordType!=='syncBackup'"));
+ assert.ok(firebase.includes('metadata?.fromCache'));
+ const start=firebase.indexOf('const HISTORY_PREFIX=');
+ const stop=firebase.indexOf('const historyButton=',start);
+ assert.ok(start>0&&stop>start,'Cloud versioning helpers must exist');
+ const store=new Map();
+ const runTransaction=async (_db,fn)=>{
+  const staged=new Map();
+  const tx={
+   get:async key=>({exists:()=>store.has(key),data:()=>store.get(key)}),
+   set:(key,value)=>{staged.set(key,value)}
+  };
+  const result=await fn(tx);
+  for(const [key,value] of staged)store.set(key,structuredClone(value));
+  return result;
+ };
+ const fakeDoc=(collectionName,id)=>collectionName+'/'+id;
+ const helpers=new Function('db','doc','list','cloudDocId','idOf','prepare','runTransaction','document','window','collection','getDocs','statusText','state',
+  firebase.slice(start,stop)+'return {writeWithHistory,historyId,sameRecord,cappedHistory};')(
+   {},fakeDoc,()=> 'coding',(kind,v)=>'structure-'+v.id,(kind,v)=>v.id,
+   (kind,v)=>({...v,recordType:'structure'}),runTransaction,{}, {},()=>{},()=>{},()=>{},{}
+  );
+ const first={id:'arrays',title:'Arrays',notes:'first preserved version',updatedAt:'2026-11-13T15:00:00.000Z'};
+ const second={...first,notes:'edited on iPad',updatedAt:'2026-11-13T15:01:00.000Z'};
+ assert.equal((await helpers.writeWithHistory('structures',first)).result,'saved');
+ assert.equal(store.get('coding/structure-arrays').notes,first.notes);
+ assert.equal((await helpers.writeWithHistory('structures',second)).result,'saved');
+ assert.equal(store.get('coding/structure-arrays').notes,second.notes);
+ const history=store.get('coding/'+helpers.historyId('structures',second));
+ assert.equal(history.recordType,'syncBackup');
+ assert.equal(history.versions.length,1);
+ assert.equal(history.versions[0].value.notes,first.notes);
+ const stale={...first,notes:'outdated phone edit',updatedAt:'2026-11-13T15:00:30.000Z'};
+ assert.equal((await helpers.writeWithHistory('structures',stale)).result,'remote-newer');
+ assert.equal(store.get('coding/structure-arrays').notes,second.notes,'Stale write must not overwrite cloud');
+ const tie={...second,notes:'different edit with same timestamp'};
+ assert.equal((await helpers.writeWithHistory('structures',tie)).result,'remote-newer');
+ assert.equal(store.get('coding/structure-arrays').notes,second.notes,'Equal timestamps should not silently overwrite');
+ assert.equal((await helpers.writeWithHistory('structures',second)).result,'unchanged');
+ assert.equal(store.get('coding/'+helpers.historyId('structures',second)).versions.length,1,'Do not create duplicate versions');
+ const many=Array.from({length:30},(_,i)=>({archivedAt:new Date(1000+i*3600000).toISOString(),value:{notes:'v'+i}}));
+ assert.equal(helpers.cappedHistory(many).length,12);
+});
+
 test('Private sync has retry, conflict archive, and mobile redirect fallback',()=>{
  assert.ok(firebase.includes('archiveConflict(kind'));
  assert.ok(firebase.includes('recall-sync-conflicts-v1'));
  assert.ok(firebase.includes('await signInWithRedirect(auth,provider)'));
  assert.ok(firebase.includes('Cloud save failed · Retrying automatically'));
+ assert.ok(index.includes('downloadCloudHistory'));
+ assert.ok(goals.includes('downloadCloudHistory'));
+ assert.ok(firebase.includes('downloadCloudHistory'));
+ assert.ok(firebase.includes('includeMetadataChanges:true'));
+ assert.ok(firebase.includes('writeWithHistory(kind,value)'));
  assert.ok(firebase.includes('recordType===\'conceptReview\''));
  assert.ok(!index.includes('github_pat_'));
  assert.ok(!index.includes('data/notes.json'));
