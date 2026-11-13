@@ -9,6 +9,7 @@ A mobile-first, local-first revision and goal-tracking app hosted on GitHub Page
 - **Coding:** Save LeetCode problems with title/number suggestions, difficulty, patterns, complexity, notes, mistakes, solution links, flashcards, and review history.
 - **SQL:** Track SQL interview questions, browse DataLemur and StrataScratch tutorials, review the SQL 50, and study 14 interview patterns with interactive recall prompts.
 - **Data Structures:** Editable notebooks with formatted reading mode and individual recall ratings.
+- **Strings FAANG reference:** Eight independently collapsible learning chapters: 53 Python operations, 18 fundamentals, 33 patterns, 39 copyable Python templates and 44 interview problems. Navigation, copy controls, mobile layouts, and personal-note review are shared with the Arrays guide.
 - **Complexity reference:** Pattern recognition, time complexity, and space complexity.
 - **Goals & Habits:** Editable daily plans, habit streaks (daily/weekday/weekly), future to-dos, monthly goals, and a compact Settings panel for cloud sync and backups.
 
@@ -61,7 +62,7 @@ Runs on pushes and pull requests via `.github/workflows/recall-regression.yml`:
 node --test leetcode-revision/tests/recall.test.mjs
 ```
 
-This test suite covers syntax, element references, solved/due counters, revision heatmap, weekly habits, concept-review persistence, backup restore merges, safe sync integration, and accessible controls.
+This test suite covers syntax, element references, solved/due counters, revision heatmap, weekly habits, concept-review persistence, backup restore merges, safe sync integration, and accessible controls. It additionally verifies the full Strings guide structure and nonduplicated private-note storage. The regression workflow also executes `python3 leetcode-revision/tests/strings-guide-validation.py` to compile and exercise Strings examples and algorithm templates.
 
 The separate Chromium smoke test checks layout overflow and readable body text on 390px iPhone, 820px iPad, and 1280px desktop viewports. It also creates and reloads fixture problems, solved/revised records, SQL concept ratings, and weekly habits in an isolated test browser:
 
