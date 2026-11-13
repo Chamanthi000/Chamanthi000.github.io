@@ -36,8 +36,10 @@ try{
    const metrics=await page.evaluate(()=>({documentWidth:document.documentElement.scrollWidth,viewport:innerWidth,fontSize:parseFloat(getComputedStyle(document.body).fontSize)}));
    assert.ok(metrics.documentWidth<=metrics.viewport+6,device.name+' '+name+' overflows horizontally by '+(metrics.documentWidth-metrics.viewport)+'px');
    assert.ok(metrics.fontSize>=15,device.name+' '+name+' renders undersized body text');
+   if(name==='Goals')assert.equal(await page.locator('#downloadCloudHistory').count(),1,'Goals settings must offer cloud history export');
    capture(device.name+' '+name+' responsive layout','PASS');
    if(name==='Coding'){
+    assert.equal(await page.locator('#downloadCloudHistory').count(),1,'Coding must offer signed-in cloud history export');
     await page.locator('#dsToggle').click();
     await page.locator('.ds-topic[data-id="arrays"] > summary').click();
     await page.locator('#ag-operations').waitFor();
