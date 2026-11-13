@@ -13,7 +13,7 @@ const dateKey=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2
 
 test('Every inline and standalone app script parses',()=>{
  for(const html of [index,goals,sqlGuide])for(const script of scripts(html))assert.doesNotThrow(()=>new Function(script));
- for(const s of ['data-structure-revision.js','array-interview-guide.js','concept-revision.js','daily-checklist.js','future-todos.js','monthly-goals.js','backup-all.js','auto-backup.js'])assert.doesNotThrow(()=>new Function(read(s)));
+ for(const s of ['data-structure-revision.js','array-interview-guide.js','string-interview-guide.js','concept-revision.js','daily-checklist.js','future-todos.js','monthly-goals.js','backup-all.js','auto-backup.js'])assert.doesNotThrow(()=>new Function(read(s)));
 });
 
 test('All static document references exist and no duplicate backup script loads',()=>{
@@ -60,6 +60,28 @@ test('Arrays guide covers interview requirements without replacing user notes',(
  assert.ok(arrayStyles.includes('ag-section-toggle'));
 });
 
+
+test('Strings guide supplies collapsible interview reference while preserving private notes',()=>{
+ const source=read('string-interview-guide.js'),target={};
+ new Function('window',source)(target);
+ const guide=target.RecallStringGuide;
+ assert.ok(guide?.html,'Strings reference must render');
+ assert.equal(guide.stats.operations,53);
+ assert.equal(guide.stats.fundamentals,18);
+ assert.equal(guide.stats.patterns,33);
+ assert.equal(guide.stats.templates,32);
+ const data=JSON.parse(source.match(/^const d=(.*);\n\nconst escape=/m)[1]);
+ assert.equal(data.practice.length,44);
+ for(const id of ['sg-operations','sg-fundamentals','sg-patterns','sg-recognize','sg-edges','sg-interview','sg-memorize','sg-practice'])assert.ok(guide.html.includes('id="'+id+'"'),id);
+ assert.equal((guide.html.match(/<details class="ag-section" data-ag-section="sg-/g)||[]).length,8);
+ assert.equal((guide.html.match(/<details\b/g)||[]).length,(guide.html.match(/<\/details>/g)||[]).length);
+ for(const token of ['data-ag-open="sg-operations"','data-ag-expand-all','data-ag-collapse-all','data-ds-copy','class="ag-practice"'])assert.ok(guide.html.includes(token),token);
+ assert.ok(index.includes('string-interview-guide.js'));
+ assert.ok(index.indexOf('string-interview-guide.js')<index.indexOf('data-structure-revision.js'));
+ for(const name of ['preservedStringMarkup','stringIntegratedNotes','STRING_ARCHIVE_KEY','stringOpenSections','downloadStringBackup'])assert.ok(dsRevision.includes(name),name);
+ assert.ok(dsRevision.includes('const personalHtml=!customGuide&&personal'));
+ assert.ok(guide.html.includes('KMP')&&guide.html.includes('casefold')&&guide.html.includes('Minimum Window Substring'));
+});
 test('Due means solved AND scheduled, never just saved',()=>{
  const snippet=code.match(/function due\(n\)\{[^}]*\}/)?.[0];
  assert.ok(snippet);
