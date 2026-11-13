@@ -77,12 +77,13 @@ function isDone(t,tasks){const h=linkOf(t,tasks);return h?(h.dates||[]).includes
 function writeTasks(tasks,extra){
  const id=templateMode?TEMPLATE:PREFIX+selected,now=new Date().toISOString(),previous=findRecord(id);
  const rec={...previous,id,recordType:templateMode?'dailyTemplate':'dailyDay',date:templateMode?'':selected,tasks:copy(tasks),updatedAt:now};
- api.saveHabits(habits=>{
+ const saved=api.saveHabits(habits=>{
   const ix=habits.findIndex(h=>h.id===id);
   if(ix>=0)habits[ix]=rec;else habits.push(rec);
   if(extra)extra(habits,now);
  });
  render();
+ return saved!==false;
 }
 function options(selectedId=''){
  return '<option value="">Not linked to habit</option>'+liveHabits().map(h=>'<option value="'+esc(h.id)+'" '+(selectedId===h.id?'selected':'')+'>'+esc(h.name)+'</option>').join('');
@@ -255,6 +256,58 @@ function setStatus(){
  $('dailyNotify').textContent=perm==='granted'?'Notifications enabled ✓':'Enable browser notifications';
  $('dailyNotify').disabled=perm==='granted';
 }
+// Private, one-time checklist link: the schedule stays in the link, never in public source.
+function readSharedPlan(){
+ const raw=new URLSearchParams(location.search).get('dailyPlan');
+ if(!raw||raw.length>12000)return null;
+ try{
+  const p=JSON.parse(raw);
+  if(p.v!==1||typeof p.date!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(p.date)||isoDate(new Date(p.date+'T12:00:00'))!==p.date)return null;
+  if(!Array.isArray(p.tasks)||p.tasks.length<1||p.tasks.length>30)return null;
+  const tasks=p.tasks.map((entry,i)=>{
+   if(!Array.isArray(entry)||entry.length!==3)return null;
+   const [start,end,rawName]=entry,name=typeof rawName==='string'?rawName.trim():'';
+   if(!name||name.length>160||typeof start!=='string'||typeof end!=='string')return null;
+   if((start&&!Number.isFinite(localTime(p.date,start)))||(end&&!Number.isFinite(localTime(p.date,end))))return null;
+   if(!start&&!end||start&&end&&localTime(p.date,end)<=localTime(p.date,start))return null;
+   return {id:'shared_'+p.date+'_'+i,name,start,end,done:false};
+  });
+  return tasks.every(Boolean)?{date:p.date,tasks}:null;
+ }catch{return null}
+}
+function setupSharedPlan(){
+ const plan=readSharedPlan();
+ if(!plan)return;
+ const banner=document.createElement('div');
+ banner.id='dailyImportBanner';
+ banner.setAttribute('role','region');
+ banner.setAttribute('aria-label','Import shared daily plan');
+ banner.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;margin:15px 0;border:1px solid #e7bad1;border-radius:13px;background:#fff0f7';
+ const message=document.createElement('div');
+ const heading=document.createElement('strong');
+ const day=new Date(plan.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+ heading.textContent='Plan ready for '+day;
+ const description=document.createElement('div');
+ description.textContent=plan.tasks.length+' tasks · Review and save to your private checklist. Your recurring template stays unchanged.';
+ description.style.cssText='font-size:12px;margin-top:3px;color:#88627a;line-height:1.5';
+ message.append(heading,description);
+ const button=document.createElement('button');
+ button.type='button';button.className='btn small';button.textContent='Save this plan';
+ button.onclick=()=>{
+  if(findRecord(PREFIX+plan.date)&&!confirm('Replace the existing checklist for '+day+'? Your recurring template and other days will not change.'))return;
+  selected=plan.date;templateMode=false;editing=null;
+  if(!writeTasks(plan.tasks)){description.textContent='Device save failed. Check storage space and try again.';return}
+  const params=new URLSearchParams(location.search);params.delete('dailyPlan');
+  const clean=location.pathname+(params.toString()?'?'+params.toString():'')+location.hash;
+  try{history.replaceState(history.state,'',clean)}catch{}
+  banner.remove();
+  $('dailyChecklist').scrollIntoView({block:'start',behavior:'smooth'});
+ };
+ banner.append(message,button);
+ const panel=$('dailyChecklist');
+ panel.insertBefore(banner,panel.children[1]||null);
+}
+setupSharedPlan();
 window.addEventListener('recall-cloud-local',e=>{if(e.detail?.kind==='habits')render()});
 window.addEventListener('recall-cloud-data',e=>{if(e.detail?.kind==='habits')setTimeout(()=>{render();checkReminders()},0)});
 window.addEventListener('focus',checkReminders);
