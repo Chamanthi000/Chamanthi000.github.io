@@ -74,6 +74,13 @@ const preservedArrayMarkup=(item,personal)=>{
  const manager=personal&&!migrated?'<div class="ag-consolidate"><strong>Safely consolidate your old Arrays notes</strong><p>Your original text is shown in the section above, without being added to public GitHub. The reference guide cannot automatically prove every old detail is duplicated. Review before moving it out of the old notes field; an archive and reversible copy will be kept.</p><div class="ag-consolidate-actions"><button type="button" data-ag-download>Download original notes</button><button type="button" data-ag-consolidate>Archive & consolidate old notes</button></div></div>':migrated?'<div class="ag-consolidate is-done"><strong>Personal notes consolidated</strong><p>The old notes field is clear. Every original character remains in your private additions and an archived copy. You can undo this.</p><div class="ag-consolidate-actions"><button type="button" data-ag-download>Download archive</button><button type="button" data-ag-restore>Restore old notes field</button></div></div>':'<p class="ag-empty-private">No existing personal Arrays notes found on this device yet. If you saved notes on another device, sign in with the same Google account to load them. Nothing has been deleted.</p>';
  return privateHtml+manager;
 };
+const preservedStringMarkup=(item,personal)=>{
+ const migrated=item?.stringMergeVersion===1;
+ const privateOpen=stringOpenSections.has('sg-private')?' open':'';
+ const privateHtml=personal?'<details class="ag-section sg-private-notes" data-ag-section="sg-private"'+privateOpen+'><summary class="ag-section-toggle"><div class="ag-section-head"><span class="ag-kicker">PRIVATE · SAVED ON YOUR ACCOUNT</span><h3>Your personal Strings notes · preserved verbatim</h3><p>The full text is retained in this guide. Review it against the reference; use Edit my notes to make changes.</p></div><span class="ag-section-chevron" aria-hidden="true">⌄</span></summary><div class="ag-section-content"><div class="ds-personal-notes">'+readable(personal)+'</div><details class="ag-raw-archive"><summary><strong>View exact saved text (unformatted)</strong></summary><pre>'+escape(personal)+'</pre></details>'+(migrated&&item.stringLegacyBackup&&item.stringLegacyBackup!==personal?'<details class="ag-raw-archive"><summary><strong>View original pre-consolidation archive</strong></summary><pre>'+escape(item.stringLegacyBackup)+'</pre></details>':'')+'</div></details>':'';
+ const manager=personal&&!migrated?'<div class="ag-consolidate"><strong>Safely consolidate your old Strings notes</strong><p>Your original text is shown in the section above, without being added to public GitHub. The reference guide cannot automatically prove every old detail is duplicated. Review before moving it out of the old notes field; an archive and reversible copy will be kept.</p><div class="ag-consolidate-actions"><button type="button" data-sg-download>Download original notes</button><button type="button" data-sg-consolidate>Archive & consolidate old notes</button></div></div>':migrated?'<div class="ag-consolidate is-done"><strong>Personal notes consolidated</strong><p>The old notes field is clear. Every original character remains in your private additions and an archived copy. You can undo this.</p><div class="ag-consolidate-actions"><button type="button" data-sg-download>Download archive</button><button type="button" data-sg-restore>Restore old notes field</button></div></div>':'<p class="ag-empty-private">No existing personal Strings notes found on this device yet. If you saved notes on another device, sign in with the same Google account to load them. Nothing has been deleted.</p>';
+ return privateHtml+manager;
+};
 const topicGuide=item=>String(guides[item?.id]||'');
 function renderTopic(item){
  const isArrayGuide=item?.id==='arrays'&&!!window.RecallArrayGuide?.html;
@@ -252,6 +259,68 @@ function restoreArrayNotes(){
  item.updatedAt=new Date().toISOString();
  if(!saveLocal()){Object.keys(item).forEach(k=>delete item[k]);Object.assign(item,prev);return;}
  $('dsStatus').textContent='✓ Original Arrays notes field restored';
+ cloudSend();render();
+}
+
+function stringRecord(){return records.find(x=>x.id==='strings'&&!x.deleted)}
+function downloadStringBackup(){
+ const item=stringRecord();if(!item)return;
+ const content=JSON.stringify({format:'recall-string-notes-backup',version:1,createdAt:new Date().toISOString(),record:item},null,2);
+ try{
+   const blob=new Blob([content],{type:'application/json'});
+   const url=URL.createObjectURL(blob),a=document.createElement('a');
+   a.href=url;a.download='recall-arrays-saved-notes-'+new Date().toISOString().slice(0,10)+'.json';
+   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+   $('dsStatus').textContent='Backup file prepared · Keep it somewhere private';
+ }catch(e){$('dsStatus').textContent='⚠ Download unavailable · Your existing notes were not changed';}
+}
+async function consolidateStringNotes(){
+ const item=stringRecord();if(!item||item.stringMergeVersion===1)return;
+ const existing=String(item.notes||'');if(!existing.trim()){$('dsStatus').textContent='No old Strings notes to consolidate';return;}
+ const user=window.RecallCloud?.user;
+ if(user&&typeof window.RecallCloud.readAll==='function'){
+   try{
+     const cloud=await window.RecallCloud.readAll();
+     const remote=(cloud.structures||[]).find(x=>x.id==='strings');
+     if(remote&&(String(remote.updatedAt||'')>String(item.updatedAt||'')||
+       (String(remote.updatedAt||'')===String(item.updatedAt||'')&&String(remote.notes||'')!==existing))){
+       $('dsStatus').textContent='⚠ Newer or different cloud notes detected · Refresh and review before consolidating';
+       return;
+     }
+   }catch(e){$('dsStatus').textContent='⚠ Cannot verify latest cloud notes · No changes made';return;}
+ }
+ if(!confirm('Archive and consolidate old Strings notes? The entire original text will remain inside the new guide and in a recoverable archive. Your old notes field will be cleared, but no text will be discarded. Download a backup first if you want an extra copy.'))return;
+ const archived={version:1,archivedAt:new Date().toISOString(),notes:existing,record:{...item}};
+ try{
+   const old=JSON.parse(localStorage.getItem(STRING_ARCHIVE_KEY)||'[]');
+   const all=(String.isString(old)?old:[]).concat([archived]).slice(-10);
+   localStorage.setItem(STRING_ARCHIVE_KEY,JSON.stringify(all));
+   const verified=JSON.parse(localStorage.getItem(STRING_ARCHIVE_KEY)||'[]');
+   if(verified.at(-1)?.notes!==existing)throw Error('Backup did not verify');
+ }catch(e){$('dsStatus').textContent='⚠ Could not verify backup · Old notes unchanged';return;}
+ const before={...item};
+ item.stringIntegratedNotes=existing;
+ item.stringLegacyBackup=existing;
+ item.stringMergeVersion=1;
+ item.notes='';
+ item.updatedAt=new Date().toISOString();
+ if(!saveLocal()){
+   Object.keys(item).forEach(k=>delete item[k]);Object.assign(item,before);
+   $('dsStatus').textContent='⚠ Save failed · Original notes restored in memory';
+   return;
+ }
+ $('dsStatus').textContent='✓ Old notes field archived · All text preserved in Strings guide';
+ cloudSend();render();
+}
+function restoreStringNotes(){
+ const item=stringRecord();if(!item||item.stringMergeVersion!==1)return;
+ if(!confirm('Restore the previous Strings notes field? Your archived copy remains available.'))return;
+ const prev={...item};
+ item.notes=String(item.stringIntegratedNotes||item.stringLegacyBackup||'');
+ item.stringMergeVersion=0;
+ item.updatedAt=new Date().toISOString();
+ if(!saveLocal()){Object.keys(item).forEach(k=>delete item[k]);Object.assign(item,prev);return;}
+ $('dsStatus').textContent='✓ Original Strings notes field restored';
  cloudSend();render();
 }
 
