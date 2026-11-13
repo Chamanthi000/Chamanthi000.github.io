@@ -150,3 +150,38 @@ body.rev-index #dataStructureRevision .ag details.ag-section>summary:focus-visib
  body.rev-index #dataStructureRevision .ag .ag-actions button{flex:1 1 145px;justify-content:center}
 }
 @media(prefers-reduced-motion:reduce){body.rev-index #dataStructureRevision .ag .ag-section-chevron{transition:none}}
+
+
+/* v5 · Private saved-note review and reversible consolidation */
+body.rev-index #dataStructureRevision .ag .ag-private-notes{border-color:#c8dfd0;background:#fff}
+body.rev-index #dataStructureRevision .ag .ag-private-notes .ds-personal-notes{
+ margin:0!important;padding:0!important;border:0!important;background:none;min-width:0
+}
+body.rev-index #dataStructureRevision .ag .ag-consolidate{
+ margin:18px 0 4px;padding:17px 19px;border-radius:13px;
+ border:1px solid #d9e5d9;background:#f6faf5;color:#315640
+}
+body.rev-index #dataStructureRevision .ag .ag-consolidate strong{
+ display:block;font:800 14px/1.5 'Plus Jakarta Sans',system-ui,sans-serif;color:#2f593e
+}
+body.rev-index #dataStructureRevision .ag .ag-consolidate p{
+ margin:7px 0 12px;font-size:13px;line-height:1.75;color:#587461
+}
+body.rev-index #dataStructureRevision .ag .ag-consolidate-actions{display:flex;gap:8px;flex-wrap:wrap}
+body.rev-index #dataStructureRevision .ag .ag-consolidate-actions button{
+ appearance:none;cursor:pointer;border:1px solid #bad6c2;background:#fff;color:#2e6545;
+ border-radius:9px;min-height:41px;padding:10px 13px;font:750 12px/1.35 'Plus Jakarta Sans',system-ui,sans-serif
+}
+body.rev-index #dataStructureRevision .ag .ag-consolidate-actions button[data-ag-consolidate]{
+ background:#2e6a48;border-color:#2e6a48;color:#fff
+}
+body.rev-index #dataStructureRevision .ag .ag-consolidate-actions button:hover{filter:brightness(.94)}
+body.rev-index #dataStructureRevision .ag .ag-consolidate.is-done{background:#eff9f0;border-color:#c9e2ca}
+body.rev-index #dataStructureRevision .ag .ag-empty-private{
+ padding:14px 16px;border-radius:10px;background:#f7faf7;color:#6e8273;
+ border:1px dashed #d5e4d6;font-size:13px;line-height:1.7;margin:14px 0 0
+}
+@media(max-width:560px){
+ body.rev-index #dataStructureRevision .ag .ag-consolidate{padding:13px}
+ body.rev-index #dataStructureRevision .ag .ag-consolidate-actions button{flex:1 1 160px}
+}
