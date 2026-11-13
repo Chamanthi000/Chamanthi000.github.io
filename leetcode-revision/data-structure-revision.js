@@ -42,62 +42,77 @@ function renderTopic(item){
 }
 function readable(notes){
  const lines=String(notes||'').replace(/\r\n?/g,'\n').split('\n'),parts=[];
- let paragraph=[],bullets=[],code=[],sectionOpen=false,currentClass='is-detail',currentHeading='';
+ let paragraph=[],bullets=[],code=[],sectionOpen=false,currentClass='is-detail';
+ const majorHeadings=new Set([
+  'RECALL FIRST','ONE-MINUTE CHEATSHEET','MENTAL MODEL','PYTHON OPERATIONS','PYTHON TOOLKIT',
+  'RECOGNITION CLUES','CORE PATTERNS','TEMPLATE BANK','COMPLEXITY TO SAY','COMPLEXITY SNAPSHOT',
+  'COMMON TRAPS','MUST-SOLVE PRACTICE','INTERVIEW NARRATION','SELF-TEST'
+ ]);
  const inlineBigO=value=>escape(value).replace(/\bO\([^)]*\)/g,m=>'<span class="ds-big-o">'+m+'</span>');
  const sectionClass=text=>{
    if(text==='RECALL FIRST')return 'is-recall is-quick';
+   if(text==='ONE-MINUTE CHEATSHEET')return 'is-cheatsheet is-quick';
    if(text==='SELF-TEST')return 'is-selftest is-quick';
    if(text==='MENTAL MODEL')return 'is-model';
+   if(text==='PYTHON OPERATIONS'||text==='PYTHON TOOLKIT')return 'is-functions is-quick';
    if(text==='RECOGNITION CLUES')return 'is-clues is-quick';
+   if(text==='CORE PATTERNS')return 'is-patterns is-quick';
+   if(text==='TEMPLATE BANK')return 'is-template is-quick';
+   if(text==='COMPLEXITY TO SAY'||text==='COMPLEXITY SNAPSHOT')return 'is-complexity is-quick';
    if(text==='COMMON TRAPS')return 'is-traps is-quick';
+   if(text==='MUST-SOLVE PRACTICE')return 'is-practice is-quick';
    if(text==='INTERVIEW NARRATION')return 'is-narration';
-   if(text==='COMPLEXITY SNAPSHOT'||text==='COMPLEXITY'||text==='COMPLEXITY GOTCHAS')return 'is-complexity is-quick';
-   if(/TEMPLATE|TOP-DOWN|BOTTOM-UP|FIND WITH PATH|UNION BY SIZE|BFS TEMPLATE|DFS TEMPLATE|VALIDATE BST|NTH FROM END|PALINDROME:|ANAGRAM \/ FREQUENCY/.test(text))return 'is-template is-quick';
-   if(/RECOGNITION|WHEN TO USE|WHEN NOT TO USE|CORE PATTERNS|CORE METHOD|ALGORITHMS TO KNOW|SHORTEST PATH TOOLBOX|BFS VS DFS|CYCLE DETECTION|CONNECTED COMPONENTS|PREFIX PROBLEMS/.test(text))return 'is-patterns is-quick';
-   if(/PYTHON|TOOLKIT|OPERATIONS|HELPERS|BUILT-IN|CORE BUILT-INS|COMPREHENSIONS|COLLECTIONS|HEAPQ|BISECT|MEMOIZATION|ITERTOOLS|MATH|SORT KEYS|HIGH-YIELD IDIOMS|WHAT TO REACH FOR|CORE LIST OPERATIONS|COPY \/ SLICE \/ COMBINE|ORDER \/ AGGREGATION|MUTABILITY REMINDERS|ACCESS \/ CREATE|SEARCH \/ COUNT|NORMALIZE \/ TRANSFORM|CHARACTER TESTS \/ CONVERSION|IMMUTABILITY REMINDERS|DICT:|SET OPERATIONS|INTERVIEW HELPERS|HASHABILITY|NODE OPERATIONS|TRAVERSAL OPERATIONS|DOUBLY LINKED LIST POINTERS|STACK WITH PYTHON LIST|SAFE USAGE|RELATED HELPERS|DEQUE BASICS|BULK \/ DEQUE HELPERS|IMPORTANT COMPLEXITY|BUILT-IN SORTING|USEFUL KEY FUNCTIONS|RELATED ORDER HELPERS|STABILITY|MANUAL MIDPOINT|HEAPQ CORE|SELECTION \/ MERGE HELPERS|MAX-HEAP INTERVIEW PATTERN|TUPLE PRIORITIES|PYTHON BUILDING BLOCKS|REPRESENTATION|COMMON TRIE METHODS|CORE DATA/.test(text))return 'is-functions is-quick';
    return 'is-detail';
  };
  const kindLabel=cls=>{
    if(cls.includes('is-recall'))return 'Recall';
+   if(cls.includes('is-cheatsheet'))return '60 sec';
    if(cls.includes('is-model'))return 'Understand';
    if(cls.includes('is-functions'))return 'Functions';
    if(cls.includes('is-clues'))return 'Recognize';
    if(cls.includes('is-patterns'))return 'Patterns';
-   if(cls.includes('is-template'))return 'Template';
+   if(cls.includes('is-template'))return 'Code';
    if(cls.includes('is-complexity'))return 'Big-O';
    if(cls.includes('is-traps'))return 'Watch out';
+   if(cls.includes('is-practice'))return 'Practice';
    if(cls.includes('is-narration'))return 'Interview';
    if(cls.includes('is-selftest'))return 'Test yourself';
    return 'Deep dive';
  };
- const renderBulletList=()=>{
+ const renderBullets=()=>{
    if(!bullets.length)return;
-   const cls=currentClass;
-   if(cls.includes('is-functions')){
+   if(currentClass.includes('is-functions')){
      parts.push('<div class="ds-operation-list">'+bullets.map(s=>{
        const chunks=s.split(/\s+—\s+/);
        const first=chunks.shift()||'';
        const complexity=chunks.length&&/\bO\(/.test(chunks[chunks.length-1])?chunks.pop():'';
        const meaning=chunks.join(' — ');
-       return '<div class="ds-operation-row"><code>'+escape(first)+'</code>'+(meaning?'<span>'+inlineBigO(meaning)+'</span>':'<span></span>')+(complexity?'<b>'+inlineBigO(complexity)+'</b>':'<b></b>')+'</div>';
+       return '<div class="ds-operation-row"><code>'+escape(first)+'</code><span>'+inlineBigO(meaning)+'</span><b>'+inlineBigO(complexity)+'</b></div>';
      }).join('')+'</div>');
-   } else if(cls.includes('is-clues')){
+   } else if(currentClass.includes('is-clues')){
      parts.push('<div class="ds-clue-list">'+bullets.map(s=>{
        const split=s.split(/\s*→\s*/);
-       return split.length>1?'<div class="ds-clue"><span>'+escape(split.shift())+'</span><b>'+inlineBigO(split.join(' → '))+'</b></div>':'<div class="ds-clue"><span>'+inlineBigO(s)+'</span></div>';
+       return '<div class="ds-clue"><span>'+inlineBigO(split.shift()||'')+'</span>'+(split.length?'<b>'+inlineBigO(split.join(' → '))+'</b>':'')+'</div>';
      }).join('')+'</div>');
-   } else if(cls.includes('is-recall')||cls.includes('is-selftest')){
-     const icon=cls.includes('is-selftest')?'✓':'?';
+   } else if(currentClass.includes('is-recall')||currentClass.includes('is-selftest')){
+     const icon=currentClass.includes('is-selftest')?'✓':'?';
      parts.push('<div class="ds-question-list">'+bullets.map(s=>'<div class="ds-question"><span>'+icon+'</span><p>'+inlineBigO(s)+'</p></div>').join('')+'</div>');
-   } else if(cls.includes('is-complexity')){
+   } else if(currentClass.includes('is-cheatsheet')){
+     parts.push('<div class="ds-cheat-grid">'+bullets.map(s=>'<div class="ds-cheat-item"><span>•</span><p>'+inlineBigO(s)+'</p></div>').join('')+'</div>');
+   } else if(currentClass.includes('is-complexity')){
      parts.push('<div class="ds-metric-list">'+bullets.map(s=>{
        const chunks=s.split(/\s+—\s+/);
        const label=chunks.shift()||s, value=chunks.join(' — ');
-       return '<div class="ds-metric-row"><span>'+escape(label)+'</span>'+(value?'<b>'+inlineBigO(value)+'</b>':'')+'</div>';
+       return '<div class="ds-metric-row"><span>'+inlineBigO(label)+'</span>'+(value?'<b>'+inlineBigO(value)+'</b>':'')+'</div>';
      }).join('')+'</div>');
-   } else if(cls.includes('is-traps')){
+   } else if(currentClass.includes('is-traps')){
      parts.push('<div class="ds-warning-list">'+bullets.map(s=>'<div class="ds-warning-row"><span>!</span><p>'+inlineBigO(s)+'</p></div>').join('')+'</div>');
-   } else if(cls.includes('is-patterns')){
+   } else if(currentClass.includes('is-practice')){
+     parts.push('<div class="ds-practice-list">'+bullets.map((s,i)=>{
+       const chunks=s.split(/\s+—\s+/),name=chunks.shift()||s,why=chunks.join(' — ');
+       return '<div class="ds-practice-row"><span>'+(i+1)+'</span><div><b>'+escape(name)+'</b>'+(why?'<p>'+inlineBigO(why)+'</p>':'')+'</div></div>';
+     }).join('')+'</div>');
+   } else if(currentClass.includes('is-patterns')){
      parts.push('<div class="ds-pattern-list">'+bullets.map(s=>'<div class="ds-pattern-row"><span>→</span><p>'+inlineBigO(s)+'</p></div>').join('')+'</div>');
    } else {
      parts.push('<ul>'+bullets.map(s=>'<li>'+inlineBigO(s)+'</li>').join('')+'</ul>');
@@ -105,12 +120,10 @@ function readable(notes){
    bullets=[];
  };
  const flushParagraph=()=>{if(paragraph.length){parts.push('<p>'+inlineBigO(paragraph.join(' '))+'</p>');paragraph=[]}};
- const flushBullets=()=>renderBulletList();
- const flushCode=()=>{if(code.length){const label=currentClass.includes('is-template')?'Python template':'Python';parts.push('<div class="ds-code-card"><div class="ds-code-bar"><span>'+label+'</span><button type="button" data-ds-copy>Copy</button></div><pre><code>'+escape(code.join('\n'))+'</code></pre></div>');code=[]}};
- const flush=()=>{flushParagraph();flushBullets();flushCode()};
+ const flushCode=()=>{if(code.length){parts.push('<div class="ds-code-card"><div class="ds-code-bar"><span>Python template</span><button type="button" data-ds-copy>Copy</button></div><pre><code>'+escape(code.join('\n'))+'</code></pre></div>');code=[]}};
+ const flush=()=>{flushParagraph();renderBullets();flushCode()};
  const openSection=text=>{
    if(sectionOpen)parts.push('</section>');
-   currentHeading=text;
    currentClass=sectionClass(text);
    parts.push('<section class="ds-guide-block '+currentClass+'"><div class="ds-section-head"><span class="ds-section-kind">'+kindLabel(currentClass)+'</span><h4>'+escape(text)+'</h4></div>');
    sectionOpen=true;
@@ -118,19 +131,18 @@ function readable(notes){
  for(const value of lines){
    const text=value.trim();
    if(!text){flush();continue}
-   const numbered=/^(\d+)[.)]\s+(.+)$/.exec(text);
    const upper=/^[A-Z][A-Z0-9 /&:().+\-]{3,}$/.test(text);
    const fact=/^(Time(?: complexity)?|Space(?: complexity)?|Complexity|Key insight|Interview tip|Watch(?: out)?|Reminder)\s*:\s*(.+)$/i.exec(text);
    const example=/^(Example|Examples|Python example)\s*:\s*(.*)$/i.exec(text);
    const bullet=/^(?:[•*\-]\s+)(.+)$/.exec(text);
    const isCode=/^(?:\s{2,}(?![•*\-])|class\s|def\s|while\s|if\s|elif\s|else:|for\s|from\s|import\s|return\s|#\s|@\w+|[A-Za-z_]\w*\s*=|[A-Za-z_]\w*\.[A-Za-z_]\w*\(|[A-Za-z_]\w*\[[^\]]+\]\s*=)/.test(value);
-   if(numbered){flush();openSection(numbered[1]+'. '+numbered[2])}
-   else if(upper){flush();openSection(text)}
+   if(upper&&majorHeadings.has(text)){flush();openSection(text)}
+   else if(upper){flush();if(!sectionOpen)openSection('MENTAL MODEL');parts.push('<h5 class="ds-subhead">'+escape(text)+'</h5>')}
    else if(fact){flush();parts.push('<div class="ds-fact"><strong>'+escape(fact[1])+'</strong><span>'+inlineBigO(fact[2])+'</span></div>')}
    else if(example){flush();parts.push('<div class="ds-example"><strong>'+escape(example[1])+'</strong>'+(example[2]?'<span>'+inlineBigO(example[2])+'</span>':'')+'</div>')}
    else if(bullet){flushParagraph();flushCode();bullets.push(bullet[1])}
-   else if(isCode){flushParagraph();flushBullets();code.push(value)}
-   else{flushBullets();flushCode();paragraph.push(text)}
+   else if(isCode){flushParagraph();renderBullets();code.push(value)}
+   else{renderBullets();flushCode();paragraph.push(text)}
  }
  flush();if(sectionOpen)parts.push('</section>');
  return parts.join('')||'<p class="ds-no-notes">No notes yet. Select <strong>Edit notes</strong> to write your first concept.</p>';
