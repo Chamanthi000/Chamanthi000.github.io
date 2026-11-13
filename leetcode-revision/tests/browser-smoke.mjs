@@ -135,14 +135,16 @@ try{
  await notesContext.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort());
  const originalNotes='MY UNIQUE ARRAY TECHNIQUE\n\n1. Exact saved example [1, 2]\n2. Never lose local personal notes.';
  await notesContext.addInitScript(text=>{
-   try{localStorage.setItem('recall-structures-v1',JSON.stringify([{id:'arrays',title:'Arrays',notes:text,createdAt:'2026-11-12T00:00:00.000Z',updatedAt:'2026-11-12T00:00:00.000Z'}]));}catch{}
+   try{if(!localStorage.getItem('recall-structures-v1'))localStorage.setItem('recall-structures-v1',JSON.stringify([{id:'arrays',title:'Arrays',notes:text,createdAt:'2026-11-12T00:00:00.000Z',updatedAt:'2026-11-12T00:00:00.000Z'}]));}catch{}
  },originalNotes);
  const notesPage=await notesContext.newPage();
  notesPage.on('dialog',d=>d.accept());
  await notesPage.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
  await notesPage.locator('#dsToggle').click();
  await notesPage.locator('.ds-topic[data-id="arrays"] > summary').click();
- await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
+ if(!await notesPage.locator('[data-ag-section="ag-private"]').evaluate(el=>el.open)){
+  await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
+ }
  assert.ok((await notesPage.locator('.ag-private-notes').innerText()).includes('MY UNIQUE ARRAY TECHNIQUE'));
  await notesPage.locator('[data-ag-consolidate]').click();
  const consolidated=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-structures-v1')).find(x=>x.id==='arrays'));
@@ -155,7 +157,9 @@ try{
  await notesPage.reload({waitUntil:'domcontentloaded'});
  await notesPage.locator('#dsToggle').click();
  await notesPage.locator('.ds-topic[data-id="arrays"] > summary').click();
- await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
+ if(!await notesPage.locator('[data-ag-section="ag-private"]').evaluate(el=>el.open)){
+  await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
+ }
  assert.ok((await notesPage.locator('.ag-private-notes').innerText()).includes('MY UNIQUE ARRAY TECHNIQUE'));
  capture('Saved Arrays notes preserved verbatim through reversible migration and refresh','PASS');
  await notesPage.locator('[data-ag-restore]').click();
