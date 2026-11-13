@@ -35,9 +35,10 @@ const personalNotes=item=>{
 };
 const topicGuide=item=>String(guides[item?.id]||'');
 function renderTopic(item){
- const core=topicGuide(item);
+ const isArrayGuide=item?.id==='arrays'&&!!window.RecallArrayGuide?.html;
+ const core=isArrayGuide?window.RecallArrayGuide.html:topicGuide(item);
  const personal=personalNotes(item);
- const coreHtml=core?'<section class="ds-core-guide"><div class="ds-guide-kicker">REVISE FROM MEMORY</div>'+readable(core)+'</section>':'';
+ const coreHtml=core?'<section class="ds-core-guide"><div class="ds-guide-kicker">REVISE FROM MEMORY</div>'+(isArrayGuide?core:readable(core))+'</section>':'';
  const personalHtml=personal?'<section class="ds-personal-notes"><div class="ds-guide-kicker">YOUR SAVED NOTES</div>'+readable(personal)+'</section>':'';
  return coreHtml+personalHtml;
 }
@@ -157,19 +158,19 @@ function render(){
 const active=document.activeElement,focusId=active?.dataset?.dsId,selection=focusId&&typeof active.selectionStart==='number'?[active.selectionStart,active.selectionEnd]:null;
 const openId=document.querySelector('.ds-topic[open]')?.dataset.id||'';
 const q=$('dsSearch').value.trim().toLowerCase();
-const show=sorted(records.filter(x=>visiblePresetIds.has(x.id)&&!x.deleted&&(x.title.toLowerCase().includes(q)||personalNotes(x).toLowerCase().includes(q))));
+const show=sorted(records.filter(x=>visiblePresetIds.has(x.id)&&!x.deleted&&(x.title.toLowerCase().includes(q)||personalNotes(x).toLowerCase().includes(q)||(x.id==='arrays'&&String(window.RecallArrayGuide?.searchText||'').includes(q)))));
 const allItems=sorted(records.filter(x=>visiblePresetIds.has(x.id)&&!x.deleted)),allCount=allItems.length,filled=allItems.filter(x=>personalNotes(x).trim()).length;
 $('dsSummary').textContent=allCount+' data structures · '+filled+' with personal notes';
 const groups=['Data Structures'];
 $('dsTopicNav').innerHTML=allItems.map(item=>'<button class="ds-topic-chip '+(personalNotes(item).trim()?'has-notes':'')+'" type="button" data-nav-id="'+escape(item.id)+'">'+escape(item.title)+'</button>').join('');
-$('dsList').innerHTML=show.map(item=>'<details class="ds-topic" data-concept-id="ds:'+escape(item.id)+'" data-id="'+escape(item.id)+'" '+(openId===item.id?'open':'')+'><summary><span class="ds-topic-symbol" aria-hidden="true">›</span><span class="ds-topic-name">'+escape(item.title)+'</span><span class="ds-note-count">'+(personalNotes(item).trim()?'Has notes':'Add notes')+'</span></summary><div class="ds-editor"><div class="ds-readview" data-read-id="'+escape(item.id)+'"></div><textarea class="ds-note-input" data-ds-id="'+escape(item.id)+'" aria-label="Notes for '+escape(item.title)+'" placeholder="Add your own revision notes here…" spellcheck="false"></textarea><div class="ds-meta"><button class="ds-edit-toggle btn secondary small" type="button" data-edit-id="'+escape(item.id)+'">Edit notes</button><span>Edits save automatically. Switch back to reading anytime.</span></div></div></details>').join('')||'<p class="ds-empty">No matching topics.</p>';
+$('dsList').innerHTML=show.map(item=>'<details class="ds-topic" data-concept-id="ds:'+escape(item.id)+'" data-id="'+escape(item.id)+'" '+(openId===item.id?'open':'')+'><summary><span class="ds-topic-symbol" aria-hidden="true">›</span><span class="ds-topic-name">'+escape(item.title)+'</span><span class="ds-note-count">'+(item.id==='arrays'&&window.RecallArrayGuide?.html?'Revision guide'+(personalNotes(item).trim()?' + notes':''):(personalNotes(item).trim()?'Has notes':'Add notes'))+'</span></summary><div class="ds-editor"><div class="ds-readview" data-read-id="'+escape(item.id)+'"></div><textarea class="ds-note-input" data-ds-id="'+escape(item.id)+'" aria-label="Notes for '+escape(item.title)+'" placeholder="Add your own revision notes here…" spellcheck="false"></textarea><div class="ds-meta"><button class="ds-edit-toggle btn secondary small" type="button" data-edit-id="'+escape(item.id)+'">Edit notes</button><span>Edits save automatically. Switch back to reading anytime.</span></div></div></details>').join('')||'<p class="ds-empty">No matching topics.</p>';
 for(const el of $('dsList').querySelectorAll('textarea[data-ds-id]')){
 const item=records.find(x=>x.id===el.dataset.dsId);if(!item)continue;el.value=personalNotes(item);
 const block=el.closest('.ds-editor'),view=block.querySelector('[data-read-id]'),switcher=block.querySelector('[data-edit-id]');
 function setEditing(flag){if(flag)editingIds.add(item.id);else editingIds.delete(item.id);el.hidden=!flag;view.hidden=flag;switcher.textContent=flag?'Done reading ✓':(personalNotes(item).trim()?'Edit my notes ✎':'Add my notes ＋');switcher.setAttribute('aria-pressed',String(flag));if(flag){el.focus();}}
 view.innerHTML=renderTopic(item);setEditing(editingIds.has(item.id));
 switcher.addEventListener('click',()=>{const wasEditing=editingIds.has(item.id);setEditing(!wasEditing);if(wasEditing){view.innerHTML=renderTopic(item);cloudSend()}});
-el.addEventListener('input',()=>{item.notes=el.value;item.updatedAt=new Date().toISOString();persist();view.innerHTML=renderTopic(item);el.closest('details').querySelector('.ds-note-count').textContent=topicGuide(item)?'Revision guide'+(el.value.trim()?' + notes':''):(el.value.trim()?'Has notes':'Add notes')});
+el.addEventListener('input',()=>{item.notes=el.value;item.updatedAt=new Date().toISOString();persist();view.innerHTML=renderTopic(item);el.closest('details').querySelector('.ds-note-count').textContent=(topicGuide(item)||item.id==='arrays'&&window.RecallArrayGuide?.html)?'Revision guide'+(el.value.trim()?' + notes':''):(el.value.trim()?'Has notes':'Add notes')});
 el.addEventListener('blur',()=>{cloudSend();const active=records.filter(x=>!x.deleted);$('dsSummary').textContent=active.length+' data structures · '+active.filter(x=>personalNotes(x).trim()).length+' with personal notes'});
 }
 for(const detail of $('dsList').querySelectorAll('.ds-topic'))detail.addEventListener('toggle',()=>{if(!detail.open)return;for(const other of $('dsList').querySelectorAll('.ds-topic[open]'))if(other!==detail)other.open=false;detail.scrollIntoView({block:'nearest',behavior:'smooth'})});
