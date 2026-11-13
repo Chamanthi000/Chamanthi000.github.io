@@ -297,7 +297,7 @@ if(e.detail?.kind!=='structures'||!Array.isArray(e.detail.items))return;
 const latest=new Map();
 for(const item of [...e.detail.items,...records]){
 if(!item||typeof item.id!=='string')continue;
-const old=latest.get(item.id);if(!old||String(item.updatedAt||'')>=String(old.updatedAt||''))latest.set(item.id,item);
+const old=latest.get(item.id);if(!old||String(item.updatedAt||'')>String(old.updatedAt||''))latest.set(item.id,item);
 }
 const merged=[...latest.values()];const changed=JSON.stringify(merged)!==JSON.stringify(records);records=merged;
 if(changed){saveLocal();render()}
