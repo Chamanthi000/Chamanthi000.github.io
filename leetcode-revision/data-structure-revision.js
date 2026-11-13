@@ -27,6 +27,7 @@ const read=()=>{try{const p=JSON.parse(localStorage.getItem(KEY)||'[]');return A
 let records=read(),cloudTimer=null;const editingIds=new Set();
 for(const d of presets)if(!records.some(x=>x.id===d.id))records.push({...d,createdAt:STAMP,updatedAt:STAMP});
 const presetRank=new Map(presets.map((p,i)=>[p.id,i]));
+const visiblePresetIds=new Set(presets.map(p=>p.id));
 const sorted=items=>items.slice().sort((a,b)=>{const ar=presetRank.has(a.id)?presetRank.get(a.id):9999,br=presetRank.has(b.id)?presetRank.get(b.id):9999;return ar-br||a.title.localeCompare(b.title)});
 const personalNotes=item=>{
  const notes=String(item?.notes||'');
@@ -156,8 +157,8 @@ function render(){
 const active=document.activeElement,focusId=active?.dataset?.dsId,selection=focusId&&typeof active.selectionStart==='number'?[active.selectionStart,active.selectionEnd]:null;
 const openId=document.querySelector('.ds-topic[open]')?.dataset.id||'';
 const q=$('dsSearch').value.trim().toLowerCase();
-const show=sorted(records.filter(x=>!x.deleted&&(x.title.toLowerCase().includes(q)||personalNotes(x).toLowerCase().includes(q)||topicGuide(x).toLowerCase().includes(q))));
-const allItems=sorted(records.filter(x=>!x.deleted)),allCount=allItems.length,filled=allItems.filter(x=>personalNotes(x).trim()).length,guideCount=allItems.filter(x=>topicGuide(x).trim()).length;
+const show=sorted(records.filter(x=>visiblePresetIds.has(x.id)&&!x.deleted&&(x.title.toLowerCase().includes(q)||personalNotes(x).toLowerCase().includes(q))));
+const allItems=sorted(records.filter(x=>visiblePresetIds.has(x.id)&&!x.deleted)),allCount=allItems.length,filled=allItems.filter(x=>personalNotes(x).trim()).length;
 $('dsSummary').textContent=allCount+' data structures · '+filled+' with personal notes';
 const groups=['Data Structures'];
 $('dsTopicNav').innerHTML=allItems.map(item=>'<button class="ds-topic-chip '+(personalNotes(item).trim()?'has-notes':'')+'" type="button" data-nav-id="'+escape(item.id)+'"><span class="ds-chip-icon">'+escape(topicMeta[item.id]?.icon||'•')+'</span><span>'+escape(item.title)+'</span></button>').join('');
