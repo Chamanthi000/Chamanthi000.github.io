@@ -10,7 +10,7 @@ const links=[['ag-operations','Operations'],['ag-fundamentals','Fundamentals'],[
 function render(){
  let o=[];
  o.push('<article class="ag" aria-label="Arrays FAANG revision guide"><header class="ag-hero"><div class="ag-hero-label">ARRAYS · FAANG INTERVIEW PLAYBOOK</div><h2>Understand the operation. Recognize the pattern. Prove the invariant.</h2><p>Structured, practical Python revision with collapsible explanations, copy-ready code, complexity, common mistakes and a deliberate practice order.</p><div class="ag-stats"><span>'+d.operations.length+' operations</span><span>'+d.fundamentals.length+' fundamentals</span><span>'+d.patterns.length+' patterns</span><span>'+d.templates.length+' templates</span></div></header>');
- o.push('<nav class="ag-nav" aria-label="Arrays guide section navigation">'+links.map((x,i)=>'<a href="#'+x[0]+'">'+String(i+1).padStart(2,'0')+' · '+x[1]+'</a>').join('')+'</nav>');
+ o.push('<nav class="ag-nav" aria-label="Arrays guide section navigation">'+links.map((x,i)=>'<button type="button" data-ag-open="'+x[0]+'">'+String(i+1).padStart(2,'0')+' · '+x[1]+'</button>').join('')+'</nav><div class="ag-actions"><button type="button" data-ag-expand-all>Expand all sections</button><button type="button" data-ag-collapse-all>Collapse all sections</button></div>');
  o.push('<section class="ag-section" aria-labelledby="ag-operations">'+heading('ag-operations','01 · REFERENCE','All Python array (list) operations','Time and space costs for CPython lists. n = list length, m = inserted/appended count, k = slice length, u = distinct values. This is not NumPy complexity.'));
  const groups=[...new Set(d.operations.map(x=>x[0]))];
  o.push(groups.map((g,i)=>'<details class="ag-op-group"'+(i===0?' open':'')+'><summary><strong>'+escape(g)+'</strong><span>'+d.operations.filter(x=>x[0]===g).length+' operations</span></summary><div class="ag-op-list">'+d.operations.filter(x=>x[0]===g).map(x=>'<div class="ag-op-item"><div class="ag-op-top"><code>'+escape(x[1])+'</code><span class="ag-pill">'+big(x[3])+'</span></div><p><b>'+escape(x[2])+'</b> · '+escape(x[5])+'</p><small>Space: '+escape(x[4])+'</small></div>').join('')+'</div></details>').join(''));
@@ -36,7 +36,11 @@ function render(){
  o.push('<section class="ag-section" aria-labelledby="ag-practice">'+heading('ag-practice','08 · PROVE MASTERY','20 problems in deliberate order','Cover the basic families first; hide the pattern name before attempting each problem. End by defending correctness, time and space.'));
  o.push('<ol class="ag-practice">'+d.practice.map(x=>'<li><b>'+escape(x[0])+'</b><span>'+escape(x[1])+'</span><em>'+escape(x[2])+'</em></li>').join('')+'</ol><div class="ag-last"><b>Final self-test:</b> Can I explain brute force, the optimized invariant, a failing edge case for a tempting wrong approach, and the final complexity without notes?</div></section>');
  o.push('</article>');
- return o.join('');
+ const html=o.join('');
+ const opening=/<section class="ag-section" aria-labelledby="(ag-[a-z-]+)">(<div class="ag-section-head">[\s\S]*?<\/div>)/g;
+ const matches=[...html.matchAll(opening)];
+ if(matches.length!==8)throw Error('Expected 8 array sections, found '+matches.length);
+ return html.replace(opening,(_,id,head)=>'<details class="ag-section" data-ag-section="'+id+'"><summary class="ag-section-toggle">'+head+'<span class="ag-section-chevron" aria-hidden="true">⌄</span></summary><div class="ag-section-content">').replace(/<\/section>/g,'</div></details>');
 }
 window.RecallArrayGuide={html:render(),searchText:JSON.stringify(d).toLowerCase(),stats:{operations:d.operations.length,fundamentals:d.fundamentals.length,patterns:d.patterns.length,templates:d.templates.length}};
 })();
