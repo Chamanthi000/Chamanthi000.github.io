@@ -1494,3 +1494,252 @@ body.rev-index .quick-review .ds-metric-list{
     min-height:28px;
   }
 }
+
+
+/* DSA final reading system v12 */
+/* Major cards are intentionally few; subtopics live inside them. */
+body.rev-index .ds-subhead{
+  margin:19px 0 9px;
+  padding:13px 0 0;
+  border-top:1px solid #e6ece6;
+  color:#45624e;
+  font:800 11px/1.35 'Plus Jakarta Sans',sans-serif;
+  letter-spacing:.075em;
+  text-transform:uppercase;
+}
+body.rev-index .ds-guide-block>.ds-subhead:first-of-type{
+  margin-top:4px;
+  padding-top:0;
+  border-top:0;
+}
+
+/* 60-second card */
+body.rev-index .ds-guide-block.is-cheatsheet{
+  border:1px solid #bdd5c2;
+  background:linear-gradient(135deg,#edf6ed 0%,#f9fcf7 100%);
+  box-shadow:0 7px 20px rgba(43,91,61,.055);
+}
+body.rev-index .is-cheatsheet .ds-section-kind{
+  background:#d4e8d7;
+  color:#245f3f;
+}
+body.rev-index .ds-cheat-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+body.rev-index .ds-cheat-item{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  min-width:0;
+  padding:9px 10px;
+  border:1px solid rgba(122,163,132,.22);
+  border-radius:10px;
+  background:rgba(255,255,255,.64);
+}
+body.rev-index .ds-cheat-item>span{
+  flex:0 0 auto;
+  color:#43815a;
+  font-weight:900;
+}
+body.rev-index .ds-cheat-item p{
+  margin:0!important;
+  color:#36503e!important;
+  font-size:13px!important;
+  line-height:1.53!important;
+}
+
+/* Practice should feel like a deliberate ladder, not another bullet list. */
+body.rev-index .ds-guide-block.is-practice{
+  border-color:#d7dfcc;
+  background:#fbfcf6;
+}
+body.rev-index .is-practice .ds-section-kind{
+  background:#eef1df;
+  color:#69713d;
+}
+body.rev-index .ds-practice-list{
+  display:grid;
+  gap:8px;
+}
+body.rev-index .ds-practice-row{
+  display:flex;
+  align-items:flex-start;
+  gap:11px;
+  padding:10px 11px;
+  border:1px solid #e3e7d7;
+  border-radius:10px;
+  background:#fff;
+}
+body.rev-index .ds-practice-row>span{
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  width:25px;
+  height:25px;
+  border-radius:8px;
+  background:#edf2df;
+  color:#65713b;
+  font:800 11px/1 'Plus Jakarta Sans',sans-serif;
+}
+body.rev-index .ds-practice-row b{
+  display:block;
+  color:#344f3d;
+  font:800 13px/1.4 'Plus Jakarta Sans',sans-serif;
+}
+body.rev-index .ds-practice-row p{
+  margin:3px 0 0!important;
+  color:#69796c!important;
+  font-size:12.5px!important;
+  line-height:1.48!important;
+}
+
+/* Learn mode: optimized measure and rhythm. */
+body.rev-index .ds-guide-block{
+  content-visibility:auto;
+  contain-intrinsic-size:300px;
+}
+body.rev-index .ds-guide-block p{
+  max-width:70ch;
+}
+body.rev-index .ds-guide-block.is-model p{
+  font-size:15.5px;
+  line-height:1.88;
+}
+body.rev-index .ds-guide-block.is-narration{
+  border-left:4px solid #a8b9a7;
+}
+body.rev-index .ds-guide-block.is-narration p{
+  margin:0!important;
+  color:#415247;
+  font-style:italic;
+}
+body.rev-index .ds-guide-block.is-template{
+  padding-bottom:18px;
+}
+body.rev-index .ds-guide-block.is-functions{
+  background:#fdfefd;
+}
+body.rev-index .ds-guide-block.is-functions .ds-operation-list+.ds-subhead{
+  margin-top:22px;
+}
+
+/* Better scan density for reference rows. */
+body.rev-index .ds-operation-row{
+  grid-template-columns:minmax(190px,1.15fr) minmax(210px,1.6fr) minmax(70px,auto);
+  padding:9px 11px;
+}
+body.rev-index .ds-operation-row code{
+  color:#214a35;
+  font-size:12px;
+}
+body.rev-index .ds-operation-row>span{
+  color:#596d5e;
+  font-size:12.5px;
+}
+body.rev-index .ds-operation-row>b{
+  align-self:center;
+}
+body.rev-index .ds-operation-row:has(>b:empty){
+  grid-template-columns:minmax(190px,1.1fr) minmax(0,1.8fr);
+}
+body.rev-index .ds-operation-row>b:empty{
+  display:none;
+}
+
+/* Recognition cards: cue first, pattern second. */
+body.rev-index .ds-clue{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:4px;
+}
+body.rev-index .ds-clue>span{
+  color:#6b796e;
+  font-size:11.5px;
+  font-weight:700;
+}
+body.rev-index .ds-clue>b{
+  margin-top:0;
+  color:#2d6244;
+  font-size:13px;
+}
+
+/* Quick Review should feel materially shorter. */
+body.rev-index .quick-review .ds-guide-block.is-model,
+body.rev-index .quick-review .ds-guide-block.is-narration{
+  display:none;
+}
+body.rev-index .quick-review .ds-subhead{
+  margin-top:14px;
+  padding-top:10px;
+}
+body.rev-index .quick-review .ds-cheat-grid{
+  gap:6px;
+}
+body.rev-index .quick-review .ds-cheat-item{
+  padding:8px 9px;
+}
+body.rev-index .quick-review .ds-practice-row{
+  padding:8px 9px;
+}
+
+/* Tablet reading: one clean column inside sections, enough width for code. */
+@media(min-width:701px) and (max-width:1099px){
+  body.rev-index .ds-cheat-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  body.rev-index .ds-operation-row{
+    grid-template-columns:minmax(165px,1fr) minmax(0,1.45fr);
+  }
+  body.rev-index .ds-operation-row>b{
+    grid-column:2;
+    justify-self:start;
+    margin-top:2px;
+  }
+}
+
+/* Phone reading: everything becomes a vertical reading rhythm. */
+@media(max-width:700px){
+  body.rev-index .ds-cheat-grid{
+    grid-template-columns:1fr;
+    gap:6px;
+  }
+  body.rev-index .ds-cheat-item{
+    padding:9px;
+  }
+  body.rev-index .ds-subhead{
+    margin:17px 0 8px;
+    padding-top:11px;
+    font-size:10px;
+  }
+  body.rev-index .ds-guide-block.is-model p{
+    font-size:14.3px;
+    line-height:1.76;
+  }
+  body.rev-index .ds-practice-row{
+    padding:9px;
+  }
+  body.rev-index .ds-practice-row p{
+    font-size:12.2px!important;
+  }
+  body.rev-index .ds-operation-row:has(>b:empty){
+    display:block;
+  }
+}
+
+/* Very small phones: avoid UI chrome stealing reading width. */
+@media(max-width:390px){
+  body.rev-index .ds-section-kind{
+    display:none;
+  }
+  body.rev-index .ds-section-head{
+    margin-bottom:9px;
+  }
+  body.rev-index .ds-section-head h4{
+    font-size:13.5px;
+  }
+  body.rev-index .ds-cheat-item p{
+    font-size:12.8px!important;
+  }
+}
