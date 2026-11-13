@@ -45,7 +45,7 @@ test('Arrays guide covers interview requirements without replacing user notes',(
  assert.ok(g.html.includes('freq = {0: 1}'));
  assert.ok(index.includes('array-interview-guide.css'));
  assert.ok(index.indexOf('array-interview-guide.js') < index.indexOf('data-structure-revision.js'));
- assert.ok(dsRevision.includes('isArrayGuide?core:readable(core)'));
+ assert.ok(dsRevision.includes("opened.replace('</article>',preservedArrayMarkup(item,personal)"));
  assert.ok(dsRevision.includes('const personal=personalNotes(item)'));
  assert.ok(arrayStyles.includes('@media(max-width:760px)'));
  assert.ok(arrayStyles.includes('overflow-x:auto'));
