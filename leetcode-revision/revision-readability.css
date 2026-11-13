@@ -1141,3 +1141,356 @@ body.rev-index .quick-review .ds-personal-notes{
     font-size:13.2px;
   }
 }
+
+
+/* DSA semantic readability v10 */
+body.rev-index .ds-section-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 13px;
+}
+body.rev-index .ds-section-head h4{
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  color:#2b553c;
+  font-size:15px;
+  line-height:1.35;
+  letter-spacing:.01em;
+}
+body.rev-index .ds-section-kind{
+  display:inline-flex;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:center;
+  min-height:24px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eef4ed;
+  color:#5b725f;
+  font:800 9px/1.1 'Plus Jakarta Sans',sans-serif;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+body.rev-index .is-recall .ds-section-kind{background:#dcebdc;color:#2e6545}
+body.rev-index .is-functions .ds-section-kind{background:#e7f0e6;color:#38664a}
+body.rev-index .is-clues .ds-section-kind{background:#eef2df;color:#647039}
+body.rev-index .is-patterns .ds-section-kind{background:#eaf0e8;color:#45694e}
+body.rev-index .is-template .ds-section-kind{background:#dfece2;color:#2f6948}
+body.rev-index .is-complexity .ds-section-kind{background:#e7eeea;color:#496458}
+body.rev-index .is-traps .ds-section-kind{background:#f6e9df;color:#8a5638}
+body.rev-index .is-narration .ds-section-kind{background:#ecefe8;color:#5e6b5f}
+body.rev-index .is-selftest .ds-section-kind{background:#dfecdf;color:#2e6545}
+
+body.rev-index .ds-operation-list{
+  display:grid;
+  gap:7px;
+}
+body.rev-index .ds-operation-row{
+  display:grid;
+  grid-template-columns:minmax(180px,1.15fr) minmax(180px,1.6fr) auto;
+  gap:12px;
+  align-items:start;
+  padding:10px 12px;
+  border:1px solid #e2e9e2;
+  border-radius:10px;
+  background:#fbfdfb;
+}
+body.rev-index .ds-operation-row code{
+  overflow-wrap:anywhere;
+  color:#244f38;
+  font:700 12.5px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+body.rev-index .ds-operation-row>span{
+  color:#52675a;
+  font-size:13px;
+  line-height:1.55;
+}
+body.rev-index .ds-operation-row>b{
+  justify-self:end;
+  white-space:nowrap;
+  color:#356247;
+  font-size:12px;
+  font-weight:800;
+}
+body.rev-index .ds-operation-row .ds-big-o{
+  margin:0;
+}
+
+body.rev-index .ds-clue-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+body.rev-index .ds-clue{
+  min-width:0;
+  padding:11px 12px;
+  border:1px solid #e1e8d8;
+  border-radius:10px;
+  background:#fcfdf8;
+}
+body.rev-index .ds-clue>span{
+  display:block;
+  color:#55685a;
+  font-size:12.5px;
+  line-height:1.45;
+}
+body.rev-index .ds-clue>b{
+  display:block;
+  margin-top:5px;
+  color:#2c6546;
+  font:800 12.5px/1.45 'Plus Jakarta Sans',sans-serif;
+}
+
+body.rev-index .ds-question-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+body.rev-index .ds-question{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:11px 12px;
+  border:1px solid #dfe8df;
+  border-radius:10px;
+  background:rgba(255,255,255,.76);
+}
+body.rev-index .ds-question>span{
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  width:22px;
+  height:22px;
+  border-radius:7px;
+  background:#dfece0;
+  color:#316746;
+  font:800 11px/1 'Plus Jakarta Sans',sans-serif;
+}
+body.rev-index .ds-question p{
+  margin:0!important;
+  color:#3b5442;
+  font-size:13px!important;
+  line-height:1.55!important;
+}
+
+body.rev-index .ds-metric-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+body.rev-index .ds-metric-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-width:0;
+  padding:10px 12px;
+  border:1px solid #dde6df;
+  border-radius:10px;
+  background:#fbfcfa;
+}
+body.rev-index .ds-metric-row>span{
+  min-width:0;
+  color:#566b5b;
+  font-size:12.5px;
+  line-height:1.45;
+}
+body.rev-index .ds-metric-row>b{
+  flex:0 0 auto;
+  color:#2f6042;
+  font-size:12px;
+}
+
+body.rev-index .ds-warning-list{
+  display:grid;
+  gap:7px;
+}
+body.rev-index .ds-warning-row{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:10px 11px;
+  border:1px solid #ecdcd0;
+  border-radius:10px;
+  background:#fffaf6;
+}
+body.rev-index .ds-warning-row>span{
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  width:22px;
+  height:22px;
+  border-radius:7px;
+  background:#f6e7dc;
+  color:#985d39;
+  font:900 11px/1 'Plus Jakarta Sans',sans-serif;
+}
+body.rev-index .ds-warning-row p{
+  margin:0!important;
+  color:#664b3a;
+  font-size:13px!important;
+  line-height:1.58!important;
+}
+
+body.rev-index .ds-pattern-list{
+  display:grid;
+  gap:7px;
+}
+body.rev-index .ds-pattern-row{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:9px 11px;
+  border-radius:9px;
+  background:#f8faf6;
+}
+body.rev-index .ds-pattern-row>span{
+  flex:0 0 auto;
+  color:#4c815f;
+  font-weight:900;
+}
+body.rev-index .ds-pattern-row p{
+  margin:0!important;
+  color:#425949;
+  font-size:13.5px!important;
+  line-height:1.6!important;
+}
+
+body.rev-index .ds-code-card{
+  overflow:hidden;
+  margin-top:11px;
+  border:1px solid #314c3d;
+  border-radius:12px;
+  background:#1f342a;
+}
+body.rev-index .ds-code-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:34px;
+  padding:6px 9px 6px 12px;
+  border-bottom:1px solid rgba(255,255,255,.09);
+  color:#adc2b3;
+  font:800 9px/1 'Plus Jakarta Sans',sans-serif;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+body.rev-index .ds-code-bar button{
+  min-height:26px;
+  padding:5px 8px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:7px;
+  background:rgba(255,255,255,.05);
+  color:#e8f2e9;
+  font:700 10px/1 'Plus Jakarta Sans',sans-serif;
+  cursor:pointer;
+}
+body.rev-index .ds-code-bar button:hover{
+  background:rgba(255,255,255,.10);
+}
+body.rev-index .ds-code-card pre{
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+body.rev-index .ds-code-card code{
+  font-variant-ligatures:none;
+}
+
+body.rev-index .is-functions{
+  border-left:0!important;
+}
+body.rev-index .is-functions>.ds-section-head{
+  padding-bottom:10px;
+  border-bottom:1px solid #e3e9e3;
+}
+body.rev-index .is-clues,
+body.rev-index .is-patterns,
+body.rev-index .is-complexity{
+  background:#fff;
+}
+body.rev-index .quick-review .ds-operation-row{
+  padding:8px 10px;
+}
+body.rev-index .quick-review .ds-question-list,
+body.rev-index .quick-review .ds-clue-list,
+body.rev-index .quick-review .ds-metric-list{
+  gap:6px;
+}
+
+@media(max-width:900px){
+  body.rev-index .ds-operation-row{
+    grid-template-columns:minmax(145px,1fr) minmax(0,1.4fr);
+  }
+  body.rev-index .ds-operation-row>b{
+    grid-column:2;
+    justify-self:start;
+  }
+}
+
+@media(max-width:700px){
+  body.rev-index .ds-section-head{
+    align-items:flex-start;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  body.rev-index .ds-section-head h4{
+    padding-top:3px!important;
+    font-size:14px;
+  }
+  body.rev-index .ds-section-kind{
+    min-height:22px;
+    padding:4px 7px;
+    font-size:8px;
+  }
+  body.rev-index .ds-operation-list{
+    gap:6px;
+  }
+  body.rev-index .ds-operation-row{
+    display:block;
+    padding:10px 11px;
+  }
+  body.rev-index .ds-operation-row code{
+    display:block;
+    margin-bottom:4px;
+    font-size:12.5px;
+    line-height:1.5;
+  }
+  body.rev-index .ds-operation-row>span{
+    display:block;
+    font-size:12.5px;
+    line-height:1.5;
+  }
+  body.rev-index .ds-operation-row>b{
+    display:block;
+    margin-top:6px;
+    font-size:11.5px;
+  }
+  body.rev-index .ds-clue-list,
+  body.rev-index .ds-question-list,
+  body.rev-index .ds-metric-list{
+    grid-template-columns:1fr;
+  }
+  body.rev-index .ds-clue,
+  body.rev-index .ds-question,
+  body.rev-index .ds-metric-row,
+  body.rev-index .ds-warning-row{
+    padding:10px;
+  }
+  body.rev-index .ds-question p,
+  body.rev-index .ds-warning-row p,
+  body.rev-index .ds-pattern-row p{
+    font-size:13px!important;
+  }
+  body.rev-index .ds-code-bar{
+    position:sticky;
+    left:0;
+  }
+  body.rev-index .ds-code-bar button{
+    min-height:28px;
+  }
+}
