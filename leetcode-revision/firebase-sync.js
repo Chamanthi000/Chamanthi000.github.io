@@ -77,7 +77,7 @@ function sameRecord(a,b){
 function historyId(kind,item){return HISTORY_PREFIX+kind+'-'+encodeURIComponent(idOf(kind,item)).slice(0,900)}
 function cappedHistory(entries){
  const out=entries.slice(-HISTORY_LIMIT);
- while(out.length&&JSON.stringify(out).length>HISTORY_BYTES_LIMIT)out.shift();
+ while(out.length&&new TextEncoder().encode(JSON.stringify(out)).length>HISTORY_BYTES_LIMIT)out.shift();
  return out;
 }
 async function writeWithHistory(kind,value){
