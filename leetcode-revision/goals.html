@@ -132,7 +132,7 @@
   <div><div class="eyebrow">YOUR DAILY 75 HARD ROUTINE</div><h2 id="dailyHeading">Daily checklist</h2><p id="dailyDesc">Every morning, your editable checklist is ready.</p></div>
   <div class="dailyTools">
    <label id="dailyDateBox">Day<input type="date" id="dailyDate" aria-label="Checklist day"></label>
-   <button type="button" class="btn secondary small" id="dailyGoToday">Today</button>
+   <button type="button" class="btn secondary small" id="dailyGoToday">Today</button>\n   <button type="button" class="btn small" id="dailyOpenTomorrow">＋ Plan tomorrow</button>
    <button type="button" class="btn secondary small" id="dailyTemplateMode">Edit recurring template</button>
   </div>
  </div>
@@ -256,7 +256,7 @@ window.RecallLocal=kind=>kind==='goals'?data.goals:kind==='habits'?data.habits:[
 window.addEventListener('recall-cloud-data',event=>{const {kind,items}=event.detail||{};if(!Array.isArray(items))return;if(kind==='goals')data.goals=items;if(kind==='habits')data.habits=items;localStorage.setItem(KEY,JSON.stringify(data));render()});
 
 render()})();
-</script><script src="./daily-checklist.js?v=20261113-shared-plan"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261112-progress-fix-v3"></script><script src="./auto-backup.js?v=20261112-progress-fix-v3"></script><script>
+</script><script src="./daily-checklist.js?v=20261113-plan-tomorrow-v2"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261112-progress-fix-v3"></script><script src="./auto-backup.js?v=20261112-progress-fix-v3"></script><script>
 (function(){
   const status=document.getElementById('firebaseStatus');
   const button=document.getElementById('firebaseLogin');
