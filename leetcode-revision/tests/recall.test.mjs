@@ -49,6 +49,15 @@ test('Arrays guide covers interview requirements without replacing user notes',(
  assert.ok(dsRevision.includes('const personal=personalNotes(item)'));
  assert.ok(arrayStyles.includes('@media(max-width:760px)'));
  assert.ok(arrayStyles.includes('overflow-x:auto'));
+ assert.equal((g.html.match(/class="ag-section" data-ag-section=/g)||[]).length,8);
+ assert.ok(g.html.includes('data-ag-expand-all'));
+ assert.ok(g.html.includes('data-ag-collapse-all'));
+ assert.ok(g.html.includes('data-ag-open="ag-operations"'));
+ assert.ok(dsRevision.includes("arrayIntegratedNotes"));
+ assert.ok(dsRevision.includes("ARRAY_ARCHIVE_KEY"));
+ assert.ok(dsRevision.includes("verified.at(-1)?.notes!==existing"));
+ assert.ok(dsRevision.includes("const personalHtml=!isArrayGuide&&personal"));
+ assert.ok(arrayStyles.includes('ag-section-toggle'));
 });
 
 test('Due means solved AND scheduled, never just saved',()=>{
