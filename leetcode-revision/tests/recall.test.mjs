@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 function runTests(read,test,assert){
-const index=read('index.html'),goals=read('goals.html'),concept=read('concept-revision.js'),backup=read('backup-all.js'),firebase=read('firebase-sync.js'),auto=read('auto-backup.js'),css=read('revision-readability.css'),sqlGuide=read('sql-pattern-guide.html');
+const index=read('index.html'),goals=read('goals.html'),concept=read('concept-revision.js'),backup=read('backup-all.js'),firebase=read('firebase-sync.js'),auto=read('auto-backup.js'),css=read('revision-readability.css'),sqlGuide=read('sql-pattern-guide.html'),arrayGuide=read('array-interview-guide.js'),arrayStyles=read('array-interview-guide.css'),dsRevision=read('data-structure-revision.js');
 const scripts=html=>[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(Boolean);
 const code=scripts(index).find(x=>x.includes('function renderHeat(data)'));
 const goalCode=scripts(goals).find(x=>x.includes('function streak(h)'));
@@ -13,7 +13,7 @@ const dateKey=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2
 
 test('Every inline and standalone app script parses',()=>{
  for(const html of [index,goals,sqlGuide])for(const script of scripts(html))assert.doesNotThrow(()=>new Function(script));
- for(const s of ['data-structure-revision.js','concept-revision.js','daily-checklist.js','future-todos.js','monthly-goals.js','backup-all.js','auto-backup.js'])assert.doesNotThrow(()=>new Function(read(s)));
+ for(const s of ['data-structure-revision.js','array-interview-guide.js','concept-revision.js','daily-checklist.js','future-todos.js','monthly-goals.js','backup-all.js','auto-backup.js'])assert.doesNotThrow(()=>new Function(read(s)));
 });
 
 test('All static document references exist and no duplicate backup script loads',()=>{
@@ -26,6 +26,29 @@ test('All static document references exist and no duplicate backup script loads'
  assert.ok(index.includes('id="solvedCount"'));
  assert.ok(index.includes('id="revisedCount"'));
  assert.ok(index.includes('id="total"'));
+});
+
+test('Arrays guide covers interview requirements without replacing user notes',()=>{
+ const fakeWindow={};
+ new Function('window',arrayGuide)(fakeWindow);
+ const g=fakeWindow.RecallArrayGuide;
+ assert.ok(g&&g.html);
+ assert.ok(g.stats.operations>=35);
+ assert.ok(g.stats.fundamentals>=12);
+ assert.ok(g.stats.patterns>=20);
+ assert.ok(g.stats.templates>=15);
+ for(const id of ['ag-operations','ag-fundamentals','ag-patterns','ag-recognize','ag-edges','ag-interview','ag-memorize','ag-practice']){
+  assert.ok(g.html.includes('id="'+id+'"'),id);
+ }
+ assert.equal((g.html.match(/<details\b/g)||[]).length,(g.html.match(/<\/details>/g)||[]).length);
+ assert.ok(g.html.includes('data-ds-copy'));
+ assert.ok(g.html.includes('freq = {0: 1}'));
+ assert.ok(index.includes('array-interview-guide.css'));
+ assert.ok(index.indexOf('array-interview-guide.js') < index.indexOf('data-structure-revision.js'));
+ assert.ok(dsRevision.includes('isArrayGuide?core:readable(core)'));
+ assert.ok(dsRevision.includes('const personal=personalNotes(item)'));
+ assert.ok(arrayStyles.includes('@media(max-width:760px)'));
+ assert.ok(arrayStyles.includes('overflow-x:auto'));
 });
 
 test('Due means solved AND scheduled, never just saved',()=>{
