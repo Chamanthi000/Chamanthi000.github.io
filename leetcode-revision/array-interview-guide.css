@@ -185,3 +185,21 @@ body.rev-index #dataStructureRevision .ag .ag-empty-private{
  body.rev-index #dataStructureRevision .ag .ag-consolidate{padding:13px}
  body.rev-index #dataStructureRevision .ag .ag-consolidate-actions button{flex:1 1 160px}
 }
+
+
+/* v6 · Exact text recovery / compare original saved content */
+body.rev-index #dataStructureRevision .ag .ag-raw-archive{
+ margin:14px 0 0;border:1px solid #d8e5da;border-radius:10px;overflow:hidden;background:#fff
+}
+body.rev-index #dataStructureRevision .ag details.ag-raw-archive>summary{
+ padding:11px 13px!important;min-height:42px!important;background:#f5f9f5!important;
+ cursor:pointer
+}
+body.rev-index #dataStructureRevision .ag details.ag-raw-archive>summary strong{
+ font:750 12px/1.5 'Plus Jakarta Sans',system-ui,sans-serif;color:#37624b
+}
+body.rev-index #dataStructureRevision .ag .ag-raw-archive pre{
+ white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:break-word!important;
+ padding:14px!important;margin:0!important;background:#f9fbf8!important;
+ border:0!important;color:#354d3c!important;font:13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace!important
+}
