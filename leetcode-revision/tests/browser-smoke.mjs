@@ -195,6 +195,36 @@ try{
  assert.equal(restored.notes,originalNotes);
  assert.equal(restored.arrayMergeVersion,0);
  capture('Legacy Arrays notes can be restored without losing archived text','PASS');
+ const originalStringNotes="My original special Strings example\nKeep the Unicode note: e\u0301 and é are not always equal.";
+ await notesPage.evaluate(value=>{
+   const records=JSON.parse(localStorage.getItem('recall-structures-v1')||'[]');
+   for(const row of records)if(row.id==='strings'){
+     row.notes=value;row.updatedAt=new Date().toISOString();
+   }
+   localStorage.setItem('recall-structures-v1',JSON.stringify(records));
+ },originalStringNotes);
+ await notesPage.reload({waitUntil:'domcontentloaded'});
+ await notesPage.locator('#dsToggle').click();
+ await notesPage.locator('.ds-topic[data-id="strings"] > summary').click();
+ assert.ok((await notesPage.locator('.sg-private-notes').textContent()).includes('My original special Strings example'));
+ assert.ok((await notesPage.locator('.sg-private-notes').textContent()).includes('Unicode note'));
+ await notesPage.locator('[data-sg-consolidate]').click();
+ const migratedString=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-structures-v1')).find(x=>x.id==='strings'));
+ assert.equal(migratedString.notes,'');
+ assert.equal(migratedString.stringIntegratedNotes,originalStringNotes);
+ assert.equal(migratedString.stringLegacyBackup,originalStringNotes);
+ assert.equal(migratedString.stringMergeVersion,1);
+ const stringArchive=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-strings-legacy-archive-v1')).at(-1));
+ assert.equal(stringArchive.notes,originalStringNotes);
+ await notesPage.reload({waitUntil:'domcontentloaded'});
+ await notesPage.locator('#dsToggle').click();
+ await notesPage.locator('.ds-topic[data-id="strings"] > summary').click();
+ assert.ok((await notesPage.locator('.sg-private-notes').textContent()).includes('My original special Strings example'));
+ await notesPage.locator('[data-sg-restore]').click();
+ const restoredString=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-structures-v1')).find(x=>x.id==='strings'));
+ assert.equal(restoredString.notes,originalStringNotes);
+ assert.equal(restoredString.stringMergeVersion,0);
+ capture('Saved Strings notes survive consolidation, archived backup, refresh and restore exactly','PASS');
  await notesContext.close();
 
  console.log(JSON.stringify({result:'PASS',checks:report.length,report},null,2));
