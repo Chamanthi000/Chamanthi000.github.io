@@ -44,6 +44,18 @@ try{
     assert.ok((await page.locator('.ag-section').count())>=8,'Missing Arrays guide sections');
     assert.ok((await page.locator('.ag-pattern').count())>=29,'Missing Arrays patterns');
     assert.ok((await page.locator('.ag-detail').count())>=35,'Missing fundamentals/templates');
+    const allSections=page.locator('.ag > details.ag-section[data-ag-section]');
+    assert.equal(await allSections.count(),8,'Expected eight collapsible major sections');
+    assert.equal(await page.locator('details[data-ag-section="ag-operations"]').evaluate(el=>el.open),false,'Sections should start collapsed');
+    await page.locator('[data-ag-open="ag-operations"]').click();
+    assert.equal(await page.locator('details[data-ag-section="ag-operations"]').evaluate(el=>el.open),true,'Navigation should open chosen section');
+    await page.locator('details[data-ag-section="ag-operations"] > summary').click();
+    assert.equal(await page.locator('details[data-ag-section="ag-operations"]').evaluate(el=>el.open),false,'Tapping header should collapse it');
+    await page.locator('[data-ag-expand-all]').click();
+    assert.equal(await allSections.evaluateAll(items=>items.filter(el=>el.open).length),8,'Expand all should open eight sections');
+    await page.locator('[data-ag-collapse-all]').click();
+    assert.equal(await allSections.evaluateAll(items=>items.filter(el=>el.open).length),0,'Collapse all should close eight sections');
+
     const opened=await page.evaluate(()=>{
      const pre=document.querySelector('.ag-code pre');
      return {width:document.documentElement.scrollWidth,viewport:innerWidth,codeOverflow:pre&&getComputedStyle(pre).overflowX,codeFont:pre&&parseFloat(getComputedStyle(pre).fontSize)};
@@ -119,6 +131,40 @@ try{
  assert.equal(await page.locator('#dailyImportBanner').count(),0);
  capture('Malformed shared checklist is safely rejected','PASS');
  await context.close();
+ const notesContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ await notesContext.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort());
+ const originalNotes='MY UNIQUE ARRAY TECHNIQUE\n\n1. Exact saved example [1, 2]\n2. Never lose local personal notes.';
+ await notesContext.addInitScript(text=>{
+   try{localStorage.setItem('recall-structures-v1',JSON.stringify([{id:'arrays',title:'Arrays',notes:text,createdAt:'2026-11-12T00:00:00.000Z',updatedAt:'2026-11-12T00:00:00.000Z'}]));}catch{}
+ },originalNotes);
+ const notesPage=await notesContext.newPage();
+ notesPage.on('dialog',d=>d.accept());
+ await notesPage.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
+ await notesPage.locator('#dsToggle').click();
+ await notesPage.locator('.ds-topic[data-id="arrays"] > summary').click();
+ await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
+ assert.ok((await notesPage.locator('.ag-private-notes').innerText()).includes('MY UNIQUE ARRAY TECHNIQUE'));
+ await notesPage.locator('[data-ag-consolidate]').click();
+ const consolidated=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-structures-v1')).find(x=>x.id==='arrays'));
+ assert.equal(consolidated.notes,'');
+ assert.equal(consolidated.arrayIntegratedNotes,originalNotes);
+ assert.equal(consolidated.arrayLegacyBackup,originalNotes);
+ assert.equal(consolidated.arrayMergeVersion,1);
+ const archive=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-arrays-legacy-archive-v1')).at(-1));
+ assert.equal(archive.notes,originalNotes);
+ await notesPage.reload({waitUntil:'domcontentloaded'});
+ await notesPage.locator('#dsToggle').click();
+ await notesPage.locator('.ds-topic[data-id="arrays"] > summary').click();
+ await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
+ assert.ok((await notesPage.locator('.ag-private-notes').innerText()).includes('MY UNIQUE ARRAY TECHNIQUE'));
+ capture('Saved Arrays notes preserved verbatim through reversible migration and refresh','PASS');
+ await notesPage.locator('[data-ag-restore]').click();
+ const restored=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-structures-v1')).find(x=>x.id==='arrays'));
+ assert.equal(restored.notes,originalNotes);
+ assert.equal(restored.arrayMergeVersion,0);
+ capture('Legacy Arrays notes can be restored without losing archived text','PASS');
+ await notesContext.close();
+
  console.log(JSON.stringify({result:'PASS',checks:report.length,report},null,2));
 }catch(error){
  console.error(JSON.stringify({result:'FAIL',report,error:String(error),stack:error?.stack},null,2));
