@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {browser,firebase,item,KEYS,empty,deferred,flush,source} from './data-safety-mocks.mjs';
 const path=id=>'users/account-A/coding/'+id;
+const writeError=(code,message='synthetic write failure')=>Object.assign(new Error(message),{code});
+const statuses=b=>b.events.filter(e=>e.type==='recall-cloud-status').map(e=>e.detail.message);
 
 test('restoreAll rejects missing optimistic guard; every changed restored version has transaction history',async()=>{
  const b=browser(),f=await firebase(b);await f.auth();const a=item('a');f.store.set(path('a'),a);
@@ -73,7 +75,131 @@ test('offline queues and online retries; acknowledgement is reported only after 
 test('transaction failure retains queued changes and retries successfully',async()=>{
  const b=browser(),f=await firebase(b);await f.auth();f.controls.fail=true;f.local('coding',[item('a')]);await b.runTimers(180);
  assert.equal(f.cloud.pendingCount,1);assert.match(b.elements.firebaseStatus.textContent,/Cloud save failed/);
- f.controls.fail=false;await b.runTimers(60000);assert.equal(f.cloud.pendingCount,0);assert.ok(f.store.has(path('a')));
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown'}]);
+ assert.deepEqual([...b.timers.values()].map(t=>t.delay),[2000]);
+ await b.runTimers(2000);assert.deepEqual([...b.timers.values()].map(t=>t.delay),[4000]);
+ f.controls.fail=false;await b.runTimers(4000);assert.equal(f.cloud.pendingCount,0);assert.ok(f.store.has(path('a')));
+ assert.deepEqual(f.cloud.writeErrors,[]);assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+});
+
+for(const [code,action] of [
+ ['permission-denied',/account permissions/i],['unauthenticated',/sign in again/i],
+ ['unavailable',/network connection/i],['deadline-exceeded',/network connection/i],
+ ['resource-exhausted',/quota/i],['invalid-argument',/record format/i],['unknown',/try again/i]
+])for(const prefix of ['','firestore/'])test('write diagnostic is actionable and normalized for '+prefix+code,async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const record=item('a');
+ f.controls.beforeGet=()=>{throw writeError(prefix+code)};f.local('coding',[record]);await b.runTimers(180);
+ const message=b.elements.firebaseStatus.textContent;
+ assert.match(message,/^⚠ Cloud save failed · Retrying automatically/);assert.match(message,action);
+ assert.ok(message.includes('coding: '+code));assert.doesNotMatch(message,/firestore\//);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code}]);
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[record]);assert.equal(f.writes.length,0);
+});
+
+test('write diagnostics allowlist codes and expose no exception text, record IDs, notes or emails',async()=>{
+ const record=item('private-record-id','private-note-text'),privateText='private-record-id private-note-text private@example.invalid';
+ for(const code of ['firestore/permission-denied','firestore/'+privateText,privateText,'toString','__proto__','firestore/firestore/unavailable',undefined,null,42]){
+  const b=browser(),f=await firebase(b);await f.auth();
+  f.controls.beforeGet=()=>{throw Object.assign(writeError(code,privateText),{recordId:record.id,notes:record.notes,email:'private@example.invalid'})};
+  f.local('coding',[record]);await b.runTimers(180);
+  const diagnostics=f.cloud.writeErrors,expected=code==='firestore/permission-denied'?'permission-denied':'unknown';
+  assert.deepEqual(diagnostics,[{kind:'coding',code:expected}]);
+  assert.doesNotMatch(JSON.stringify([statuses(b),diagnostics]),/private-record-id|private-note-text|private@example\.invalid/);
+  assert.ok(Object.isFrozen(diagnostics));assert.ok(Object.isFrozen(diagnostics[0]));
+  assert.throws(()=>diagnostics.push({kind:'sql',code:'unknown'}),TypeError);
+  assert.throws(()=>{diagnostics[0].code='unavailable'},TypeError);
+  assert.throws(()=>{f.cloud.writeErrors=[]},TypeError);
+  assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:expected}]);
+ }
+});
+
+test('write diagnostics do not expose an unrecognized kind passed to the sync API',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();
+ f.controls.beforeGet=()=>{throw writeError('unavailable','private exception')};
+ f.cloud.sync('private@example.invalid',[item('private-record-id','private-note-text')]);await b.runTimers(180);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'unknown',code:'unavailable'}]);
+ assert.doesNotMatch(JSON.stringify([statuses(b),f.cloud.writeErrors]),/private/);
+});
+
+for(const otherKind of ['coding','sql'])test('unrelated snapshots and successful '+otherKind+' write cannot mask a failed pending save',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();f.emit('coding');f.emit('sql');const failed=item('a','still pending');
+ f.controls.beforeGet=key=>{if(key===path('a'))throw writeError('permission-denied')};
+ f.local('coding',[failed]);await b.runTimers(180);const start=statuses(b).length-1;
+ f.emit('sql');f.emit('coding');
+ f.local(otherKind,otherKind==='coding'?[failed,item('b')]:[item('b')]);await b.runTimers(180);
+ assert.ok(f.store.has('users/account-A/'+otherKind+'/b'));assert.equal(f.cloud.pendingCount,1);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'permission-denied'}]);
+ assert.deepEqual((await f.cloud.readAll()).coding.find(x=>x.id==='a'),failed);
+ for(const message of statuses(b).slice(start)){
+  assert.match(message,/Cloud save failed · Retrying automatically/);assert.match(message,/coding: permission-denied/);assert.doesNotMatch(message,/Cloud confirmed/);
+ }
+ f.controls.beforeGet=null;await b.runTimers(2000);
+ assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.cloud.writeErrors,[]);assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+});
+
+test('recovery removes only the matching record error when multiple records fail',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const a=item('a'),other=item('b');
+ f.controls.beforeGet=key=>{throw writeError(key===path('a')?'unavailable':'invalid-argument')};
+ f.local('coding',[a,other]);await b.runTimers(180);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unavailable'},{kind:'coding',code:'invalid-argument'}]);
+ f.controls.beforeGet=key=>{if(key===path('a'))throw writeError('unavailable')};await b.runTimers(2000);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unavailable'}]);assert.equal(f.cloud.pendingCount,1);
+ assert.deepEqual(f.store.get(path('b')),other);assert.match(b.elements.firebaseStatus.textContent,/coding: unavailable/);
+ f.controls.beforeGet=null;await b.runTimers(4000);assert.deepEqual(f.cloud.writeErrors,[]);assert.equal(f.cloud.pendingCount,0);
+});
+
+for(const outcome of ['unchanged','conflict'])test('matching pending '+outcome+' completion clears its write error',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const device=item('a');
+ f.controls.beforeGet=()=>{throw writeError('unavailable')};f.local('coding',[device]);await b.runTimers(180);
+ f.controls.beforeGet=null;f.store.set(path('a'),outcome==='unchanged'?device:item('a','newer server','2026-02-01'));
+ if(outcome==='conflict'){
+  b.fault.set=k=>k===KEYS.conflicts;await b.runTimers(2000);
+  assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unavailable'}]);
+  assert.match(b.elements.firebaseStatus.textContent,/Conflicts.*Cloud save failed/);
+  b.fault.set=null;b.window.dispatchEvent({type:'online'});
+ }
+ await b.runTimers(2000);assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.cloud.writeErrors,[]);assert.equal(f.writes.length,0);
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud save failed/);
+ if(outcome==='conflict')assert.deepEqual(b.rows('conflicts')[0].device,device);
+});
+
+for(const outcome of ['saved','unchanged','conflict'])test('older '+outcome+' completion cannot clear a newer queued version failure',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const first=item('a'),later=item('a','later edit','2026-03-01');
+ f.controls.beforeGet=()=>{throw writeError('unavailable')};f.local('coding',[first]);await b.runTimers(180);
+ f.controls.beforeGet=null;
+ if(outcome!=='saved')f.store.set(path('a'),outcome==='unchanged'?first:item('a','server edit','2026-02-01'));
+ const gate=deferred();f.controls.beforeCommit=()=>gate.promise;const running=b.runTimers(2000);await flush();
+ f.controls.beforeCommit=null;f.controls.beforeGet=()=>{throw writeError('invalid-argument')};
+ f.local('coding',[later]);await b.runTimers(180);gate.resolve();await running;
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument'}]);
+ assert.deepEqual((await f.cloud.readAll()).coding,[later]);assert.match(b.elements.firebaseStatus.textContent,/coding: invalid-argument/);
+ f.controls.beforeGet=null;await b.runTimers(2000);
+ assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.cloud.writeErrors,[]);assert.deepEqual(f.store.get(path('a')),later);
+});
+
+test('late failure of a replaced pending version cannot overwrite the current diagnostic',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const gate=deferred();
+ f.controls.beforeGet=()=>gate.promise;f.local('coding',[item('a')]);const running=b.runTimers(180);await flush();
+ f.controls.beforeGet=()=>{throw writeError('invalid-argument')};f.local('coding',[item('a','later','2026-02-01')]);await b.runTimers(180);
+ gate.reject(writeError('permission-denied'));await running;
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument'}]);
+ assert.match(b.elements.firebaseStatus.textContent,/coding: invalid-argument/);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/permission-denied/);
+});
+
+for(const settlement of ['resolve','reject'])test('write errors and late '+settlement+' callbacks are isolated across same-uid auth epochs',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();
+ f.controls.beforeGet=()=>{throw writeError('unavailable')};f.local('coding',[item('a')]);await b.runTimers(180);
+ const staleTimer=[...b.timers.values()][0];
+ f.controls.beforeGet=null;const gate=deferred();f.controls.beforeCommit=()=>gate.promise;const running=b.runTimers(2000);await flush();
+ await f.auth(null);assert.deepEqual(f.cloud.writeErrors,[]);const signedOut=b.elements.firebaseStatus.textContent;
+ await staleTimer.fn();assert.equal(b.elements.firebaseStatus.textContent,signedOut);
+ await f.auth();assert.deepEqual(f.cloud.writeErrors,[]);
+ f.controls.beforeCommit=null;f.controls.beforeGet=()=>{throw writeError('invalid-argument')};
+ f.local('coding',[item('a','new session','2026-03-01')]);await b.runTimers(180);const current=b.elements.firebaseStatus.textContent;
+ gate[settlement](writeError('permission-denied'));await running;
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument'}]);
+ assert.equal(b.elements.firebaseStatus.textContent,current);
+ await f.auth();assert.deepEqual(f.cloud.writeErrors,[]);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud save failed/);
 });
 
 test('localStorage failure is never masked by success from another notebook or server acknowledgement',async()=>{

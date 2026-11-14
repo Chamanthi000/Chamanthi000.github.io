@@ -52,7 +52,7 @@ const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRed
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),deviceOwner:null,accountPaused:false,accountPauseReason:''};
+const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),deviceOwner:null,accountPaused:false,accountPauseReason:''};
 const kinds=['coding','sql','goals','habits','structures','concepts'];
 const page=location.pathname.endsWith('goals.html')?['goals','habits']:location.pathname.endsWith('sql-pattern-guide.html')?['concepts']:['coding','sql','structures','concepts'];
 const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:s}}))};
@@ -106,13 +106,29 @@ function send(kind){
  if(state.localFailure)statusText('⚠ Device save failed · Export a backup before leaving');
 }
 const subscriptionFailure=()=>state.subscriptionErrors.size?'Cloud sync failed · '+[...state.subscriptionErrors].map(([kind,message])=>kind+': '+message).join(' · ')+' · Refresh or sign in again to reconnect':'';
+const WRITE_ERROR_ACTIONS=new Map([
+ ['permission-denied','Check account permissions for cloud saves.'],
+ ['unauthenticated','Sign in again to retry cloud saves.'],
+ ['unavailable','Check your network connection and retry.'],
+ ['deadline-exceeded','Check your network connection and retry.'],
+ ['resource-exhausted','Check cloud quota or try again later.'],
+ ['invalid-argument','Check the record format before retrying.'],
+ ['unknown','Try again; if this continues, refresh or sign in again.']
+]);
+function writeErrorCode(error){
+ const code=typeof error?.code==='string'?error.code.replace(/^firestore\//,''):'unknown';
+ return WRITE_ERROR_ACTIONS.has(code)?code:'unknown';
+}
+const writeFailure=()=>state.writeErrors.size?'Cloud save failed · Retrying automatically · '+[...state.writeErrors.values()].map(({kind,code})=>kind+': '+code+' · '+WRITE_ERROR_ACTIONS.get(code)).join(' · '):'';
 function syncStatus(){
  if(state.accountPaused){statusText(state.accountPauseReason);return}
- const failure=subscriptionFailure();
- if(state.localFailure){statusText('⚠ Device save failed · Export a backup before leaving'+(failure?' · '+failure:''));return}
- if(failure){statusText('⚠ '+failure);return}
- if(state.blocked.size||state.conflicts.size){statusText('⚠ Conflicts · Device copies retained; review or export conflict copies');return}
- if(typeof navigator!=='undefined'&&navigator.onLine===false){statusText('Offline · Cloud changes waiting for reconnection');return}
+ const failure=subscriptionFailure(),write=writeFailure();
+ const report=message=>statusText(message+(write?' · '+write:''));
+ if(state.localFailure){report('⚠ Device save failed · Export a backup before leaving'+(failure?' · '+failure:''));return}
+ if(failure){report('⚠ '+failure);return}
+ if(state.blocked.size||state.conflicts.size){report('⚠ Conflicts · Device copies retained; review or export conflict copies');return}
+ if(typeof navigator!=='undefined'&&navigator.onLine===false){report('Offline · Cloud changes waiting for reconnection');return}
+ if(write){statusText('⚠ '+write+' · Device copy retained');return}
  if(state.pending.size){statusText('✓ Saved on device · Waiting for cloud acknowledgement');return}
  if(page.every(k=>state.confirmed.has(k)))statusText('✓ Cloud confirmed · Server acknowledged current notebooks');
  else statusText('Waiting · Cached data or remaining notebooks need server acknowledgement');
@@ -266,14 +282,14 @@ function arm(key,delay){
   if(typeof navigator!=='undefined'&&navigator.onLine===false){syncStatus();return}
   const kind=key.slice(0,key.indexOf(':'));
   try{
-   if(state.subscriptionErrors.size)syncStatus();
+   if(state.subscriptionErrors.size||state.writeErrors.size)syncStatus();
    else statusText(state.localFailure?'⚠ Device save failed · Cloud syncing…':'Syncing · Waiting for server acknowledgement');
    const outcome=await writeWithHistory(kind,value);
    assertSession(session);
    if(outcome.result==='remote-newer'){
     if(!holdConflict(kind,value,outcome.previous)){syncStatus();return}
     // Only release this version, never a newer edit queued during the transaction.
-    if(state.pending.get(key)===value)state.pending.delete(key);
+    if(state.pending.get(key)===value){state.pending.delete(key);state.writeErrors.delete(key)}
     state.retries.delete(key);
     if(!state.pending.has(key)){
      state.snapshots[kind]=(state.snapshots[kind]||[]).filter(item=>idOf(kind,item)!==idOf(kind,value));
@@ -282,15 +298,17 @@ function arm(key,delay){
     }
     syncStatus();return;
    }
-   if(state.pending.get(key)===value)state.pending.delete(key);
+   if(state.pending.get(key)===value){state.pending.delete(key);state.writeErrors.delete(key)}
    state.retries.delete(key);
-   if(state.localFailure||state.subscriptionErrors.size||state.blocked.size||state.conflicts.size||state.pending.size)syncStatus();
+   if(state.localFailure||state.subscriptionErrors.size||state.writeErrors.size||state.blocked.size||state.conflicts.size||state.pending.size)syncStatus();
    else statusText('✓ Cloud confirmed · Server acknowledged save'+(outcome.archived?' · Previous version archived':''));
   }catch(e){
    if(session.epoch!==state.epoch||session.uid!==state.user?.uid)return;
    const count=(state.retries.get(key)||0)+1;state.retries.set(key,count);
    if(state.pending.get(key)===value)arm(key,Math.min(60000,1000*2**Math.min(count,6)));
-   statusText('⚠ Cloud save failed · Retrying automatically'+(state.localFailure?' · Device save also failed':' · Device copy retained')+(state.subscriptionErrors.size?' · '+subscriptionFailure():''));
+   // Only the current queued version can report a failure; never expose exception text.
+   if(state.pending.get(key)===value)state.writeErrors.set(key,{kind:kinds.includes(kind)?kind:'unknown',code:writeErrorCode(e)});
+   syncStatus();
   }
  },delay));
 }
@@ -302,7 +320,7 @@ function queue(kind,item){
 }
 async function setup(user){
 for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);
-state.epoch++;state.timers.clear();state.retries.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
+state.epoch++;state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
 state.snapshots=Object.fromEntries(kinds.map(k=>[k,[]]));state.user=user;state.ready=!!user;displayAccount(user);
 if(!user){statusText('Cloud signed out · Device storage is separate');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 // Device records are shared by the app. Never silently migrate one account's notes to another.
@@ -373,6 +391,8 @@ window.RecallCloud={
   sync(kind,items){if(state.user)putLocal(kind,items)},
   get ready(){return initialized},
   get pendingCount(){return state.pending.size},
+  // Detached, read-only diagnostics: no record keys, account details or exception messages.
+  get writeErrors(){return Object.freeze([...state.writeErrors.values()].map(({kind,code})=>Object.freeze({kind,code})))},
   downloadCloudHistory,
   // Full cloud read across all record types (concepts share the coding collection).
   get sessionToken(){return state.user?state.user.uid+':'+state.epoch:null},
