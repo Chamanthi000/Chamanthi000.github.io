@@ -516,16 +516,24 @@ async function readLiveConflict(kind,recordId,session){
   cloud:remoteDocs.length===1?withoutRecordType(remoteDocs[0].value):null,cloudCopies:remoteDocs};
 }
 function replaceDeviceConflictRecord(kind,recordId,value,expected){
- const storageKey=LOCAL_KEYS[kind];
- const raw=localStorage.getItem(storageKey);
+ const storageKey=LOCAL_KEYS[kind],raw=localStorage.getItem(storageKey);
  if(raw===null)throw Error('Device storage missing; no changes made.');
  const parsed=JSON.parse(raw),envelope=kind==='habits'||kind==='goals';
  if(envelope&&(!parsed||typeof parsed!=='object'||Array.isArray(parsed)))throw Error('Invalid device envelope.');
  const values=envelope?parsed[kind]:parsed;
  if(!Array.isArray(values))throw Error('Invalid device notebook.');
  const original=values.filter(row=>idOf(kind,row)===recordId);
- if(original.length>1||!sameRecord(original[0]||null,expected||null))throw Error('Device record changed since review.');
- const updated=original.length?values.map(row=>idOf(kind,row)===recordId?value:row):[...values,value];
+ const expectedRows=Array.isArray(expected)?expected:expected?[expected]:[];
+ if(original.length!==expectedRows.length||original.some((row,i)=>!sameRecord(row,expectedRows[i])))throw Error('Device record changed since review.');
+ // Collapse only this logical identity; retain all other topics, goals and
+ // original order. Every replaced device alternative was archived beforehand.
+ let inserted=false;
+ const updated=[];
+ for(const row of values){
+  if(idOf(kind,row)===recordId){if(!inserted){updated.push(value);inserted=true;}}
+  else updated.push(row);
+ }
+ if(!inserted)updated.push(value);
  const encoded=JSON.stringify(envelope?{...parsed,[kind]:updated}:updated);
  localStorage.setItem(storageKey,encoded);
  if(localStorage.getItem(storageKey)!==encoded)throw Error('Device save could not be verified.');
@@ -590,34 +598,47 @@ async function resolveDuplicateCloudCopies(kind,recordId,selected,live,session,s
  assertSession(session);
 }
 
-async function resolveReviewedConflict(kind,recordId,choice,reviewed){
+async function resolveReviewedConflict(kind,recordId,choice,reviewed,deviceIndex=null){
  const key=kind+':'+recordId;
  if(!state.user||state.accountPaused||!state.conflicts.has(key)||state.blocked.has(key)||
     state.pending.has(key)||state.writeErrors.has(key)||state.localFailure||!['device','cloud'].includes(choice))throw Error('Conflict is not ready for a safe selection.');
  if(!window.RecallSyncConflicts.read().some(row=>row.kind===kind&&row.recordId===recordId))throw Error('Verified conflict archive is missing.');
  const session=captureSession(),live=await readLiveConflict(kind,recordId,session);
  if(!sameRecord(live.device,reviewed.device)||!sameRecord(live.cloud,reviewed.cloud))throw Error('The current versions have changed; review again.');
+ if(reviewed.duplicateDevice){
+  if(choice!=='device'||!sameRecord(live.deviceCopies,reviewed.deviceCopies)||!Number.isInteger(deviceIndex)||
+    deviceIndex<0||deviceIndex>=live.deviceCopies.length)throw Error('The device alternatives changed or no version was selected.');
+ }else if(live.deviceCopies.length>1)throw Error('The device alternatives changed; review again.');
  if(reviewed.duplicateCloud){
-  if(choice!=='device'||!live.device||live.cloudCopies.length<2||!sameRecord(live.cloudCopies.map(x=>({physicalId:x.physicalId,value:withoutRecordType(x.value)})),reviewed.cloudCopies))throw Error('The duplicate cloud records changed; review again.');
- }else if(live.cloudCopies.length||!live[choice])throw Error('The selected copy is missing or duplicate cloud records require review.');
- const prompt=reviewed.duplicateCloud?'Use this device version for '+kind+' · '+recordId+' and archive all '+live.cloudCopies.length+' duplicate cloud records?':choice==='device'?'Use the DEVICE version to replace the cloud version?':'Use the CLOUD version to replace the device version?';
- if(!confirm(prompt+' Both complete originals remain in conflict backups; verify that you have exported the backup if needed.'))return {cancelled:true};
- if(!archiveConflict(kind,live.device,live.cloud))throw Error('Could not confirm a permanent recovery copy.');
- const selected=choice==='device'?{...live.device,updatedAt:new Date().toISOString()}:live.cloud;
- // Verify the device has enough storage before changing anything on the server.
+  if(choice!=='device'||live.cloudCopies.length<2||
+     !sameRecord(live.cloudCopies.map(x=>({physicalId:x.physicalId,value:withoutRecordType(x.value)})),reviewed.cloudCopies))
+    throw Error('The duplicate cloud records changed; review again.');
+ }else if(live.cloudCopies.length>1)throw Error('New duplicate cloud records require review.');
+ const chosenDevice=choice==='device'?live.deviceCopies[reviewed.duplicateDevice?deviceIndex:0]:null;
+ if(!((choice==='device'&&chosenDevice)||(choice==='cloud'&&live.cloud)))throw Error('The selected version is missing.');
+ if(!reviewed.duplicateDevice&&!reviewed.duplicateCloud&&!live[choice])throw Error('The selected copy is missing.');
+ const multiple=reviewed.duplicateDevice||reviewed.duplicateCloud;
+ const prompt=multiple?'Use the selected DEVICE copy for '+kind+' · '+recordId+'? Archive '+live.deviceCopies.length+' device and '+live.cloudCopies.length+' cloud version(s), then retain one current topic?':
+   choice==='device'?'Use the DEVICE version to replace the cloud version?':'Use the CLOUD version to replace this device copy?';
+ if(!confirm(prompt+' Both originals will be retained in recovery history. Export your conflict copies first if desired.'))return {cancelled:true};
+ if(!archiveConflict(kind,chosenDevice||live.device,live.cloud))throw Error('Could not confirm a permanent recovery copy.');
+ const selected=choice==='device'?{...chosenDevice,updatedAt:new Date().toISOString()}:live.cloud;
+ // Read back the device's notebook before touching Firestore. Any failure keeps
+ // cloud data untouched and makes the operation safely retryable.
  const storageKey=LOCAL_KEYS[kind],original=localStorage.getItem(storageKey);
  if(original===null)throw Error('Device storage missing.');
  localStorage.setItem(storageKey,original);
  if(localStorage.getItem(storageKey)!==original)throw Error('Device storage readback failed.');
- if(choice==='device'&&reviewed.duplicateCloud){
-  await resolveDuplicateCloudCopies(kind,recordId,selected,live,session);
+ if(multiple){
+  await resolveDuplicateCloudCopies(kind,recordId,selected,live,session,chosenDevice);
  }else if(choice==='device'){
   const outcome=await writeWithHistory(kind,selected,{session,expected:live.cloud,forceHistory:!!live.cloud});
   if(outcome.result==='remote-newer')throw Error('Cloud record changed before the selection could be applied.');
  }
  assertSession(session);
- // A concurrent local edit is never overwritten: verify exact original fields.
- replaceDeviceConflictRecord(kind,recordId,selected,live.device);
+ // Another tab's local edit must not be overwritten: verify every original
+ // version still matches the snapshots taken at the start.
+ replaceDeviceConflictRecord(kind,recordId,selected,live.deviceCopies);
  await verifyArchivedConflictCopies();
  if(state.conflicts.has(key))throw Error('The server and device could not be verified as matching.');
  return {resolved:true,kind,recordId,kept:choice};
@@ -659,10 +680,10 @@ function archiveConflict(kind,device,cloud){
 window.RecallSyncConflicts={
  verify(){return verifyArchivedConflictCopies()},
  async inspect(){await verifyArchivedConflictCopies();return state.conflictDetails.map(row=>({...row}))},
- resolve(kind,recordId,choice){
+ resolve(kind,recordId,choice,deviceIndex=null){
   const row=state.conflictDetails.find(record=>record.kind===kind&&record.recordId===recordId);
   if(!row||!row.reviewable)throw Error('Review the current device and cloud versions before resolving this conflict.');
-  return resolveReviewedConflict(kind,recordId,choice,row);
+  return resolveReviewedConflict(kind,recordId,choice,row,deviceIndex);
  },
  read(){
   try{const data=JSON.parse(localStorage.getItem(CONFLICT_KEY)||'[]');if(!Array.isArray(data))throw Error('Invalid conflict storage');return data}
