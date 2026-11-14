@@ -52,7 +52,7 @@ const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRed
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:''};
+const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),resolvingKinds:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:''};
 const kinds=['coding','sql','goals','habits','structures','concepts'];
 const page=location.pathname.endsWith('goals.html')?['goals','habits']:location.pathname.endsWith('sql-pattern-guide.html')?['concepts']:['coding','sql','structures','concepts'];
 const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:s}}))};
@@ -621,6 +621,9 @@ async function resolveReviewedConflict(kind,recordId,choice,reviewed,deviceIndex
  const prompt=multiple?'Use the selected DEVICE copy for '+kind+' · '+recordId+'? Archive '+live.deviceCopies.length+' device and '+live.cloudCopies.length+' cloud version(s), then retain one current topic?':
    choice==='device'?'Use the DEVICE version to replace the cloud version?':'Use the CLOUD version to replace this device copy?';
  if(!confirm(prompt+' Both originals will be retained in recovery history. Export your conflict copies first if desired.'))return {cancelled:true};
+ if(state.resolvingKinds.has(kind))throw Error('Conflict resolution is already active for this notebook.');
+ state.resolvingKinds.add(kind);
+ try{
  if(!archiveConflict(kind,chosenDevice||live.device,live.cloud))throw Error('Could not confirm a permanent recovery copy.');
  const selected=choice==='device'?{...chosenDevice,updatedAt:new Date().toISOString()}:live.cloud;
  // Read back the device's notebook before touching Firestore. Any failure keeps
@@ -642,6 +645,7 @@ async function resolveReviewedConflict(kind,recordId,choice,reviewed,deviceIndex
  await verifyArchivedConflictCopies();
  if(state.conflicts.has(key))throw Error('The server and device could not be verified as matching.');
  return {resolved:true,kind,recordId,kept:choice};
+ }finally{state.resolvingKinds.delete(kind)}
 }
 
 reviewConflictButton.addEventListener('click',async()=>{
@@ -773,7 +777,7 @@ function queue(kind,item){
 function maybeAutoVerifyArchivedConflicts(){
  // Do not classify an unfinished device-to-cloud edit as a lasting conflict.
  // Check once the initial subscriptions and all queued writes are acknowledged.
- if(state.conflictReviewEpoch===state.epoch||!state.user||state.accountPaused||!state.conflicts.size||
+ if(state.resolvingKinds.size||state.conflictReviewEpoch===state.epoch||!state.user||state.accountPaused||!state.conflicts.size||
     state.pending.size||state.writeErrors.size||state.localFailure||state.subscriptionErrors.size||
     !page.every(k=>state.confirmed.has(k)))return;
  state.conflictReviewEpoch=state.epoch;
@@ -784,7 +788,7 @@ function maybeAutoVerifyArchivedConflicts(){
 }
 async function setup(user){
 for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);
-state.epoch++;state.conflictReviewEpoch=-1;state.conflictReviewHasResult=false;state.conflictDetails=[];conflictCompareList.replaceChildren();state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
+state.epoch++;state.resolvingKinds.clear();state.conflictReviewEpoch=-1;state.conflictReviewHasResult=false;state.conflictDetails=[];conflictCompareList.replaceChildren();state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
 state.snapshots=Object.fromEntries(kinds.map(k=>[k,[]]));state.user=user;state.ready=!!user;displayAccount(user);
 if(!user){statusText('Cloud signed out · Device storage is separate');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 // Device records are shared by the app. Never silently migrate one account's notes to another.
@@ -804,6 +808,10 @@ for(const kind of page){
  let terminated=false;
  const unsub=onSnapshot(list(kind,session),{includeMetadataChanges:true},snapshot=>{
   if(terminated||session.epoch!==state.epoch||session.uid!==state.user?.uid)return;
+  // A transaction replacing duplicated cloud documents may emit an interim
+  // snapshot before its Promise resolves. Do not let that snapshot overwrite
+  // device alternatives while they are being archived and consolidated.
+  if(state.resolvingKinds.has(kind))return;
   const remote=snapshot.docs.map(x=>x.data()).filter(x=>isMember(kind,x));
   // Do not collapse two server originals into one apparent record or replace
   // the device copy while a legacy physical-path ambiguity needs review.
