@@ -689,3 +689,35 @@ test('cloud record absent: review offers restoration by saving existing device c
  assert.equal(result.resolved,true);assert.equal(f.store.get(path('a')).notes,'only on device');
  assert.equal(b.rows('coding')[0].notes,'only on device');assert.equal(b.rows('conflicts').length>=1,true);
 });
+
+
+test('habit conflict selection keeps unrelated goals and envelope metadata intact',async()=>{
+ const device=item('habit-a','device habit notes','2026-01-01'),cloud=item('habit-a','cloud habit notes','2026-02-01');
+ const goal=item('goal-safe','unrelated goal');
+ const archive={id:'habit-history',kind:'habits',recordId:'habit-a',device,cloud};
+ const b=browser({goals:[goal],habits:[device],conflicts:[archive]}),f=await firebase(b);
+ f.store.set('users/account-A/habits/habit-a',cloud);await f.auth();
+ const details=await b.window.RecallSyncConflicts.inspect();
+ assert.deepEqual(details.map(x=>x.kind),['habits']);
+ const result=await b.window.RecallSyncConflicts.resolve('habits','habit-a','cloud');
+ assert.equal(result.resolved,true);
+ assert.deepEqual(b.rows('habits'),[cloud]);assert.deepEqual(b.rows('goals'),[goal]);
+ assert.equal(JSON.parse(b.storage.getItem(KEYS.goals)).extra,'preserved envelope');
+ assert.deepEqual(f.store.get('users/account-A/habits/habit-a'),cloud);
+ assert.equal(b.rows('conflicts').length>=1,true);
+});
+
+test('data structure conflict choice retains typed cloud identity and original revision notes',async()=>{
+ const device=item('arrays','device algorithm notes','2026-01-01'),cloud=item('arrays','cloud algorithm notes','2026-02-01');
+ const archive={id:'structure-history',kind:'structures',recordId:'arrays',device,cloud};
+ const b=browser({structures:[device],conflicts:[archive]}),f=await firebase(b);
+ f.store.set('users/account-A/coding/structure-arrays',{...cloud,recordType:'structure'});
+ await f.auth();
+ const found=await b.window.RecallSyncConflicts.inspect();
+ assert.equal(found.length,1);assert.equal(found[0].kind,'structures');
+ const result=await b.window.RecallSyncConflicts.resolve('structures','arrays','device');
+ assert.equal(result.resolved,true);assert.equal(f.store.get('users/account-A/coding/structure-arrays').recordType,'structure');
+ assert.equal(f.store.get('users/account-A/coding/structure-arrays').notes,'device algorithm notes');
+ assert.equal(b.rows('structures')[0].notes,'device algorithm notes');
+ assert.ok(b.rows('conflicts').some(row=>row.id==='structure-history'));
+});
