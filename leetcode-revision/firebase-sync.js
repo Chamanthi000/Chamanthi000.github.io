@@ -438,6 +438,7 @@ function archiveConflict(kind,device,cloud){
  }catch(e){statusText('⚠ Conflict archive failed · Device version retained; export before editing');return false}
 }
 window.RecallSyncConflicts={
+ verify(){return verifyArchivedConflictCopies()},
  read(){
   try{const data=JSON.parse(localStorage.getItem(CONFLICT_KEY)||'[]');if(!Array.isArray(data))throw Error('Invalid conflict storage');return data}
   catch(e){statusText('⚠ Conflict storage unavailable · Export device records before leaving');throw e}
