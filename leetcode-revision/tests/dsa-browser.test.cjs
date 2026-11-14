@@ -172,7 +172,7 @@ async function run() {
   assert.equal(await page.locator('.ds-topic').count(), 0);
   await page.locator('#dsSearch').fill('');
   assert.equal(await page.locator('.ds-topic').count(), 11);
-  assert.match(await page.locator('#dsSummary').textContent(), /^11 data structures/);
+  assert.match(await page.locator('#dsSummary').textContent(), /^11 revision topics/);
 
   // Cloud merge remains event-based and preserves unrelated private fields.
   const remote = { id: 'trees', title: 'trees', notes: 'Cloud fixture only', updatedAt: '2099-01-01', customMetadata: 'preserved' };
@@ -216,7 +216,7 @@ async function run() {
   await secondPage.locator('#dsToggle').click();
   assert.equal(await secondPage.locator('.ds-topic').count(),11);
   assert.equal(await secondPage.locator('.ds-topic').last().getAttribute('data-id'),'union-find');
-  assert.match(await secondPage.locator('#dsSummary').textContent(), /^11 data structures/);
+  assert.match(await secondPage.locator('#dsSummary').textContent(), /^11 revision topics/);
   await secondDevice.close();
 
   await page.setViewportSize({ width: 393, height: 852 });
