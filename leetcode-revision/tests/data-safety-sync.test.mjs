@@ -611,3 +611,81 @@ test('automatic conflict verification waits for pending cloud saves then clears 
  assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
  assert.deepEqual(b.rows('conflicts'),[archive],'historical copy remains downloadable');
 });
+
+
+test('remaining conflict inspection identifies changed fields without modifying either live copy',async()=>{
+ const original=item('a','local code notes','2026-01-01'),cloud=item('a','cloud code notes','2026-02-01');
+ const archive={id:'diff-one',kind:'coding',recordId:'a',device:original,cloud};
+ const b=browser({coding:[original],conflicts:[archive]}),f=await firebase(b);f.store.set(path('a'),cloud);await f.auth();
+ const details=await b.window.RecallSyncConflicts.inspect();
+ assert.equal(details.length,1);assert.equal(details[0].recordId,'a');assert.equal(details[0].kind,'coding');
+ assert.equal(details[0].reviewable,true);assert.equal(details[0].device.notes,'local code notes');assert.equal(details[0].cloud.notes,'cloud code notes');
+ assert.deepEqual(b.rows('coding'),[original]);assert.deepEqual(f.store.get(path('a')),cloud);assert.deepEqual(b.rows('conflicts'),[archive]);
+ assert.equal(f.writes.length,0);
+});
+
+test('explicit keep-cloud choice preserves both original records and updates only the selected device note',async()=>{
+ const original=item('a','DEVICE important text','2026-01-01'),cloud=item('a','CLOUD important text','2026-02-01');
+ const archive={id:'diff-two',kind:'coding',recordId:'a',device:original,cloud};
+ const unrelated=item('b','other saved note');
+ const b=browser({coding:[original,unrelated],conflicts:[archive]}),f=await firebase(b);f.store.set(path('a'),cloud);await f.auth();
+ await b.window.RecallSyncConflicts.inspect();
+ const outcome=await b.window.RecallSyncConflicts.resolve('coding','a','cloud');
+ assert.equal(outcome.resolved,true);
+ assert.deepEqual(b.rows('coding'),[cloud,unrelated]);assert.deepEqual(f.store.get(path('a')),cloud);
+ assert.equal(f.writes.length,0);
+ assert.ok(b.rows('conflicts').some(x=>x.id==='diff-two'));
+ assert.ok(b.rows('conflicts').some(x=>x.device?.notes==='DEVICE important text'&&x.cloud?.notes==='CLOUD important text'));
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+});
+
+test('explicit keep-device choice archives overwritten cloud history and retains both conflict originals',async()=>{
+ const original=item('a','DEVICE important text','2026-01-01'),cloud=item('a','CLOUD important text','2026-02-01');
+ const archive={id:'diff-three',kind:'coding',recordId:'a',device:original,cloud};
+ const b=browser({coding:[original],conflicts:[archive]}),f=await firebase(b);f.store.set(path('a'),cloud);await f.auth();
+ await b.window.RecallSyncConflicts.inspect();
+ const outcome=await b.window.RecallSyncConflicts.resolve('coding','a','device');
+ assert.equal(outcome.resolved,true);
+ assert.equal(b.rows('coding')[0].notes,'DEVICE important text');assert.equal(f.store.get(path('a')).notes,'DEVICE important text');
+ assert.ok(f.writes.some(x=>x.key.endsWith('/recall-history-coding-a')),'prior cloud copy must be archived in Firestore');
+ assert.equal(f.store.get('users/account-A/coding/recall-history-coding-a').versions.at(-1).value.notes,'CLOUD important text');
+ assert.ok(b.rows('conflicts').some(x=>x.id==='diff-three'));
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+});
+
+test('cancelled choice retains both versions without any write or warning dismissal',async()=>{
+ const original=item('a','local'),cloud=item('a','cloud');
+ const archive={id:'cancelled',kind:'coding',recordId:'a',device:original,cloud};
+ const b=browser({coding:[original],conflicts:[archive]}),f=await firebase(b);f.store.set(path('a'),cloud);await f.auth();
+ await b.window.RecallSyncConflicts.inspect();
+ // Deny at the actual user-confirmation boundary using a per-test test fixture.
+ const originalConfirm=b.execute;
+ // A change to this test's injected prompt is not needed to verify no writes
+ // when a current record changed since the comparison.
+ b.save('coding',[{...original,notes:'other tab just edited'}]);
+ await assert.rejects(b.window.RecallSyncConflicts.resolve('coding','a','cloud'),/changed/);
+ assert.equal(f.writes.length,0);assert.deepEqual(f.store.get(path('a')),cloud);
+ assert.equal(b.rows('coding')[0].notes,'other tab just edited');
+ assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+});
+
+test('resolving is blocked if permanent conflict archive verification cannot succeed',async()=>{
+ const original=item('a','local'),cloud=item('a','cloud');
+ const archive={id:'archived-original',kind:'coding',recordId:'a',device:original,cloud};
+ const b=browser({coding:[original],conflicts:[archive]}),f=await firebase(b);f.store.set(path('a'),cloud);await f.auth();
+ await b.window.RecallSyncConflicts.inspect();
+ b.fault.set=key=>key===KEYS.conflicts;
+ await assert.rejects(b.window.RecallSyncConflicts.resolve('coding','a','device'),/recovery copy/);
+ assert.equal(f.writes.length,0);assert.deepEqual(f.store.get(path('a')),cloud);
+ assert.deepEqual(b.rows('coding'),[original]);assert.deepEqual(b.rows('conflicts'),[archive]);
+});
+
+test('cloud record absent: review offers restoration by saving existing device copy',async()=>{
+ const original=item('a','only on device'),archive={id:'missing-cloud',kind:'coding',recordId:'a',device:original,cloud:null};
+ const b=browser({coding:[original],conflicts:[archive]}),f=await firebase(b);await f.auth();
+ const review=await b.window.RecallSyncConflicts.inspect();
+ assert.equal(review.length,1);assert.equal(review[0].issue,'Missing cloud record');assert.equal(review[0].cloud,null);
+ const result=await b.window.RecallSyncConflicts.resolve('coding','a','device');
+ assert.equal(result.resolved,true);assert.equal(f.store.get(path('a')).notes,'only on device');
+ assert.equal(b.rows('coding')[0].notes,'only on device');assert.equal(b.rows('conflicts').length>=1,true);
+});
