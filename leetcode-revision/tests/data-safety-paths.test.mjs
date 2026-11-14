@@ -11,7 +11,7 @@ const priorHistory=(id,kind='coding')=>({recordType:'syncBackup',originKind:kind
 const notes='  <tag> & "quotes"\n\n    keep indentation and trailing spaces  \nUnicode é é 😀';
 const record=(id,stamp='2026-02-01')=>({...item(id,notes,stamp),number:42,customMetadata:{id:'nested/original',recordType:'custom',values:['a/b','a%2Fb','\ud800'],flag:false},legacyOriginal:'  untouched  '});
 const copies=[{id:'original-conflict',kind:'coding',recordId:'a/b',device:record('a/b'),cloud:item('a/b','original conflict')}];
-const writeFailure=(stage)=>[{kind:'coding',code:'unknown',stage}];
+const writeFailure=(stage,reason)=>[{kind:'coding',code:'unknown',stage,...(reason?{reason}:{})}];
 const unchanged=(f,b,before,local)=>{
  assert.deepEqual([...f.store],before);assert.equal(f.writes.length,0);
  assert.deepEqual(b.rows('coding'),[local]);assert.deepEqual(b.rows('conflicts'),copies);
@@ -73,7 +73,7 @@ for(const occupant of [record('different-logical-id'),{...record('a/b'),recordTy
  const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('a/b');
  f.store.set(path(mapped(local.id)),occupant);const before=structuredClone([...f.store]);
  f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('target-read'));
+ unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('target-read','target-id-collision'));
  const results=[];
  await assert.rejects(f.cloud.restoreAll({coding:[local]},{expected:empty(),sessionToken:f.cloud.sessionToken,results}),/^Error: Cloud document identity mismatch; save stopped\.$/);
  assert.deepEqual(results,[]);unchanged(f,b,before,local);
@@ -117,7 +117,7 @@ for(const change of [{originKind:'sql'},{originId:'unrelated'},{recordType:'stru
  const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('a/b'),old=record(local.id,'2026-01-01');
  f.store.set(path(mapped(local.id)),old);f.store.set(path(history(local.id)),{...priorHistory(local.id),...change});
  const before=structuredClone([...f.store]);f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('history-read'));
+ unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('history-read','history-id-collision'));
  await assert.rejects(f.cloud.restoreAll({coding:[local]},{expected:{coding:[old]},sessionToken:f.cloud.sessionToken}),/^Error: Cloud history identity mismatch; save stopped\.$/);
  unchanged(f,b,before,local);
 });
@@ -126,14 +126,14 @@ test('legacy truncated history collisions stop without changing either history o
  const id='a/'.repeat(500),other=id+'different',b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record(id);
  assert.equal(history(id),history(other));f.store.set(path(mapped(id)),record(id,'2026-01-01'));f.store.set(path(history(id)),priorHistory(other));
  const before=structuredClone([...f.store]);f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('history-read'));
+ unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('history-read','history-id-collision'));
 });
 
 test('ambiguous same-kind logical matches reject without selecting a physical document',async()=>{
  const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('a/b');
  f.store.set(path('first'),record(local.id,'2026-01-01'));f.store.set(path('second'),record(local.id,'2025-01-01'));
  const before=structuredClone([...f.store]);f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('document-reference'));
+ unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('document-reference','duplicate-cloud-identity'));
  await assert.rejects(f.cloud.restoreAll({coding:[local]},{expected:empty(),sessionToken:f.cloud.sessionToken}),/^Error: Multiple cloud documents match this record; save stopped\.$/);
  unchanged(f,b,before,local);
 });
@@ -143,7 +143,7 @@ test('identity changed after scan is rechecked transactionally before unchanged 
  f.store.set(path('original'),record(local.id,'2026-01-01'));
  f.controls.beforeGet=key=>{if(key===path('original'))f.store.set(key,intruder)};
  f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,[[path('original'),intruder]],local);assert.deepEqual(f.cloud.writeErrors,writeFailure('target-read'));
+ unchanged(f,b,[[path('original'),intruder]],local);assert.deepEqual(f.cloud.writeErrors,writeFailure('target-read','target-id-collision'));
 });
 
 for(const metadata of [{fromCache:true,hasPendingWrites:false},{fromCache:false,hasPendingWrites:true},{}])test('unacknowledged server scan cannot authorize a fallback: '+JSON.stringify(metadata),async()=>{
