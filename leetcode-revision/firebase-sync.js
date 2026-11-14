@@ -140,7 +140,12 @@ const WRITE_REASON_ACTIONS=new Map([
  ['invalid-document-path','Review document path construction before retrying.'],
  ['reserved-field-name','Review reserved field names in the record schema.'],
  ['unsupported-value','Review unsupported values in the record schema.'],
- ['unknown-format','Check the record format; the error template was not recognized.']
+ ['unknown-format','Check the record format; the error template was not recognized.'],
+ ['target-id-collision','A different cloud document owns this ID. Save was stopped to protect both records.'],
+ ['history-id-collision','Saved history belongs to another record; original versions were protected.'],
+ ['duplicate-cloud-identity','Multiple cloud documents share this record ID; originals were preserved for review.'],
+ ['server-scan-unconfirmed','Cloud lookup was not acknowledged by the server; the device copy is retained.'],
+ ['client-type-error','A browser code error interrupted the read; your device copy is retained.']
 ]);
 function writeErrorCode(error){
  const code=typeof error?.code==='string'?error.code.replace(/^firestore\//,''):'unknown';
@@ -168,13 +173,22 @@ function invalidArgumentReason(error){
 function writeErrorDetails(error){
  const details={code:writeErrorCode(error)};
  if(WRITE_STAGES.has(error?.stage))details.stage=error.stage;
- if(details.code==='invalid-argument'&&WRITE_REASON_ACTIONS.has(error?.reason))details.reason=error.reason;
+ if((details.code==='invalid-argument'||details.code==='unknown')&&WRITE_REASON_ACTIONS.has(error?.reason))details.reason=error.reason;
  return details;
 }
 function safeWriteError(error,stage){
  const code=writeErrorCode(error),details={code};
  if(WRITE_STAGES.has(stage))details.stage=stage;
- if(code==='invalid-argument')details.reason=invalidArgumentReason(error);
+ const safeGuards=new Map([
+  ['Cloud document identity mismatch; save stopped.','target-id-collision'],
+  ['Cloud history identity mismatch; save stopped.','history-id-collision'],
+  ['Multiple cloud documents match this record; save stopped.','duplicate-cloud-identity'],
+  ['Server record lookup was not acknowledged; save stopped.','server-scan-unconfirmed']
+ ]);
+ const guardReason=safeGuards.get(error?.message);
+ if(guardReason)details.reason=guardReason;
+ else if(code==='invalid-argument')details.reason=invalidArgumentReason(error);
+ else if(code==='unknown'&&error?.name==='TypeError')details.reason='client-type-error';
  // Preserve only these fixed application guard messages, never an SDK message/cause.
  const safeMessages=['Account changed; operation stopped.','Previous cloud version could not be archived; restore stopped.','Cloud document identity mismatch; save stopped.','Cloud history identity mismatch; save stopped.','Multiple cloud documents match this record; save stopped.','Server record lookup was not acknowledged; save stopped.'];
  const safe=new Error(safeMessages.find(message=>message===error?.message)||'Cloud save failed.');
@@ -222,9 +236,9 @@ async function safeDocumentId(kind,value,session){
  assertSession(session);
  return checkedDocumentId('recall-key-v1-'+kind+'-'+Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join(''));
 }
-async function resolveDocumentId(kind,value,owner,session){
+async function resolveDocumentId(kind,value,owner,session,forceScan=false){
  const legacy=cloudDocId(kind,value);
- if(validDocumentId(legacy))return legacy;
+ if(validDocumentId(legacy)&&!forceScan)return legacy;
  // Only an acknowledged scan of this owner's same collection proves absence.
  const snapshot=await getDocsFromServer(owner);
  assertSession(session);
@@ -240,7 +254,9 @@ async function writeWithHistory(kind,value,options={}){
  let operation='document-reference';
  try{
  const owner=list(kind,session);
- const physicalId=await resolveDocumentId(kind,value,owner,session);
+ let physicalId=await resolveDocumentId(kind,value,owner,session);
+ let collisionChecked=false;
+ for(;;){
  assertSession(session);
  const ref=doc(owner,checkedDocumentId(physicalId));
  // Preserve every existing encodable history key, including legacy truncation.
@@ -249,7 +265,7 @@ async function writeWithHistory(kind,value,options={}){
  assertSession(session);
  const backupRef=doc(owner,checkedDocumentId(backupId));
  operation='transaction-commit';
- return await runTransaction(db,async tx=>{
+ try{return await runTransaction(db,async tx=>{
   // All reads precede every write; concurrent tabs retry against fresh server state.
   assertSession(session);
   operation='target-read';
@@ -292,7 +308,19 @@ async function writeWithHistory(kind,value,options={}){
   tx.set(ref,prepare(kind,value));
   operation='transaction-commit';
   return {result:'saved',archived};
- });
+ });}catch(error){
+  // If a normal ID is occupied by a different cloud record, never overwrite it.
+  // A confirmed server scan finds the original logical record or a new safe ID.
+  const legacy=cloudDocId(kind,value);
+  if(!collisionChecked&&physicalId===legacy&&validDocumentId(legacy)&&error?.message==='Cloud document identity mismatch; save stopped.'){
+   collisionChecked=true;
+   operation='document-reference';
+   physicalId=await resolveDocumentId(kind,value,owner,session,true);
+   continue;
+  }
+  throw error;
+ }
+ }
  }catch(error){throw safeWriteError(error,operation)}
 }
 async function downloadCloudHistory(){
