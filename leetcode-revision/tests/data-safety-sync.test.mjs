@@ -811,3 +811,74 @@ test('duplicate DSA recovery does not overwrite occupied canonical destination',
  assert.equal(f.store.get(destination).notes,'KEEP');
  assert.equal(f.store.get('users/account-A/coding/structure-arrays').recordType,'structure');
 });
+
+
+test('two device Arrays copies can be explicitly selected while keeping both in cloud recovery history',async()=>{
+ const first={...item('arrays','DEVICE draft version','2026-01-01'),title:'Arrays',custom:{first:1}};
+ const second={...item('arrays','DEVICE final complete version','2026-02-01'),title:'Arrays',custom:{second:2}};
+ const remote={...item('arrays','old cloud Arrays','2026-02-01'),recordType:'structure'};
+ const untouched=item('trees','untouched');
+ const b=browser({structures:[first,untouched,second],conflicts:[{id:'array-two-device',kind:'structures',recordId:'arrays',device:first,cloud:remote}]}),f=await firebase(b);
+ f.store.set('users/account-A/coding/structure-arrays',remote);await f.auth();
+ const review=await b.window.RecallSyncConflicts.inspect();
+ assert.equal(review.length,1);assert.equal(review[0].reviewable,true);
+ assert.equal(review[0].duplicateDevice,true);assert.equal(review[0].deviceCopies.length,2);
+ assert.equal(review[0].cloudCopies.length,0);
+ const chosen=await b.window.RecallSyncConflicts.resolve('structures','arrays','device',1);
+ assert.equal(chosen.resolved,true);
+ assert.equal(b.rows('structures').filter(x=>x.id==='arrays').length,1);
+ assert.equal(b.rows('structures').find(x=>x.id==='arrays').notes,'DEVICE final complete version');
+ assert.deepEqual(b.rows('structures').find(x=>x.id==='trees'),untouched);
+ const active=(await f.cloud.readAll({serverOnly:true})).structures.filter(x=>x.id==='arrays');
+ assert.equal(active.length,1);assert.equal(active[0].notes,'DEVICE final complete version');
+ const oldCloud=f.store.get('users/account-A/coding/structure-arrays');
+ assert.equal(oldCloud.recordType,'syncBackup');assert.deepEqual(oldCloud.versions[0].value,remote);
+ const backups=[...f.store.values()].filter(x=>x.recordType==='syncBackup'&&x.reason==='duplicate-device-recovery');
+ assert.equal(backups.length,1);
+ assert.deepEqual(backups[0].versions.map(x=>x.value),[first,second]);
+ assert.ok(b.rows('conflicts').some(x=>x.device?.notes==='DEVICE draft version'));
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+});
+test('multiple device Hash Maps versions without cloud copy preserve all alternatives and create one normal cloud topic',async()=>{
+ const first=item('hash-maps','device hashmap notes A','2026-01-01'),second=item('hash-maps','device hashmap notes B','2026-02-01');
+ const b=browser({structures:[first,second],conflicts:[{id:'map-two-device',kind:'structures',recordId:'hash-maps',device:first,cloud:null}]}),f=await firebase(b);
+ await f.auth();const review=await b.window.RecallSyncConflicts.inspect();
+ assert.equal(review[0].duplicateDevice,true);assert.equal(review[0].reviewable,true);
+ const outcome=await b.window.RecallSyncConflicts.resolve('structures','hash-maps','device',0);
+ assert.equal(outcome.resolved,true);
+ assert.equal(b.rows('structures').length,1);assert.equal(b.rows('structures')[0].notes,'device hashmap notes A');
+ assert.equal(f.store.get('users/account-A/coding/structure-hash-maps').notes,'device hashmap notes A');
+ assert.ok([...f.store.values()].some(row=>row.reason==='duplicate-device-recovery'&&row.versions.length===2));
+ assert.deepEqual((await f.cloud.readAll({serverOnly:true})).structures.map(x=>x.id),['hash-maps']);
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+});
+test('combined device and cloud duplicates are archived and one chosen device copy survives',async()=>{
+ const deviceA=item('arrays','device A'),deviceB=item('arrays','device B','2026-02-01');
+ const cloudA={...item('arrays','cloud A'),recordType:'structure'},cloudB={...item('arrays','cloud B'),recordType:'structure'};
+ const b=browser({structures:[deviceA,deviceB],conflicts:[{id:'both',kind:'structures',recordId:'arrays',device:deviceA,cloud:cloudA}]}),f=await firebase(b);
+ f.store.set('users/account-A/coding/structure-arrays',cloudA);
+ f.store.set('users/account-A/coding/legacy-arrays',cloudB);
+ await f.auth();const review=await b.window.RecallSyncConflicts.inspect();
+ assert.equal(review[0].duplicateDevice,true);assert.equal(review[0].duplicateCloud,true);
+ assert.equal(review[0].reviewable,true);
+ const result=await b.window.RecallSyncConflicts.resolve('structures','arrays','device',1);
+ assert.equal(result.resolved,true);
+ assert.equal(b.rows('structures').length,1);
+ assert.equal(b.rows('structures')[0].notes,'device B');
+ assert.equal((await f.cloud.readAll({serverOnly:true})).structures.filter(x=>x.id==='arrays').length,1);
+ for(const id of ['structure-arrays','legacy-arrays'])assert.equal(f.store.get('users/account-A/coding/'+id).recordType,'syncBackup');
+ assert.ok([...f.store.values()].some(x=>x.reason==='duplicate-device-recovery'));
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+});
+test('duplicate device selection cannot overwrite an alternative changed by another tab',async()=>{
+ const first=item('arrays','device A'),second=item('arrays','device B');
+ const cloud={...item('arrays','cloud A'),recordType:'structure'};
+ const b=browser({structures:[first,second],conflicts:[{id:'dupe',kind:'structures',recordId:'arrays',device:first,cloud}]}),f=await firebase(b);
+ f.store.set('users/account-A/coding/structure-arrays',cloud);await f.auth();
+ await b.window.RecallSyncConflicts.inspect();
+ b.save('structures',[first,{...second,notes:'new unsynced content'}]);
+ await assert.rejects(b.window.RecallSyncConflicts.resolve('structures','arrays','device',1),/alternatives changed/);
+ assert.equal(f.writes.length,0);
+ assert.deepEqual(f.store.get('users/account-A/coding/structure-arrays'),cloud);
+ assert.equal(b.rows('structures')[1].notes,'new unsynced content');
+});
