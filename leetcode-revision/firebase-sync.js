@@ -501,12 +501,13 @@ function arm(key,delay){
      if(outcome.previous)state.snapshots[kind].push(outcome.previous);
      send(kind);
     }
-    syncStatus();return;
+    syncStatus();maybeAutoVerifyArchivedConflicts();return;
    }
    if(state.pending.get(key)===value){state.pending.delete(key);state.writeErrors.delete(key)}
    state.retries.delete(key);
    if(state.localFailure||state.subscriptionErrors.size||state.writeErrors.size||state.blocked.size||state.conflicts.size||state.pending.size)syncStatus();
    else statusText('✓ Cloud confirmed · Server acknowledged save'+(outcome.archived?' · Previous version archived':''));
+   maybeAutoVerifyArchivedConflicts();
   }catch(e){
    if(session.epoch!==state.epoch||session.uid!==state.user?.uid)return;
    const count=(state.retries.get(key)||0)+1;state.retries.set(key,count);
@@ -522,6 +523,18 @@ function queue(kind,item){
  const key=kind+':'+idOf(kind,item),earlier=state.pending.get(key);
  if(!earlier||String(item.updatedAt||'')>=String(earlier.updatedAt||''))state.pending.set(key,JSON.parse(JSON.stringify(item)));
  state.retries.set(key,0);arm(key,180);
+}
+function maybeAutoVerifyArchivedConflicts(){
+ // Do not classify an unfinished device-to-cloud edit as a lasting conflict.
+ // Check once the initial subscriptions and all queued writes are acknowledged.
+ if(state.conflictReviewEpoch===state.epoch||!state.user||state.accountPaused||!state.conflicts.size||
+    state.pending.size||state.writeErrors.size||state.localFailure||state.subscriptionErrors.size||
+    !page.every(k=>state.confirmed.has(k)))return;
+ state.conflictReviewEpoch=state.epoch;
+ void verifyArchivedConflictCopies().then(()=>updateConflictReviewBox()).catch(()=>{
+  reviewConflictMessage.textContent='Cannot verify old conflicts right now. Copies retained.';
+  updateConflictReviewBox();
+ });
 }
 async function setup(user){
 for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);
@@ -574,10 +587,7 @@ for(const kind of page){
   // Only after every displayed subscription has a server acknowledgement may
   // we recheck historical conflicts. The recheck scans every archived kind,
   // including Habits when the user is viewing Coding.
-  if(state.conflictReviewEpoch!==state.epoch&&state.conflicts.size&&page.every(k=>state.confirmed.has(k))){
-   state.conflictReviewEpoch=state.epoch;
-   void verifyArchivedConflictCopies().then(()=>updateConflictReviewBox()).catch(()=>{reviewConflictMessage.textContent='Cannot verify old conflicts right now. Copies retained.';updateConflictReviewBox()});
-  }
+  maybeAutoVerifyArchivedConflicts();
  },e=>{
   if(session.epoch!==state.epoch||session.uid!==state.user?.uid)return;
   // Firestore listener errors are terminal; another notebook or completed write
