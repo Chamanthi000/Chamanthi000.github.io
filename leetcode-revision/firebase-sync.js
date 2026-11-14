@@ -106,20 +106,7 @@ function send(kind){
  if(state.localFailure)statusText('⚠ Device save failed · Export a backup before leaving');
 }
 const subscriptionFailure=()=>state.subscriptionErrors.size?'Cloud sync failed · '+[...state.subscriptionErrors].map(([kind,message])=>kind+': '+message).join(' · ')+' · Refresh or sign in again to reconnect':'';
-const WRITE_ERROR_ACTIONS=new Map([
- ['permission-denied','Check account permissions for cloud saves.'],
- ['unauthenticated','Sign in again to retry cloud saves.'],
- ['unavailable','Check your network connection and retry.'],
- ['deadline-exceeded','Check your network connection and retry.'],
- ['resource-exhausted','Check cloud quota or try again later.'],
- ['invalid-argument','Check the record format before retrying.'],
- ['unknown','Try again; if this continues, refresh or sign in again.']
-]);
-function writeErrorCode(error){
- const code=typeof error?.code==='string'?error.code.replace(/^firestore\//,''):'unknown';
- return WRITE_ERROR_ACTIONS.has(code)?code:'unknown';
-}
-const writeFailure=()=>state.writeErrors.size?'Cloud save failed · Retrying automatically · '+[...state.writeErrors.values()].map(({kind,code})=>kind+': '+code+' · '+WRITE_ERROR_ACTIONS.get(code)).join(' · '):'';
+const writeFailure=()=>state.writeErrors.size?'Cloud save failed · Retrying automatically · '+[...state.writeErrors.values()].map(({kind,code,stage,reason})=>kind+': '+code+(stage?' · stage: '+stage:'')+(reason?' · reason: '+reason:'')+' · '+(WRITE_REASON_ACTIONS.get(reason)||WRITE_ERROR_ACTIONS.get(code))).join(' · '):'';
 function syncStatus(){
  if(state.accountPaused){statusText(state.accountPauseReason);return}
  const failure=subscriptionFailure(),write=writeFailure();
@@ -135,6 +122,64 @@ function syncStatus(){
 }
 
 const HISTORY_PREFIX='recall-history-',HISTORY_LIMIT=12,HISTORY_INTERVAL_MS=30*60*1000,HISTORY_BYTES_LIMIT=450000;
+// Keep write diagnostics with these helpers so the HISTORY_PREFIX test slice is standalone.
+const WRITE_ERROR_ACTIONS=new Map([
+ ['permission-denied','Check account permissions for cloud saves.'],
+ ['unauthenticated','Sign in again to retry cloud saves.'],
+ ['unavailable','Check your network connection and retry.'],
+ ['deadline-exceeded','Check your network connection and retry.'],
+ ['resource-exhausted','Check cloud quota or try again later.'],
+ ['invalid-argument','Check the record format before retrying.'],
+ ['unknown','Try again; if this continues, refresh or sign in again.']
+]);
+const WRITE_STAGES=new Set(['document-reference','target-read','history-read','history-write','record-write','transaction-commit']);
+const WRITE_REASON_ACTIONS=new Map([
+ ['nested-arrays','Check record schema: arrays cannot directly contain arrays.'],
+ ['undefined-field','Check record schema: undefined fields are unsupported.'],
+ ['record-too-large','Review record size limits before retrying.'],
+ ['record-too-deep','Review record nesting depth before retrying.'],
+ ['invalid-document-path','Review document path construction before retrying.'],
+ ['reserved-field-name','Review reserved field names in the record schema.'],
+ ['unsupported-value','Review unsupported values in the record schema.'],
+ ['unknown-format','Check the record format; the error template was not recognized.']
+]);
+function writeErrorCode(error){
+ const code=typeof error?.code==='string'?error.code.replace(/^firestore\//,''):'unknown';
+ return WRITE_ERROR_ACTIONS.has(code)?code:'unknown';
+}
+function invalidArgumentReason(error){
+ // Match SDK/server templates at the start, never keywords in private values or notes.
+ const message=typeof error?.message==='string'?error.message:'';
+ const data=/^Function (?:setDoc|updateDoc|addDoc|Transaction\.(?:set|update)|WriteBatch\.(?:set|update))\(\) called with invalid data(?: \(via `toFirestore\(\)`\))?\. (.*)$/s.exec(message)?.[1];
+ if(data){
+  if(/^Nested arrays are not supported(?:$| \(found )/.test(data))return 'nested-arrays';
+  if(/^Unsupported field value: undefined(?:$| \(found )/.test(data))return 'undefined-field';
+  if(/^Document fields cannot begin and end with "__"(?:$| \(found )/.test(data))return 'reserved-field-name';
+  if(/^Unsupported field value: /.test(data))return 'unsupported-value';
+  return 'unknown-format';
+ }
+ if(/^Document '[\s\S]+' cannot be written because its size \([\d,]+ bytes\) exceeds the maximum allowed size of [\d,]+ bytes\.$/.test(message)||/^The value of property "[\s\S]+" is longer than [\d,]+ bytes\.$/.test(message))return 'record-too-large';
+ // The explicit Firestore SDK depth template is distinct from the server's
+ // ambiguous "invalid nested entity" message, which can have other causes.
+ if(/^Value for argument "(?:data|document)" is not a valid Firestore document\. Input object is deeper than \d+ levels or contains a cycle\.$/.test(message))return 'record-too-deep';
+ if(/^Invalid document reference\. Document references must have an even number of segments, but [\s\S]+ has \d+\.$/.test(message)||/^Invalid segment \([\s\S]*\)\. Paths must not contain \/\/ in them\.$/.test(message)||/^Function (?:doc|collection)\(\) cannot be called with an empty path\.$/.test(message))return 'invalid-document-path';
+ return 'unknown-format';
+}
+function writeErrorDetails(error){
+ const details={code:writeErrorCode(error)};
+ if(WRITE_STAGES.has(error?.stage))details.stage=error.stage;
+ if(details.code==='invalid-argument'&&WRITE_REASON_ACTIONS.has(error?.reason))details.reason=error.reason;
+ return details;
+}
+function safeWriteError(error,stage){
+ const code=writeErrorCode(error),details={code};
+ if(WRITE_STAGES.has(stage))details.stage=stage;
+ if(code==='invalid-argument')details.reason=invalidArgumentReason(error);
+ // Preserve only these fixed application guard messages, never an SDK message/cause.
+ const safeMessages=['Account changed; operation stopped.','Previous cloud version could not be archived; restore stopped.'];
+ const safe=new Error(safeMessages.find(message=>message===error?.message)||'Cloud save failed.');
+ return Object.assign(safe,details);
+}
 const withoutRecordType=item=>{const out={...item};delete out.recordType;return out};
 function sameRecord(a,b){
  const normalize=(value,root=false)=>{
@@ -157,22 +202,28 @@ function assertSession(session){
 async function writeWithHistory(kind,value,options={}){
  const session=options.session||(state.user?captureSession():null);
  assertSession(session);
+ let operation='document-reference';
+ try{
  const ref=doc(list(kind,session),cloudDocId(kind,value));
  const backupRef=doc(list(kind,session),historyId(kind,value));
- return runTransaction(db,async tx=>{
+ operation='transaction-commit';
+ return await runTransaction(db,async tx=>{
   // All reads precede every write; concurrent tabs retry against fresh server state.
   assertSession(session);
+  operation='target-read';
   const current=await tx.get(ref);
   assertSession(session);
   const old=current.exists()?current.data():null;
   const oldClean=old?withoutRecordType(old):null;
-  if(old&&sameRecord(oldClean,value))return {result:'unchanged'};
+  if(old&&sameRecord(oldClean,value)){operation='transaction-commit';return {result:'unchanged'}}
   const oldStamp=String(old?.updatedAt||old?.createdAt||'');
   const incomingStamp=String(value.updatedAt||value.createdAt||'');
   const guarded=Object.prototype.hasOwnProperty.call(options,'expected');
   if((guarded&&!sameRecord(oldClean,options.expected))||(!guarded&&old&&(oldStamp>incomingStamp||(oldStamp===incomingStamp&&!sameRecord(oldClean,value))))){
+   operation='transaction-commit';
    return {result:'remote-newer',previous:oldClean};
   }
+  if(old)operation='history-read';
   const history=old?await tx.get(backupRef):null;
   assertSession(session);
   let archived=false;
@@ -183,6 +234,7 @@ async function writeWithHistory(kind,value,options={}){
    if(options.forceHistory||!last||now-Date.parse(last.archivedAt)>=HISTORY_INTERVAL_MS){
     const versions=cappedHistory([...previousHistory,{archivedAt:new Date(now).toISOString(),value:oldClean}]);
     if(versions.length&&versions[versions.length-1].value&&sameRecord(versions[versions.length-1].value,oldClean)){
+     operation='history-write';
      tx.set(backupRef,{recordType:'syncBackup',originKind:kind,originId:idOf(kind,value),updatedAt:new Date(now).toISOString(),versions});
      archived=true;
     }
@@ -190,9 +242,12 @@ async function writeWithHistory(kind,value,options={}){
   }
   if(options.forceHistory&&old&&!archived)throw Error('Previous cloud version could not be archived; restore stopped.');
   assertSession(session);
+  operation='record-write';
   tx.set(ref,prepare(kind,value));
+  operation='transaction-commit';
   return {result:'saved',archived};
  });
+ }catch(error){throw safeWriteError(error,operation)}
 }
 async function downloadCloudHistory(){
  if(!state.user){statusText('Sign in with Google to download private cloud version history');return}
@@ -307,7 +362,7 @@ function arm(key,delay){
    const count=(state.retries.get(key)||0)+1;state.retries.set(key,count);
    if(state.pending.get(key)===value)arm(key,Math.min(60000,1000*2**Math.min(count,6)));
    // Only the current queued version can report a failure; never expose exception text.
-   if(state.pending.get(key)===value)state.writeErrors.set(key,{kind:kinds.includes(kind)?kind:'unknown',code:writeErrorCode(e)});
+   if(state.pending.get(key)===value)state.writeErrors.set(key,{kind:kinds.includes(kind)?kind:'unknown',...writeErrorDetails(e)});
    syncStatus();
   }
  },delay));
@@ -392,7 +447,7 @@ window.RecallCloud={
   get ready(){return initialized},
   get pendingCount(){return state.pending.size},
   // Detached, read-only diagnostics: no record keys, account details or exception messages.
-  get writeErrors(){return Object.freeze([...state.writeErrors.values()].map(({kind,code})=>Object.freeze({kind,code})))},
+  get writeErrors(){return Object.freeze([...state.writeErrors.values()].map(({kind,...error})=>Object.freeze({kind,...writeErrorDetails(error)})))},
   downloadCloudHistory,
   // Full cloud read across all record types (concepts share the coding collection).
   get sessionToken(){return state.user?state.user.uid+':'+state.epoch:null},

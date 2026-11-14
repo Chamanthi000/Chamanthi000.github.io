@@ -4,6 +4,174 @@ import {browser,firebase,item,KEYS,empty,deferred,flush,source} from './data-saf
 const path=id=>'users/account-A/coding/'+id;
 const writeError=(code,message='synthetic write failure')=>Object.assign(new Error(message),{code});
 const statuses=b=>b.events.filter(e=>e.type==='recall-cloud-status').map(e=>e.detail.message);
+// Existing injected read failures now have a known stage; unrecognized invalid arguments
+// deliberately carry unknown-format. Non-invalid codes still have no reason property.
+const readFailure=(code,kind='coding')=>({kind,code,stage:'target-read',...(code==='invalid-argument'?{reason:'unknown-format'}:{})});
+
+// Extend only the synthetic SDK boundaries; the production write path runs unchanged.
+async function diagnosticFirebase(b,fault={}){
+ const execute=b.execute;
+ b.execute=(code,extra={})=>{
+  if(!extra.sdk)return execute(code,extra);
+  const original=extra.sdk,sdk={...original,
+   doc(...args){fault.reference?.(...args);return original.doc(...args)},
+   runTransaction(db,callback){
+    fault.start?.();
+    return original.runTransaction(db,tx=>callback({...tx,set(...args){fault.write?.(...args);return tx.set(...args)}}));
+   }
+  };
+  return execute(code,{...extra,sdk});
+ };
+ try{return await firebase(b)}finally{b.execute=execute}
+}
+const secret='private-note-text private@example.invalid credential-secret';
+const secretPath='projects/private-project/databases/(default)/documents/users/private-account/coding/private-record-id';
+const secretField='private-field-path';
+const noSecrets=value=>assert.doesNotMatch(JSON.stringify(value),/private-|credential-secret/);
+const sdkData=(reason,method='Transaction.set')=>'Function '+method+'() called with invalid data. '+reason+' (found in field '+secretField+' in document '+secretPath+')';
+const nestedMessage=sdkData('Nested arrays are not supported');
+const largeMessage="Document '"+secretPath+"' cannot be written because its size (1,200,058 bytes) exceeds the maximum allowed size of 1,048,576 bytes.";
+const pathMessage='Invalid document reference. Document references must have an even number of segments, but '+secretPath+'/private-child has 5.';
+
+for(const [reason,message,guidance] of [
+ ['nested-arrays',nestedMessage,/record schema.*arrays/i],
+ ['undefined-field',sdkData('Unsupported field value: undefined'),/undefined fields/i],
+ ['reserved-field-name',sdkData('Document fields cannot begin and end with "__"'),/reserved field names/i],
+ ['unsupported-value',sdkData('Unsupported field value: a custom '+secret+' object'),/unsupported values/i],
+ ['record-too-large',largeMessage,/record size/i],
+ ['record-too-large','The value of property "'+secretField+'" is longer than 1048487 bytes.',/record size/i],
+ ['record-too-deep','Value for argument "data" is not a valid Firestore document. Input object is deeper than 20 levels or contains a cycle.',/nesting depth/i],
+ ['invalid-document-path',pathMessage,/document path/i],
+ ['invalid-document-path','Invalid segment ('+secretPath+'//private-child). Paths must not contain // in them.',/document path/i],
+ ['invalid-document-path','Function doc() cannot be called with an empty path.',/document path/i],
+ ['unknown-format','Unrecognized SDK format: '+secret,/record format/i]
+])test('invalid-argument template reports only safe '+reason+' guidance: '+message.split(' ')[0],async()=>{
+ const retained={id:'retained',kind:'coding',recordId:'retained-id',device:item('retained-id',secret),cloud:item('retained-id','older')};
+ const b=browser({conflicts:[retained]}),f=await firebase(b);await f.auth();const record=item('private-record-id',secret);
+ f.controls.beforeGet=()=>{throw Object.assign(writeError('firestore/invalid-argument',message),{stage:secret,reason:secret,cause:{notes:secret}})};
+ f.local('coding',[record]);await b.runTimers(180);f.emit('sql');
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument',stage:'target-read',reason}]);
+ const diagnostic=f.cloud.writeErrors[0];assert.ok(Object.isFrozen(diagnostic));
+ assert.throws(()=>{diagnostic.stage='record-write'},TypeError);assert.throws(()=>{diagnostic.reason='unsupported-value'},TypeError);
+ const warning=b.elements.firebaseStatus.textContent;
+ assert.match(warning,/Conflicts.*Cloud save failed · Retrying automatically/);assert.match(warning,guidance);
+ assert.ok(warning.includes('stage: target-read'));assert.ok(warning.includes('reason: '+reason));
+ noSecrets([statuses(b),f.cloud.writeErrors]);
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[record]);assert.deepEqual(b.rows('conflicts'),[retained]);assert.equal(f.writes.length,0);
+ f.controls.beforeGet=null;await b.runTimers(2000);
+ assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.store.get(path(record.id)),record);assert.deepEqual(b.rows('conflicts'),[retained]);assert.deepEqual(f.cloud.writeErrors,[]);
+});
+
+test('invalid argument matching ignores generic note text and template words embedded in SDK values',async()=>{
+ for(const message of [
+  secret+' invalid document nested arrays undefined maximum depth',
+  'invalid document '+secret,
+  'Nested arrays are not supported in my '+secret,
+  'Unsupported field value: undefined '+secret,
+  'Property '+secretField+' contains an invalid nested entity.',
+  sdkData('Data must be an object, but it was: "invalid document '+secret+'"'),
+  sdkData('Data must be an object, but it was: "'+nestedMessage+'"'),
+  sdkData('Nested arrays are not supported by this '+secret),
+  sdkData('Unrecognized error in '+secret+' '+pathMessage),
+  undefined,null,42,{toString(){throw Error('must not stringify private value')}}
+ ]){
+  const b=browser(),f=await firebase(b);await f.auth();
+  f.controls.beforeGet=()=>{throw {code:'invalid-argument',message,stage:'history-write',reason:'nested-arrays'}};
+  f.local('coding',[item('private-record-id',secret)]);await b.runTimers(180);
+  assert.deepEqual(f.cloud.writeErrors,[readFailure('invalid-argument')]);noSecrets([statuses(b),f.cloud.writeErrors]);
+ }
+});
+
+test('specific schema reasons win only at the SDK reason position, and only for invalid-argument',async()=>{
+ for(const [code,message,reason] of [
+  ['invalid-argument',sdkData('Unsupported field value: "'+pathMessage+' '+nestedMessage+'"'),'unsupported-value'],
+  ['invalid-argument',sdkData('Unsupported field value: undefined','setDoc'),'undefined-field'],
+  ['invalid-argument',nestedMessage.replace('invalid data.','invalid data (via `toFirestore()`).'),'nested-arrays'],
+  ['permission-denied',nestedMessage,undefined],['unknown',largeMessage,undefined]
+ ]){
+  const b=browser(),f=await firebase(b);await f.auth();f.controls.beforeGet=()=>{throw writeError(code,message)};
+  f.local('coding',[item('a')]);await b.runTimers(180);
+  assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code,stage:'target-read',...(reason?{reason}:{})}]);noSecrets([statuses(b),f.cloud.writeErrors]);
+ }
+});
+
+for(const stage of ['document-reference','target-read','history-read','history-write','record-write','transaction-commit'])test(stage+' failure keeps exact pending, local, cloud and history copies',async()=>{
+ const b=browser(),fault={},f=await diagnosticFirebase(b,fault);await f.auth();
+ const previous=item('private-record-id','previous '+secret),record=item(previous.id,secret,'2026-02-01');
+ const historyKey=path('recall-history-coding-'+record.id),history={recordType:'syncBackup',versions:[{archivedAt:'2025-01-01',value:item(record.id,'archived '+secret)}]};
+ f.store.set(path(record.id),previous);f.store.set(historyKey,history);
+ const message=stage==='document-reference'?pathMessage:stage==='transaction-commit'?largeMessage:nestedMessage;
+ const fail=()=>{throw writeError('invalid-argument',message)};
+ if(stage==='document-reference')fault.reference=fail;
+ if(stage.endsWith('-read'))f.controls.beforeGet=key=>{if((key===historyKey)===(stage==='history-read'))fail()};
+ if(stage.endsWith('-write'))fault.write=key=>{if((key===historyKey)===(stage==='history-write'))fail()};
+ if(stage==='transaction-commit')f.controls.beforeCommit=fail;
+ f.local('coding',[record]);await b.runTimers(180);
+ const reason=stage==='document-reference'?'invalid-document-path':stage==='transaction-commit'?'record-too-large':'nested-arrays';
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument',stage,reason}]);
+ noSecrets([statuses(b),f.cloud.writeErrors]);assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[record]);assert.deepEqual((await f.cloud.readAll()).coding,[record]);
+ assert.deepEqual(f.store.get(path(record.id)),previous);assert.deepEqual(f.store.get(historyKey),history);assert.equal(f.writes.length,0);
+ fault.reference=fault.write=f.controls.beforeGet=f.controls.beforeCommit=null;await b.runTimers(2000);
+ assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.cloud.writeErrors,[]);assert.deepEqual(f.store.get(path(record.id)),record);
+ assert.deepEqual(f.store.get(historyKey).versions.map(v=>v.value),[history.versions[0].value,previous]);
+});
+
+test('second document reference construction failure also reports document-reference',async()=>{
+ const b=browser(),f=await diagnosticFirebase(b,{reference:(_collection,id)=>{if(id.startsWith('recall-history-'))throw writeError('invalid-argument',pathMessage)}});await f.auth();
+ const record=item('a',secret);f.local('coding',[record]);await b.runTimers(180);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument',stage:'document-reference',reason:'invalid-document-path'}]);
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[record]);assert.equal(f.writes.length,0);noSecrets([statuses(b),f.cloud.writeErrors]);
+});
+
+for(const outcome of ['saved','unchanged','remote-newer'])test('late transaction rejection after '+outcome+' is classified as commit and retains the pending version',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();const record=item('a',secret),gate=deferred();
+ if(outcome!=='saved')f.store.set(path('a'),outcome==='unchanged'?record:item('a','server','2026-02-01'));
+ const before=structuredClone([...f.store]);f.controls.beforeCommit=()=>gate.promise;
+ f.local('coding',[record]);const running=b.runTimers(180);await flush();assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[]);
+ gate.reject(writeError('invalid-argument',largeMessage));await running;
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument',stage:'transaction-commit',reason:'record-too-large'}]);
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[record]);assert.deepEqual([...f.store],before);assert.equal(f.writes.length,0);assert.deepEqual(b.rows('conflicts'),[]);noSecrets([statuses(b),f.cloud.writeErrors]);
+});
+
+test('transaction rejection before callback entry has a safe commit stage',async()=>{
+ const b=browser(),f=await diagnosticFirebase(b,{start(){throw writeError('invalid-argument',largeMessage)}});await f.auth();
+ f.local('coding',[item('a',secret)]);await b.runTimers(180);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument',stage:'transaction-commit',reason:'record-too-large'}]);assert.equal(f.cloud.pendingCount,1);noSecrets([statuses(b),f.cloud.writeErrors]);
+});
+
+test('overlapping writes keep independent stages and reasons',async()=>{
+ const b=browser(),f=await diagnosticFirebase(b,{write(key){if(key.endsWith('/sql/b'))throw writeError('invalid-argument',sdkData('Unsupported field value: undefined'))}});await f.auth();
+ const a=item('a',secret,'2026-02-01'),other=item('b',secret),gate=deferred();f.store.set(path('a'),item('a','previous'));
+ f.controls.beforeGet=key=>key.includes('recall-history-')?gate.promise:undefined;
+ f.local('coding',[a]);const running=b.runTimers(180);await flush();f.local('sql',[other]);await b.runTimers(180);
+ gate.reject(writeError('invalid-argument',nestedMessage));await running;
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'sql',code:'invalid-argument',stage:'record-write',reason:'undefined-field'},{kind:'coding',code:'invalid-argument',stage:'history-read',reason:'nested-arrays'}]);
+ assert.equal(f.cloud.pendingCount,2);assert.deepEqual(b.rows('coding'),[a]);assert.deepEqual(b.rows('sql'),[other]);assert.equal(f.writes.length,0);noSecrets([statuses(b),f.cloud.writeErrors]);
+});
+
+test('SDK callback replay resets the operation stage for its new target read',async()=>{
+ const b=browser(),f=await firebase(b);await f.auth();let reads=0;f.controls.replay=true;
+ f.controls.beforeGet=()=>{if(++reads===2)throw writeError('invalid-argument',nestedMessage)};
+ f.local('coding',[item('a')]);await b.runTimers(180);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument',stage:'target-read',reason:'nested-arrays'}]);assert.equal(f.cloud.pendingCount,1);assert.equal(f.writes.length,0);
+});
+
+test('standalone history helper errors contain only safe metadata without retaining the SDK error',async()=>{
+ const code=source('firebase-sync.js'),start=code.indexOf('const HISTORY_PREFIX='),stop=code.indexOf('const historyButton=',start);
+ const raw=Object.assign(writeError('firestore/invalid-argument',nestedMessage),{cause:{notes:secret},stage:secret,reason:secret});
+ const helpers=browser().execute(code.slice(start,stop)+'return {writeWithHistory,writeErrorDetails,safeWriteError};',{
+  state:{},db:{},list:()=> 'coding',doc:(col,id)=>col+'/'+id,cloudDocId:(_kind,item)=>item.id,idOf:(_kind,item)=>item.id,prepare:(_kind,item)=>item,
+  runTransaction:async()=>{throw raw}
+ });
+ await assert.rejects(helpers.writeWithHistory('coding',item('a')),error=>{
+  assert.notEqual(error,raw);assert.deepEqual({...error},{code:'invalid-argument',stage:'transaction-commit',reason:'nested-arrays'});
+  assert.equal(error.cause,undefined);assert.equal(error.message,'Cloud save failed.');noSecrets([error,error.message,error.stack,String(error)]);return true;
+ });
+ assert.deepEqual(helpers.writeErrorDetails({code:'unknown',stage:secret,reason:secret}),{code:'unknown'});
+ assert.deepEqual(helpers.writeErrorDetails({code:'invalid-argument',stage:'__proto__',reason:'toString'}),{code:'invalid-argument'});
+ assert.deepEqual(helpers.writeErrorDetails({code:'unavailable',reason:'nested-arrays'}),{code:'unavailable'});
+ assert.deepEqual({...helpers.safeWriteError(secret,secret)},{code:'unknown'});
+});
 
 test('restoreAll rejects missing optimistic guard; every changed restored version has transaction history',async()=>{
  const b=browser(),f=await firebase(b);await f.auth();const a=item('a');f.store.set(path('a'),a);
@@ -75,7 +243,7 @@ test('offline queues and online retries; acknowledgement is reported only after 
 test('transaction failure retains queued changes and retries successfully',async()=>{
  const b=browser(),f=await firebase(b);await f.auth();f.controls.fail=true;f.local('coding',[item('a')]);await b.runTimers(180);
  assert.equal(f.cloud.pendingCount,1);assert.match(b.elements.firebaseStatus.textContent,/Cloud save failed/);
- assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown'}]);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown',stage:'transaction-commit'}]);
  assert.deepEqual([...b.timers.values()].map(t=>t.delay),[2000]);
  await b.runTimers(2000);assert.deepEqual([...b.timers.values()].map(t=>t.delay),[4000]);
  f.controls.fail=false;await b.runTimers(4000);assert.equal(f.cloud.pendingCount,0);assert.ok(f.store.has(path('a')));
@@ -92,7 +260,7 @@ for(const [code,action] of [
  const message=b.elements.firebaseStatus.textContent;
  assert.match(message,/^⚠ Cloud save failed · Retrying automatically/);assert.match(message,action);
  assert.ok(message.includes('coding: '+code));assert.doesNotMatch(message,/firestore\//);
- assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code}]);
+ assert.deepEqual(f.cloud.writeErrors,[readFailure(code)]);
  assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[record]);assert.equal(f.writes.length,0);
 });
 
@@ -103,13 +271,13 @@ test('write diagnostics allowlist codes and expose no exception text, record IDs
   f.controls.beforeGet=()=>{throw Object.assign(writeError(code,privateText),{recordId:record.id,notes:record.notes,email:'private@example.invalid'})};
   f.local('coding',[record]);await b.runTimers(180);
   const diagnostics=f.cloud.writeErrors,expected=code==='firestore/permission-denied'?'permission-denied':'unknown';
-  assert.deepEqual(diagnostics,[{kind:'coding',code:expected}]);
+  assert.deepEqual(diagnostics,[readFailure(expected)]);
   assert.doesNotMatch(JSON.stringify([statuses(b),diagnostics]),/private-record-id|private-note-text|private@example\.invalid/);
   assert.ok(Object.isFrozen(diagnostics));assert.ok(Object.isFrozen(diagnostics[0]));
   assert.throws(()=>diagnostics.push({kind:'sql',code:'unknown'}),TypeError);
   assert.throws(()=>{diagnostics[0].code='unavailable'},TypeError);
   assert.throws(()=>{f.cloud.writeErrors=[]},TypeError);
-  assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:expected}]);
+  assert.deepEqual(f.cloud.writeErrors,[readFailure(expected)]);
  }
 });
 
@@ -117,7 +285,7 @@ test('write diagnostics do not expose an unrecognized kind passed to the sync AP
  const b=browser(),f=await firebase(b);await f.auth();
  f.controls.beforeGet=()=>{throw writeError('unavailable','private exception')};
  f.cloud.sync('private@example.invalid',[item('private-record-id','private-note-text')]);await b.runTimers(180);
- assert.deepEqual(f.cloud.writeErrors,[{kind:'unknown',code:'unavailable'}]);
+ assert.deepEqual(f.cloud.writeErrors,[readFailure('unavailable','unknown')]);
  assert.doesNotMatch(JSON.stringify([statuses(b),f.cloud.writeErrors]),/private/);
 });
 
@@ -128,7 +296,7 @@ for(const otherKind of ['coding','sql'])test('unrelated snapshots and successful
  f.emit('sql');f.emit('coding');
  f.local(otherKind,otherKind==='coding'?[failed,item('b')]:[item('b')]);await b.runTimers(180);
  assert.ok(f.store.has('users/account-A/'+otherKind+'/b'));assert.equal(f.cloud.pendingCount,1);
- assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'permission-denied'}]);
+ assert.deepEqual(f.cloud.writeErrors,[readFailure('permission-denied')]);
  assert.deepEqual((await f.cloud.readAll()).coding.find(x=>x.id==='a'),failed);
  for(const message of statuses(b).slice(start)){
   assert.match(message,/Cloud save failed · Retrying automatically/);assert.match(message,/coding: permission-denied/);assert.doesNotMatch(message,/Cloud confirmed/);
@@ -141,9 +309,9 @@ test('recovery removes only the matching record error when multiple records fail
  const b=browser(),f=await firebase(b);await f.auth();const a=item('a'),other=item('b');
  f.controls.beforeGet=key=>{throw writeError(key===path('a')?'unavailable':'invalid-argument')};
  f.local('coding',[a,other]);await b.runTimers(180);
- assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unavailable'},{kind:'coding',code:'invalid-argument'}]);
+ assert.deepEqual(f.cloud.writeErrors,[readFailure('unavailable'),readFailure('invalid-argument')]);
  f.controls.beforeGet=key=>{if(key===path('a'))throw writeError('unavailable')};await b.runTimers(2000);
- assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unavailable'}]);assert.equal(f.cloud.pendingCount,1);
+ assert.deepEqual(f.cloud.writeErrors,[readFailure('unavailable')]);assert.equal(f.cloud.pendingCount,1);
  assert.deepEqual(f.store.get(path('b')),other);assert.match(b.elements.firebaseStatus.textContent,/coding: unavailable/);
  f.controls.beforeGet=null;await b.runTimers(4000);assert.deepEqual(f.cloud.writeErrors,[]);assert.equal(f.cloud.pendingCount,0);
 });
@@ -154,7 +322,7 @@ for(const outcome of ['unchanged','conflict'])test('matching pending '+outcome+'
  f.controls.beforeGet=null;f.store.set(path('a'),outcome==='unchanged'?device:item('a','newer server','2026-02-01'));
  if(outcome==='conflict'){
   b.fault.set=k=>k===KEYS.conflicts;await b.runTimers(2000);
-  assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unavailable'}]);
+  assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[readFailure('unavailable')]);
   assert.match(b.elements.firebaseStatus.textContent,/Conflicts.*Cloud save failed/);
   b.fault.set=null;b.window.dispatchEvent({type:'online'});
  }
@@ -171,7 +339,7 @@ for(const outcome of ['saved','unchanged','conflict'])test('older '+outcome+' co
  const gate=deferred();f.controls.beforeCommit=()=>gate.promise;const running=b.runTimers(2000);await flush();
  f.controls.beforeCommit=null;f.controls.beforeGet=()=>{throw writeError('invalid-argument')};
  f.local('coding',[later]);await b.runTimers(180);gate.resolve();await running;
- assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument'}]);
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[readFailure('invalid-argument')]);
  assert.deepEqual((await f.cloud.readAll()).coding,[later]);assert.match(b.elements.firebaseStatus.textContent,/coding: invalid-argument/);
  f.controls.beforeGet=null;await b.runTimers(2000);
  assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.cloud.writeErrors,[]);assert.deepEqual(f.store.get(path('a')),later);
@@ -182,7 +350,7 @@ test('late failure of a replaced pending version cannot overwrite the current di
  f.controls.beforeGet=()=>gate.promise;f.local('coding',[item('a')]);const running=b.runTimers(180);await flush();
  f.controls.beforeGet=()=>{throw writeError('invalid-argument')};f.local('coding',[item('a','later','2026-02-01')]);await b.runTimers(180);
  gate.reject(writeError('permission-denied'));await running;
- assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument'}]);
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[readFailure('invalid-argument')]);
  assert.match(b.elements.firebaseStatus.textContent,/coding: invalid-argument/);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/permission-denied/);
 });
 
@@ -197,7 +365,7 @@ for(const settlement of ['resolve','reject'])test('write errors and late '+settl
  f.controls.beforeCommit=null;f.controls.beforeGet=()=>{throw writeError('invalid-argument')};
  f.local('coding',[item('a','new session','2026-03-01')]);await b.runTimers(180);const current=b.elements.firebaseStatus.textContent;
  gate[settlement](writeError('permission-denied'));await running;
- assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'invalid-argument'}]);
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(f.cloud.writeErrors,[readFailure('invalid-argument')]);
  assert.equal(b.elements.firebaseStatus.textContent,current);
  await f.auth();assert.deepEqual(f.cloud.writeErrors,[]);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud save failed/);
 });
