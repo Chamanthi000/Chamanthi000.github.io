@@ -69,14 +69,15 @@ test('mapped edits preserve conflict originals and remote-newer guards exactly',
  assert.deepEqual(f.store.get(path('legacy-physical')),remote);
 });
 
-for(const occupant of [record('different-logical-id'),{...record('a/b'),recordType:'structure'},{...record('a/b'),recordType:'syncBackup'}])test('fallback target collision stops before conflict or history handling: '+(occupant.recordType||'id'),async()=>{
+for(const occupant of [record('different-logical-id'),{...record('a/b'),recordType:'structure'},{...record('a/b'),recordType:'syncBackup'}])test('occupied first fallback gets second verified path without overwriting '+(occupant.recordType||'unrelated record'),async()=>{
  const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('a/b');
- f.store.set(path(mapped(local.id)),occupant);const before=structuredClone([...f.store]);
+ f.store.set(path(mapped(local.id)),occupant);
  f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('target-read','target-id-collision'));
- const results=[];
- await assert.rejects(f.cloud.restoreAll({coding:[local]},{expected:empty(),sessionToken:f.cloud.sessionToken,results}),/^Error: Cloud document identity mismatch; save stopped\.$/);
- assert.deepEqual(results,[]);unchanged(f,b,before,local);
+ assert.deepEqual(f.store.get(path(mapped(local.id))),occupant,'unrelated occupant remains untouched');
+ assert.deepEqual(f.store.get(path(mapped(local.id)+'-1')),local);
+ assert.deepEqual(f.writes.map(x=>x.key),[path(mapped(local.id)+'-1')]);
+ assert.deepEqual(b.rows('coding'),[local]);assert.deepEqual(b.rows('conflicts'),copies);
+ assert.deepEqual(f.cloud.writeErrors,[]);assert.equal(f.cloud.pendingCount,0);
 });
 
 test('valid ID collision triggers verified scan and writes to a safe separate document',async()=>{
@@ -138,12 +139,16 @@ test('ambiguous same-kind logical matches reject without selecting a physical do
  unchanged(f,b,before,local);
 });
 
-test('identity changed after scan is rechecked transactionally before unchanged or conflict decisions',async()=>{
+test('identity changed after server scan is recovered safely at unused fallback without overwriting intruder',async()=>{
  const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('a/b'),intruder=record('unrelated','2027-01-01');
  f.store.set(path('original'),record(local.id,'2026-01-01'));
  f.controls.beforeGet=key=>{if(key===path('original'))f.store.set(key,intruder)};
  f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,[[path('original'),intruder]],local);assert.deepEqual(f.cloud.writeErrors,writeFailure('target-read','target-id-collision'));
+ assert.deepEqual(f.store.get(path('original')),intruder,'concurrent intruder must remain intact');
+ assert.deepEqual(f.store.get(path(mapped(local.id))),local);
+ assert.deepEqual(f.writes.map(x=>x.key),[path(mapped(local.id))]);
+ assert.deepEqual(b.rows('coding'),[local]);assert.deepEqual(b.rows('conflicts'),copies);
+ assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.cloud.writeErrors,[]);
 });
 
 for(const metadata of [{fromCache:true,hasPendingWrites:false},{fromCache:false,hasPendingWrites:true},{}])test('unacknowledged server scan cannot authorize a fallback: '+JSON.stringify(metadata),async()=>{
@@ -262,4 +267,41 @@ test('ambiguous unsafe originals cannot be collapsed by readAll or replace devic
  await assert.rejects(f.cloud.readAll({serverOnly:true}),/Multiple cloud documents match a legacy record/);
  await assert.rejects(f.cloud.readAll(),/Multiple cloud documents match a legacy record/);
  assert.deepEqual([...f.store],before);assert.equal(f.writes.length,0);
+});
+
+
+test('valid coding ID collision plus occupied hashed fallback chooses stable second verified path',async()=>{
+ const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('42');
+ const legacy={...record('42'),recordType:'structure'},fallback=record('unrelated');
+ f.store.set(path('42'),legacy);f.store.set(path(mapped('42')),fallback);
+ f.local('coding',[local]);await b.runTimers(180);
+ assert.deepEqual(f.store.get(path('42')),legacy);
+ assert.deepEqual(f.store.get(path(mapped('42'))),fallback);
+ assert.deepEqual(f.store.get(path(mapped('42')+'-1')),local);
+ assert.deepEqual(f.writes.map(x=>x.key),[path(mapped('42')+'-1')]);
+ assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.cloud.writeErrors,[]);
+});
+
+test('transaction detects fallback stolen after scan and safely retries a new server-confirmed path',async()=>{
+ const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('a/b');
+ const intruder=record('another-id'),base=path(mapped(local.id));
+ let stole=false;
+ f.controls.beforeGet=key=>{
+  if(key===base&&!stole){stole=true;f.store.set(base,intruder)}
+ };
+ f.local('coding',[local]);await b.runTimers(180);
+ assert.equal(stole,true);
+ assert.deepEqual(f.store.get(base),intruder);
+ assert.deepEqual(f.store.get(base+'-1'),local);
+ assert.deepEqual(f.writes.map(x=>x.key),[base+'-1']);
+ assert.deepEqual(f.cloud.writeErrors,[]);assert.equal(f.cloud.pendingCount,0);
+});
+
+test('occupied alternative fallbacks never overwrite any record or guess when scan is not server confirmed',async()=>{
+ const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('a/b');
+ for(let i=0;i<12;i++)f.store.set(path(mapped(local.id)+(i?'-'+i:'')),record('different-'+i));
+ const before=structuredClone([...f.store]);
+ f.local('coding',[local]);await b.runTimers(180);
+ unchanged(f,b,before,local);
+ assert.deepEqual(f.cloud.writeErrors,writeFailure('document-reference'));
 });
