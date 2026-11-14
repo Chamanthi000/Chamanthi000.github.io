@@ -37,7 +37,7 @@ export function manual(b){
 }
 export const archive=data=>({format:'recall-full-backup',version:2,...empty(),...data});
 export async function firebase(b){
- const store=new Map(),listeners=[],writes=[],transactions=[],controls={beforeGet:null,beforeCommit:null,read:null,readMetadata:undefined,hash:null,fail:false,replay:false};let authCallback;
+ const store=new Map(),listeners=[],writes=[],transactions=[],controls={beforeGet:null,beforeCommit:null,afterCommit:null,read:null,readMetadata:undefined,hash:null,fail:false,replay:false};let authCallback;
  const sdk={
   initializeApp:()=>({}),getAuth:()=>({}),getFirestore:()=>({}),GoogleAuthProvider:class{},
   signInWithPopup:async()=>{},signInWithRedirect:async()=>{},getRedirectResult:async()=>null,signOut:async()=>{},
@@ -56,7 +56,7 @@ export async function firebase(b){
    const staged=new Map(),tx={async get(key){if(controls.beforeGet)await controls.beforeGet(key);const value=structuredClone(store.get(key));return {exists:()=>value!==undefined,data:()=>value}},set(key,value){staged.set(key,structuredClone(value))}};
    if(controls.replay){controls.replay=false;await fn(tx);staged.clear()}
    const result=await fn(tx);if(controls.beforeCommit)await controls.beforeCommit();
-   for(const [key,value] of staged){store.set(key,value);writes.push({key,value})}transactions.push([...staged.keys()]);return result;
+   for(const [key,value] of staged){store.set(key,value);writes.push({key,value})}transactions.push([...staged.keys()]);if(controls.afterCommit)await controls.afterCommit();return result;
   }
  };
  const snapshot=(path,metadata={fromCache:false,hasPendingWrites:false})=>({docs:[...store].filter(([key])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')).map(([key,value])=>({id:key.slice(path.length+1),data:()=>structuredClone(value)})),metadata});
