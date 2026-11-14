@@ -52,7 +52,7 @@ const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRed
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),deviceOwner:null,accountPaused:false,accountPauseReason:''};
+const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:''};
 const kinds=['coding','sql','goals','habits','structures','concepts'];
 const page=location.pathname.endsWith('goals.html')?['goals','habits']:location.pathname.endsWith('sql-pattern-guide.html')?['concepts']:['coding','sql','structures','concepts'];
 const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:s}}))};
@@ -107,7 +107,8 @@ function send(kind){
 const subscriptionFailure=()=>state.subscriptionErrors.size?'Cloud sync failed · '+[...state.subscriptionErrors].map(([kind,message])=>kind+': '+message).join(' · ')+' · Refresh or sign in again to reconnect':'';
 const writeFailure=()=>state.writeErrors.size?'Cloud save failed · Retrying automatically · '+[...state.writeErrors.values()].map(({kind,code,stage,reason})=>kind+': '+code+(stage?' · stage: '+stage:'')+(reason?' · reason: '+reason:'')+' · '+(WRITE_REASON_ACTIONS.get(reason)||WRITE_ERROR_ACTIONS.get(code))).join(' · '):'';
 function syncStatus(){
- if(state.accountPaused){statusText(state.accountPauseReason);return}
+ if(state.accountPaused){statusText(state.accountPauseReason);updateConflictReviewBox();return}
+ updateConflictReviewBox();
  const failure=subscriptionFailure(),write=writeFailure();
  const report=message=>statusText(message+(write?' · '+write:''));
  if(state.localFailure){report('⚠ Device save failed · Export a backup before leaving'+(failure?' · '+failure:''));return}
@@ -344,6 +345,80 @@ if(historyButton)historyButton.addEventListener('click',downloadCloudHistory);
 
 
 const CONFLICT_KEY='recall-sync-conflicts-v1';
+// Recovery copies are append-only history, not evidence of unresolved divergence.
+// This compact control appears only when a live conflict still needs verification.
+const conflictReviewBox=document.createElement('div');
+conflictReviewBox.id='recallConflictReviewBox';
+conflictReviewBox.hidden=true;
+conflictReviewBox.style.cssText='margin:8px 0 14px;padding:12px;border:1px solid #d9e6d9;border-radius:11px;background:#f7faf5;color:#315940;font:13px/1.55 -apple-system,BlinkMacSystemFont,"DM Sans",sans-serif;';
+const reviewConflictButton=document.createElement('button');
+reviewConflictButton.id='reviewRecallConflicts';
+reviewConflictButton.type='button';
+reviewConflictButton.textContent='Check and resolve old conflict warnings';
+reviewConflictButton.style.cssText='min-height:42px;padding:10px 13px;border:1px solid #bed2c2;border-radius:9px;background:#fff;color:#28573c;font:700 13px inherit;cursor:pointer;';
+const reviewConflictMessage=document.createElement('span');
+reviewConflictMessage.id='reviewRecallConflictsStatus';
+reviewConflictMessage.setAttribute('role','status');
+reviewConflictMessage.style.cssText='display:block;margin:6px 0 0;font-size:12px;';
+conflictReviewBox.append(reviewConflictButton,reviewConflictMessage);
+if(status?.parentElement)status.insertAdjacentElement('afterend',conflictReviewBox);
+function updateConflictReviewBox(){
+ if(!state.user||state.accountPaused){conflictReviewBox.hidden=true;return}
+ const count=state.conflicts.size+state.blocked.size;
+ conflictReviewBox.hidden=count===0;
+ if(count&&!reviewConflictButton.disabled)reviewConflictMessage.textContent=count+' current/unchecked record group(s). Older recovery copies are retained on this device.';
+}
+function contentEquivalent(a,b){
+ if(!a||!b)return a===b;
+ // Sync timestamps and the Firestore type marker are not study content.
+ const clean=value=>{const copy={...value};delete copy.recordType;delete copy.updatedAt;delete copy.createdAt;return copy};
+ return sameRecord(clean(a),clean(b));
+}
+async function verifyArchivedConflictCopies(){
+ if(!state.user||state.accountPaused)throw Error('Sign in with the original account before reviewing conflicts.');
+ const session=captureSession(),archives=window.RecallSyncConflicts.read();
+ if(!archives.length){state.conflicts.clear();syncStatus();return {resolved:0,unresolved:0,total:0}}
+ const checks=new Map(),uniqueKinds=[...new Set(archives.map(row=>row.kind))];
+ for(const kind of uniqueKinds){
+  if(!kinds.includes(kind))throw Error('Unrecognized conflict category; preserve the archive.');
+  const snapshot=await getDocsFromServer(list(kind,session));
+  assertSession(session);
+  if(snapshot.metadata?.fromCache!==false||snapshot.metadata?.hasPendingWrites!==false)throw Error('Server confirmation required; originals retained.');
+  const remote=snapshot.docs.map(x=>x.data()).filter(row=>isMember(kind,row));
+  const local=deviceRecords(kind);
+  checks.set(kind,{local,remote});
+ }
+ assertSession(session);
+ const latest=window.RecallSyncConflicts.read(),scanned=new Set(archives.map(row=>row.id));
+ const unresolved=new Set();let resolved=0;
+ for(const row of latest){
+  const key=row.kind+':'+row.recordId,check=checks.get(row.kind);
+  if(!scanned.has(row.id)||!check||state.pending.has(key)||state.blocked.has(key)||state.writeErrors.has(key)){unresolved.add(key);continue}
+  const device=check.local.filter(x=>idOf(row.kind,x)===row.recordId);
+  const remote=check.remote.filter(x=>idOf(row.kind,x)===row.recordId);
+  // Unique matching live copies (or acknowledged absence on both sides) can
+  // prove a historical conflict no longer needs a warning. No records are edited.
+  if((device.length===1&&remote.length===1&&contentEquivalent(device[0],remote[0]))||(device.length===0&&remote.length===0))resolved++;
+  else unresolved.add(key);
+ }
+ assertSession(session);
+ state.conflicts.clear();for(const key of unresolved)state.conflicts.add(key);
+ syncStatus();
+ return {resolved,unresolved:unresolved.size,total:latest.length};
+}
+reviewConflictButton.addEventListener('click',async()=>{
+ if(reviewConflictButton.disabled)return;
+ reviewConflictButton.disabled=true;
+ reviewConflictMessage.textContent='Checking current device and server copies without changing any notes…';
+ try{
+  const result=await verifyArchivedConflictCopies();
+  reviewConflictMessage.textContent=result.unresolved
+   ?result.unresolved+' record group(s) still differ or could not be confirmed. Your original versions remain in Download conflict copies; no data was removed.'
+   :'✓ All archived conflicts verified as historical. The warning is cleared; recovery copies are still saved.';
+ }catch(e){reviewConflictMessage.textContent='Verification could not finish. No versions were changed; check network and sign-in.'}
+ finally{reviewConflictButton.disabled=false;updateConflictReviewBox()}
+});
+
 function archiveConflict(kind,device,cloud){
  if(sameRecord(device,cloud))return true;
  try{
@@ -449,7 +524,7 @@ function queue(kind,item){
 }
 async function setup(user){
 for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);
-state.epoch++;state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
+state.epoch++;state.conflictReviewEpoch=-1;state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
 state.snapshots=Object.fromEntries(kinds.map(k=>[k,[]]));state.user=user;state.ready=!!user;displayAccount(user);
 if(!user){statusText('Cloud signed out · Device storage is separate');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 // Device records are shared by the app. Never silently migrate one account's notes to another.
@@ -495,6 +570,13 @@ for(const kind of page){
   }
   for(const [key,item] of state.pending)if(key.startsWith(kind+':'))output.set(idOf(kind,item),item);
   state.snapshots[kind]=[...output.values()];send(kind);syncStatus();
+  // Only after every displayed subscription has a server acknowledgement may
+  // we recheck historical conflicts. The recheck scans every archived kind,
+  // including Habits when the user is viewing Coding.
+  if(state.conflictReviewEpoch!==state.epoch&&state.conflicts.size&&page.every(k=>state.confirmed.has(k))){
+   state.conflictReviewEpoch=state.epoch;
+   void verifyArchivedConflictCopies().then(()=>updateConflictReviewBox()).catch(()=>{reviewConflictMessage.textContent='Cannot verify old conflicts right now. Copies retained.';updateConflictReviewBox()});
+  }
  },e=>{
   if(session.epoch!==state.epoch||session.uid!==state.user?.uid)return;
   // Firestore listener errors are terminal; another notebook or completed write
