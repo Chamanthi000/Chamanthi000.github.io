@@ -100,13 +100,17 @@ test('DSA ends at Union Find without deleting hidden private records',()=>{
  assert.ok(line,'Display must have an explicit canonical-topic predicate');
  const visible=new Function('presetRank',line+'return isVisibleTopic;')(new Map(presets.map((item,i)=>[item.id,i])));
  for(const item of presets)assert.equal(visible(item),true);
- assert.equal(visible({id:'custom-old',notes:'Keep this private text'}),false);
+ assert.equal(visible({id:'custom-old',notes:'Keep this private text'}),false,'legacy hidden records stay hidden');
+ assert.equal(visible({id:'custom-dsa-example',title:'Binary Search',customTopic:true}),true,'custom topics appear');
+ assert.equal(visible({id:'custom-dsa-example',title:'Binary Search',customTopic:true,deleted:true}),false);
  assert.equal(visible({id:'graphs',deleted:true}),false);
  assert.ok(dsRevision.includes('records.filter(x=>isVisibleTopic(x)&&'));
  assert.ok(dsRevision.includes('records.filter(isVisibleTopic)'));
  assert.ok(dsRevision.includes('window.RecallStructures=()=>records'));
  assert.ok(dsRevision.includes("detail:{kind:'structures',items:records}"));
- assert.ok(!dsRevision.includes('id="dsAdd"'));
+ assert.ok(dsRevision.includes('id="dsAddTopicForm"'));
+ assert.ok(dsRevision.includes('data-ds-rename-topic'));
+ assert.ok(dsRevision.includes('function commitTopicChange('));
  assert.ok(!dsRevision.includes('data-remove='));
 });
 
