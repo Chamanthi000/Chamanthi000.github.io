@@ -540,7 +540,7 @@ if(state.accountPaused){syncStatus();if(login)login.hidden=true;if(logout)logout
 try{for(const copy of window.RecallSyncConflicts.read())state.conflicts.add(copy.kind+':'+copy.recordId)}
 catch{state.blocked.set('conflict-storage',null)}
 const session=captureSession();
-if(login)login.hidden=true;if(logout)logout.hidden=false;statusText('Waiting · Connecting to cloud…');
+if(login)login.hidden=true;if(logout)logout.hidden=false;statusText('Waiting · Connecting to cloud…');syncStatus();
 for(const kind of page){
  let terminated=false;
  const unsub=onSnapshot(list(kind,session),{includeMetadataChanges:true},snapshot=>{
