@@ -399,7 +399,7 @@ window.RecallStructures=()=>records;
 function cloudSend(){window.dispatchEvent(new CustomEvent('recall-cloud-local',{detail:{kind:'structures',items:records}}))}
 function persist(){if(!saveLocal())return;$('dsStatus').textContent='✓ Saved on device';clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSend,450)}
 
-function topicTitleKey(text){return String(text||'').trim().replace(/\\s+/g,' ').toLocaleLowerCase()}
+function topicTitleKey(text){return String(text||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()}
 function topicFeedback(message,problem=false){const el=$('dsTopicFeedback');el.textContent=message;el.dataset.error=String(problem)}
 function validateTopicTitle(title,exceptId=''){
  if(!title||title.length>90){return 'Enter a topic name between 1 and 90 characters.';}
@@ -462,7 +462,7 @@ function setEditing(flag){if(flag){extra.open=true;extraOpenTopics.add(item.id);
 guideView.innerHTML=renderTopic(item);prepareNestedPreferences(guideView);view.innerHTML=renderPersonalNotes(item);setEditing(editingIds.has(item.id));
 switcher.addEventListener('click',()=>{const wasEditing=editingIds.has(item.id);setEditing(!wasEditing);if(wasEditing){view.innerHTML=renderPersonalNotes(item);cloudSend()}});
 el.addEventListener('input',()=>{if(item.id==='arrays'&&item.arrayMergeVersion===1)item.arrayIntegratedNotes=el.value;else if(item.id==='strings'&&item.stringMergeVersion===1)item.stringIntegratedNotes=el.value;else item.notes=el.value;item.updatedAt=new Date().toISOString();persist();view.innerHTML=renderPersonalNotes(item);el.closest('.ds-topic').querySelector('.ds-note-count').textContent=hasRevisionGuide(item)?'Revision guide'+(el.value.trim()?' + notes':''):(el.value.trim()?'Has notes':'Add notes')});
-el.addEventListener('blur',()=>{cloudSend();const active=records.filter(isVisibleTopic);$('dsSummary').textContent=active.length+' data structures · '+active.filter(x=>personalNotes(x).trim()).length+' with personal notes'});
+el.addEventListener('blur',()=>{cloudSend();const active=records.filter(isVisibleTopic);$('dsSummary').textContent=active.length+' revision topics · '+active.filter(x=>personalNotes(x).trim()).length+' with personal notes'});
 }
 for(const detail of $('dsList').querySelectorAll('.ds-topic'))detail.addEventListener('toggle',()=>{if(!detail.open||!panel.contains(detail))return;for(const other of $('dsList').querySelectorAll('.ds-topic[open]'))if(other!==detail)other.open=false;detail.scrollIntoView({block:'nearest',behavior:scrollBehavior()})});
 for(const chip of $('dsTopicNav').querySelectorAll('[data-nav-id]'))chip.addEventListener('click',()=>{if($('dsSearch').value){$('dsSearch').value='';render();queueMicrotask(()=>document.querySelector('[data-id="'+CSS.escape(chip.dataset.navId)+'"]')?.setAttribute('open',''));return}const target=[...$('dsList').querySelectorAll('.ds-topic')].find(x=>x.dataset.id===chip.dataset.navId);if(target){target.open=true;target.scrollIntoView({block:'start',behavior:scrollBehavior()})}});
