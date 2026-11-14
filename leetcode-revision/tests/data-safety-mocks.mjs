@@ -18,7 +18,7 @@ export function browser(records={}){
  const window=target(),document=target();
  for(const id of ['firebaseStatus','firebaseLogin','firebaseLogout','backupEverything','backupStatus','restoreEverything','backupRestoreFile','backupRestorePreview','backupRestoreSummary','confirmRestore','cancelRestore','autoBackupStatus','autoBackupVersions','autoBackupDownload','autoBackupRefresh'])elements[id]={textContent:'',hidden:true,disabled:false,files:[],value:'',innerHTML:'',style:{},addEventListener(k,f){this['on'+k]=f},closest(){return null},click(){},appendChild(){}};
  document.getElementById=id=>elements[id]||null;
- document.createElement=()=>({style:{},hidden:false,disabled:false,setAttribute(){},appendChild(){},append(){},addEventListener(type,fn){this['on'+type]=fn},click(){if(this.onclick)this.onclick();downloads.push(this.download)},remove(){}});
+ document.createElement=tag=>({tagName:tag,style:{},hidden:false,disabled:false,children:[],setAttribute(){},appendChild(child){this.children.push(child)},append(...children){this.children.push(...children)},prepend(...children){this.children.unshift(...children)},replaceChildren(...children){this.children=[...children]},addEventListener(type,fn){this['on'+type]=fn},async click(){if(this.onclick)await this.onclick();downloads.push(this.download)},remove(){}});
  document.body={appendChild(){}};
  const setTimeout=(fn,delay)=>{const id=++next;timers.set(id,{fn,delay});return id},clearTimeout=id=>timers.delete(id);
  const runTimers=async max=>{for(const [id,t] of [...timers])if(t.delay<=max){timers.delete(id);await t.fn()}await flush()};
