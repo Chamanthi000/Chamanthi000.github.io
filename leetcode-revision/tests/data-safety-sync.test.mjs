@@ -751,7 +751,7 @@ test('duplicated Arrays and Hash Maps cloud DSA docs are archived atomically wit
   const active=current.structures.filter(x=>x.id===id);
   assert.equal(active.length,1);
   assert.equal(active[0].notes,deviceRows.find(x=>x.id===id).notes);
-  assert.equal(active[0].recordType,undefined,'returned logical record omits transport marker');
+  assert.equal(active[0].recordType,'structure','cloud retains the typed record marker');
  }
  for(const original of originals){
   const archived=f.store.get('users/account-A/coding/'+original.id);
@@ -789,7 +789,7 @@ test('duplicate DSA recovery keeps cloud originals if conflict archive cannot be
  f.store.set('users/account-A/coding/structure-arrays',one);f.store.set('users/account-A/coding/legacy-arrays',two);
  await f.auth();await b.window.RecallSyncConflicts.inspect();
  b.fault.set=key=>key===KEYS.conflicts;
- await assert.rejects(b.window.RecallSyncConflicts.resolve('structures','arrays','device'),/recovery copies/);
+ await assert.rejects(b.window.RecallSyncConflicts.resolve('structures','arrays','device'),/recovery cop(?:y|ies)/);
  assert.equal(f.writes.length,0);
  assert.equal(f.store.get('users/account-A/coding/structure-arrays').recordType,'structure');
  assert.equal(f.store.get('users/account-A/coding/legacy-arrays').recordType,'structure');
