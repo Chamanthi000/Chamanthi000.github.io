@@ -86,7 +86,7 @@ function serve(route){
    await page.reload();assert.equal(await page.evaluate(()=>window.RecallStructures().find(x=>x.id==='trees').notes),'Remote extra note');
 
    // A custom notebook is editable, reload-safe and syncs without changing its ID.
-   await page.locator('#dsToggle').click();
+   if(await page.locator('#dsBody').isHidden())await page.locator('#dsToggle').click();
    await page.locator('#dsNewTopicTitle').fill('Binary Search Patterns');
    await page.locator('#dsAddTopicButton').click();
    const customId=await page.evaluate(()=>window.RecallStructures().find(x=>x.customTopic===true)?.id);
@@ -103,7 +103,7 @@ function serve(route){
    await custom.locator('[data-ds-title-form] button[type="submit"]').click();
    custom=page.locator('.ds-topic[data-id="'+customId+'"]');
    assert.equal(await custom.locator('.ds-topic-name').textContent(),'Two Pointers & Binary Search');
-   await page.reload();await page.locator('#dsToggle').click();
+   await page.reload();if(await page.locator('#dsBody').isHidden())await page.locator('#dsToggle').click();
    custom=page.locator('.ds-topic[data-id="'+customId+'"]');
    assert.equal(await custom.locator('textarea').inputValue(),customNotes,'saved after reload');
    assert.equal(await custom.locator('.ds-topic-name').textContent(),'Two Pointers & Binary Search');
