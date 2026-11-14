@@ -594,3 +594,20 @@ test('verified old conflicts clear automatically after current subscriptions are
  assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
  assert.deepEqual(b.rows('conflicts'),[archive]);assert.equal(f.writes.length,0);
 });
+
+test('automatic conflict verification waits for pending cloud saves then clears old warnings',async()=>{
+ const current=item('a','agreed','2026-02-01');
+ const archive={id:'historical-with-pending',kind:'coding',recordId:'a',device:item('a','past'),cloud:current};
+ const b=browser({coding:[current],conflicts:[archive]}),f=await firebase(b);
+ f.store.set(path('a'),current);await f.auth();
+ const draft=item('b','new pending note','2026-03-01');
+ f.local('coding',[current,draft]);
+ assert.ok(f.cloud.pendingCount>0);
+ f.emit('coding');f.emit('sql');await flush();
+ assert.match(b.elements.firebaseStatus.textContent,/Conflicts/,'pending save should not count as resolved prematurely');
+ await b.runTimers(180);await flush();
+ assert.equal(f.cloud.pendingCount,0);
+ assert.deepEqual(f.store.get(path('b')),draft);
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+ assert.deepEqual(b.rows('conflicts'),[archive],'historical copy remains downloadable');
+});
