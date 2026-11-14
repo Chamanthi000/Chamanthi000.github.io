@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Functional, brute-force and resource-depth checks for every stack template."""
 import ast
 import itertools
@@ -8,8 +9,8 @@ from pathlib import Path
 GUIDE=json.loads(Path(__file__).with_name('stacks-guide.json').read_text())
 COVERED=set()
 def template(i):
-    ns={}
-    exec(compile(ast.parse(chr(10).join(GUIDE['templates'][i][3])),GUIDE['templates'][i][0],'exec'),ns)
+    row = GUIDE['templates'][i]
+    ns = load_template(row)
     COVERED.add(i)
     return ns
 class StackTests(unittest.TestCase):
@@ -222,4 +223,8 @@ class StackTests(unittest.TestCase):
             self.assertTrue(source['title']); self.assertTrue(source['note'])
             self.assertTrue(source['url'].startswith('https://'))
 
-if __name__=='__main__': unittest.main(verbosity=2)
+if __name__=='__main__':
+    result = unittest.main(verbosity=2, exit=False)
+    if not result.result.wasSuccessful():
+        raise SystemExit(1)
+    verify(GUIDE)

@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Execute every array template from JSON, plus examples and differential checks."""
 import ast, contextlib, io, json, pathlib, random, itertools, math, bisect
 D=json.loads(pathlib.Path(__file__).with_name('arrays-guide.json').read_text())
@@ -20,7 +21,7 @@ for row in D['operationExamples']:ast.parse('\n'.join(row['code']),feature_versi
 
 NS=[]
 for t in D['templates']:
-    ns={}; code='\n'.join(t[3]); ast.parse(code); exec(compile(code,t[0],'exec'),ns); NS.append(ns)
+    ns = load_template(t); NS.append(ns)
 
 # Each fundamental's displayed result is checked, not merely executed.
 fundamental_checks = ["stdout=='30\\n'","stdout=='0 4\\n1 7\\n2 9\\n9\\n7\\n4\\n'","nums==[0,1,2,3] and last==4","middle==[4,6,8] and reverse_copy==[10,8,6,4,2]","a==[1,4] and removed==2","a==[[9],[2,3]] and independent==a and independent[0] is not a[0]","ordered==[(1,'x'),(2,'b'),(2,'a')] and nums==[1,2,3]","i==1 and found","freq=={2:2,5:1,7:1} and stdout=='duplicate 2\\n'","subarray==[2,3] and subsequence==[1,3] and subset=={1,4}","grid==[[0,1,2,3],[1,2,3,4],[2,3,4,5]]","prefix==[0,3,2,6,8] and answer==3","a==[1,3,12,0,0] and write==3","left==3 and total==1"]
@@ -120,3 +121,5 @@ for values in [[],[1],[1,1,2],[0,1,2,3]]:
 
 assert covered==set(range(len(NS))),set(range(len(NS)))-covered
 print(f"PASS arrays: {len(NS)} templates, {checks} runtime assertions; {len(D['operationExamples'])} operation examples; {len(D['fundamentals'])} fundamentals executed")
+
+verify(D)

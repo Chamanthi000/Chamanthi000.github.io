@@ -2,7 +2,7 @@
   "id": "queues",
   "title": "Queues & Deques",
   "subtitle": "A queue preserves arrival order; a deque also keeps only the live candidates needed at either boundary.",
-  "variables": "n = input items, k = window size or capacity, V/E = all supplied graph vertices/edges (including neighbor-only vertices and edges scanned during validation), R/C = grid rows/columns, w = maximum BFS frontier width (or retained event count in RecentCounter), q = current queue size. Bounds assume O(1) reference operations and fixed-size numeric comparisons/arithmetic; Python large integers cost by bit length. Hash-based graph bounds are expected and include O(key length) hashing/comparison for long keys. Auxiliary space excludes returned output unless stated; deque storage itself is counted. Inputs are finite; graphs use hashable vertices. Single-threaded algorithms are not producer/consumer synchronization. For lock-state templates d = wheel count; O(d) string neighbor construction and hashing is charged per generated neighbor.",
+  "variables": "n = input items, k = window size or capacity, V/E = all supplied graph vertices/edges (including neighbor-only vertices and edges scanned during validation), R/C = grid rows/columns, w = maximum BFS level width, ell = maximum simultaneously retained event timestamps (including the new ping before expiry), q = current queue size, D = supplied deadend entries (including duplicates), d = lock digit count. Bounds assume O(1) reference operations and fixed-size numeric comparisons/arithmetic; Python large integers cost by bit length. Hash-based graph bounds are expected and include O(key length) hashing/comparison for long keys. Auxiliary space excludes returned output unless stated; deque storage itself is counted. Inputs are finite; graphs use hashable vertices. Single-threaded algorithms are not producer/consumer synchronization.",
   "operations": [
     [
       "Construction",
@@ -42,7 +42,7 @@
       "Insert at left",
       "O(1)",
       "O(1) incremental",
-      "For 0\u20131 BFS this means cost-zero candidates go first."
+      "For 0–1 BFS this means cost-zero candidates go first."
     ],
     [
       "Deque",
@@ -316,7 +316,7 @@
       "Transferring on every dequeue destroys the amortized bound."
     ],
     [
-      "Zero\u2013one shortest paths",
+      "Zero–one shortest paths",
       "Distance relaxation, not a permanent seen flag, handles weighted 0/1 edges. A deque separates the current and next distance bands.",
       [
         "from collections import deque",
@@ -329,9 +329,30 @@
         "    else:",
         "        q.append((u, weight))"
       ],
-      "O(V+E) for full 0\u20131 BFS",
+      "O(V+E) for full 0–1 BFS",
       "O(V+E) queued records with stale-entry design",
       "This does not generalize to weights 2 or negative edges."
+    ],
+    [
+      "Worked maximum-deque trace",
+      "For [4,2,5,3] and k=3, expire old indices before removing dominated tails. A newer no-smaller value is at least as useful in every future FIFO window.",
+      [
+        "from collections import deque",
+        "a, k, d, trace = [4, 2, 5, 3], 3, deque(), []",
+        "for i, x in enumerate(a):",
+        "    while d and d[0] <= i-k:",
+        "        d.popleft()",
+        "    while d and a[d[-1]] <= x:",
+        "        d.pop()",
+        "    d.append(i)",
+        "    trace.append(list(d))",
+        "assert trace == [[0], [0, 1], [2], [2, 3]]",
+        "assert [a[indices[0]] for indices in trace[k-1:]] == [5, 5]",
+        "result = trace"
+      ],
+      "O(nk) with copied trace; production loop O(n) total",
+      "O(k) candidates; O(nk) trace snapshots in this teaching example",
+      "The production window_max template does not copy the candidate deque. Each index enters once and leaves once (front OR back), so total removals are at most n; this is deterministic amortized analysis, not a probabilistic average."
     ]
   ],
   "patterns": [
@@ -345,7 +366,7 @@
       "Word Ladder; Shortest Path in Binary Matrix",
       "Do not count weighted cost as one hop.",
       "Queue distances are nondecreasing; first discovery is shortest.",
-      "Unequal edge weights need 0\u20131 BFS or Dijkstra."
+      "Unequal edge weights need 0–1 BFS or Dijkstra."
     ],
     [
       "Level-order traversal",
@@ -380,7 +401,7 @@
       "O(k) auxiliary",
       "Sliding Window Maximum",
       "Store indices, not only values.",
-      "Indices increase and values strictly decrease; front is the live maximum.",
+      "Increasing indices, strictly decreasing values, all live. A newer no-smaller value dominates until the older expires; each index is inserted once and removed at most once, proving O(n) total even if one update pops O(k).",
       "Arbitrary deletions are not FIFO expiration."
     ],
     [
@@ -404,11 +425,11 @@
       "O(n)",
       "Shortest Subarray with Sum at Least K",
       "Require a nonempty subarray even if K <= 0.",
-      "Stored earlier prefix indices have increasing sums; a newer smaller sum dominates.",
+      "Earlier prefix indices and sums increase. A newer no-larger prefix yields at least as much future sum with shorter length, so removes dominated tails. A feasible front is recorded then discarded because later endpoints only make its length longer. Each index enters/leaves once.",
       "For positive-only input a simple sliding window is easier."
     ],
     [
-      "0\u20131 BFS",
+      "0–1 BFS",
       "IMPORTANT",
       "Shortest path with weights only zero or one",
       "Relax distances; zero to front, one to back; skip stale records",
@@ -461,7 +482,7 @@
       "Count recent events",
       "Append timestamp and expire values older than inclusive cutoff",
       "O(n) total across n pings",
-      "O(w) live timestamps",
+      "O(ell) live timestamps",
       "Number of Recent Calls",
       "Requires nondecreasing timestamps.",
       "All retained events lie in [t-window,t].",
@@ -533,11 +554,11 @@
     [
       "Shortest sum threshold with negatives",
       "Prefix-sum monotonic deque",
-      "Negative values destroy sum-window monotonicity: [1,-1,5], K=5 has best length1, while the usual positive-only shrink-until-invalid loop can stop after length3."
+      "For [1,-1,3], K=3, ordinary positive-only shrinking records length 3 then stops at sum 2, missing the final [3] of length 1."
     ],
     [
       "All edge costs0 or1",
-      "0\u20131 BFS",
+      "0–1 BFS",
       "Two distance bands allow zero front/one back; relaxations matter and other weights violate the bands."
     ],
     [
@@ -583,7 +604,7 @@
     ],
     [
       "Deque vs list",
-      "Deque has fast ends and slow middle access; lists have random access but costly front deletion."
+      "Deque has O(1) ends and O(q) worst middle access; list has O(1) indexing, amortized O(1) append/end-pop, and O(q) pop(0). A list plus monotonically increasing head is also linear-time FIFO, but keeps consumed references unless cleared/compacted; repeated slicing to compact every pop is quadratic. Clearing references alone still retains O(total arrivals) list slots; periodic geometric compaction can reclaim them amortized."
     ],
     [
       "deque(maxlen) vs circular queue",
@@ -599,7 +620,7 @@
     ],
     [
       "Seen vs distance relaxation",
-      "Ordinary BFS can mark once at enqueue; 0\u20131 BFS must accept shorter paths."
+      "Ordinary BFS can mark once at enqueue; 0–1 BFS must accept shorter paths."
     ],
     [
       "Queue vs priority queue",
@@ -689,7 +710,7 @@
     [
       "Zero-weight improvement",
       "s->a cost1, s->b cost0, b->a cost0",
-      "0\u20131 BFS must improve a to distance 0. Incorrect implementation exposed: Permanently seen at first cost1 enqueue."
+      "0–1 BFS must improve a to distance 0. Incorrect implementation exposed: Permanently seen at first cost1 enqueue."
     ],
     [
       "No source cells",
@@ -783,7 +804,7 @@
     ],
     [
       "Challenge a pattern",
-      "Use a zero-weight detour to refute first-enqueue finalization in 0\u20131 BFS."
+      "Use a zero-weight detour to refute first-enqueue finalization in 0–1 BFS."
     ],
     [
       "Separate memory",
@@ -858,7 +879,7 @@
       "Newer lower prefix dominates the old candidate."
     ],
     [
-      "0\u20131 placement",
+      "0–1 placement",
       "cost 0 -> appendleft; cost 1 -> append",
       "Only after a successful relaxation."
     ],
@@ -1028,7 +1049,7 @@
       "Numeric sequence may contain negatives; target may be nonpositive. Returns shortest NONEMPTY contiguous length or -1; no mutation. Feasibility loop precedes dominance removal."
     ],
     [
-      "Zero\u2013one shortest distances",
+      "Zero–one shortest distances",
       "O(V+E) expected",
       "O(V+E)",
       [
@@ -1151,8 +1172,8 @@
     ],
     [
       "Recent ordered event count",
-      "O(1) amortized per ping; O(q) single expiration burst",
-      "O(w) live timestamps",
+      "O(1) amortized per ping; O(ell) worst for one expiration burst; O(q) single expiration burst",
+      "O(ell) live timestamps",
       [
         "from collections import deque",
         "class RecentCounter:",
@@ -1224,7 +1245,7 @@
     ],
     [
       "Implicit lock-state shortest moves",
-      "O(D*d + 10^d*d^2), D supplied deadends, d wheels",
+      "O(D*d + 10^d * d^2) expected, exploring all states in the worst case",
       "O((D+10^d)*d) string-state storage",
       [
         "from collections import deque",
@@ -1251,7 +1272,7 @@
         "                    q.append((neighbor, depth + 1))",
         "    return -1"
       ],
-      "d-wheel decimal lock, unit moves change one digit with wraparound. Minimum moves or -1; consumes deadends iterable, no input mutation. d=4 has 10,000 states. Each of O(d) neighbors costs O(d) string copying/hashing; general dimension bound is not O(10^d d). D is supplied deadend count; deadend set construction/validation adds O(D*d) time and stored key characters, even if start is forbidden."
+      "d-wheel decimal lock, unit moves change one digit with wraparound. Minimum moves or -1; consumes deadends iterable, no input mutation. d=4 has 10,000 states. Each of O(d) neighbors costs O(d) string copying/hashing; general dimension bound is not O(10^d d). Preprocessing consumes all D deadend entries, including duplicates; O(D*d) hashing/validation cannot be bounded solely by the number of distinct states. D is supplied deadend count; deadend set construction/validation adds O(D*d) time and stored key characters, even if start is forbidden."
     ],
     [
       "Fixed-capacity circular deque",
@@ -1304,7 +1325,7 @@
       "933. Number of Recent Calls",
       "Expiration queue",
       "Easy",
-      "O(1) amortized per ping; O(w) space",
+      "O(1) amortized per ping; O(ell) space",
       "Inclusive lower time bound."
     ],
     [
@@ -1367,7 +1388,7 @@
       "752. Open the Lock",
       "Implicit BFS",
       "Medium",
-      "O(D*d+10^d*d^2) time; O((D+10^d)*d) storage; d=4 in LC752",
+      "O(D*d + 10^d d^2) expected time; O(10^d d) string storage; fixed d=4",
       "Start state can be forbidden."
     ],
     [
@@ -1421,7 +1442,7 @@
     ],
     [
       "1368. Minimum Cost to Make at Least One Valid Path in a Grid",
-      "0\u20131 BFS",
+      "0–1 BFS",
       "Hard",
       "O(RC); O(RC) space",
       "Arrow-following move costs zero, not every move."
@@ -1726,6 +1747,13 @@
       "result": "After seeding source and relaxing edges, queue=[(1,0),(0,0),(2,1)], distances={0:0,1:0,2:1}.",
       "edge": "First enqueue is not final; stale records must be skipped.",
       "takeaway": "Relax distances; zero front, one back."
+    },
+    {
+      "why": "For [4,2,5,3] and k=3, expire old indices before removing dominated tails. A newer no-smaller value is at least as useful in every future FIFO window.",
+      "use": "For [4,2,5,3] and k=3, expire old indices before removing dominated tails. A newer no-smaller value is at least as useful in every future FIFO window.",
+      "result": "[[0], [0, 1], [2], [2, 3]]",
+      "edge": "The production window_max template does not copy the candidate deque. Each index enters once and leaves once (front OR back), so total removals are at most n; this is deterministic amortized analysis, not a probabilistic average.",
+      "takeaway": "For [4,2,5,3] and k=3, expire old indices before removing dominated tails. A newer no-smaller value is at least as useful in every future FIFO window."
     }
   ],
   "patternDetails": [
@@ -1808,7 +1836,7 @@
         "Push zero-cost improvements left and one-cost improvements right."
       ],
       "templates": [
-        "Zero\u2013one shortest distances"
+        "Zero–one shortest distances"
       ],
       "related": "Ordinary BFS for equal edges; heap Dijkstra for general nonnegative edges.",
       "variations": "Directional-grid moves derive cost from the outgoing cell, not arrival cell."
@@ -1900,11 +1928,11 @@
     }
   ],
   "decisionProcess": [
-    "0\u201330s: define the queued record (vertex, cell, candidate index, timestamp or cyclic turn), output, and whether arrivals/edges are ordered.",
-    "30\u201360s: equal-cost shortest moves -> BFS; nearest of many sources -> seed all; weights0/1 -> relax with deque; other nonnegative weights -> heap Dijkstra. Negative weights require another algorithm.",
-    "60\u201390s: fixed-window extremum -> monotonic deque; max-min validity -> dual deques; shortest sum with negatives -> increasing prefix deque. Prove both dominance and expiry.",
-    "90\u2013120s: dependencies -> Kahn indegree; two groups -> component coloring; repeated turns -> simulate only after bounding total turns.",
-    "120\u2013180s: for API design choose eviction/rejection/blocking, then deque/ring/two stacks. State invariant, amortized versus worst latency, memory including payloads/output, and dry-run empty, duplicate and boundary cases."
+    "0–30s: define the queued record (vertex, cell, candidate index, timestamp or cyclic turn), output, and whether arrivals/edges are ordered.",
+    "30–60s: equal-cost shortest moves -> BFS; nearest of many sources -> seed all; weights0/1 -> relax with deque; other nonnegative weights -> heap Dijkstra. Negative weights require another algorithm.",
+    "60–90s: fixed-window extremum -> monotonic deque; max-min validity -> dual deques; shortest sum with negatives -> increasing prefix deque. Prove both dominance and expiry.",
+    "90–120s: dependencies -> Kahn indegree; two groups -> component coloring; repeated turns -> simulate only after bounding total turns.",
+    "120–180s: for API design choose eviction/rejection/blocking, then deque/ring/two stacks. State invariant, amortized versus worst latency, memory including payloads/output, and dry-run empty, duplicate and boundary cases."
   ],
   "templateDetails": [
     {
@@ -1938,7 +1966,7 @@
       "observation": "Feasibility removal precedes dominance, preserving nonempty cases."
     },
     {
-      "pattern": "0\u20131 BFS",
+      "pattern": "0–1 BFS",
       "preconditions": "Directed mapping to reusable lists of (hashable neighbor, 0/1 weight); validates all supplied edges. Returns reachable vertex distances only; source absent is allowed. No mutation; undirected graphs need symmetric edges.",
       "observation": "Zero front/one back maintain distance bands; stale records are not current."
     },
@@ -1974,7 +2002,7 @@
     },
     {
       "pattern": "Implicit-state BFS",
-      "preconditions": "d-wheel decimal lock, unit moves change one digit with wraparound. Minimum moves or -1; consumes deadends iterable, no input mutation. d=4 has 10,000 states. Each of O(d) neighbors costs O(d) string copying/hashing; general dimension bound is not O(10^d d). D is supplied deadend count; deadend set construction/validation adds O(D*d) time and stored key characters, even if start is forbidden.",
+      "preconditions": "d-wheel decimal lock, unit moves change one digit with wraparound. Minimum moves or -1; consumes deadends iterable, no input mutation. d=4 has 10,000 states. Each of O(d) neighbors costs O(d) string copying/hashing; general dimension bound is not O(10^d d). Preprocessing consumes all D deadend entries, including duplicates; O(D*d) hashing/validation cannot be bounded solely by the number of distinct states. D is supplied deadend count; deadend set construction/validation adds O(D*d) time and stored key characters, even if start is forbidden.",
       "observation": "A state must encode every future-relevant fact."
     },
     {
@@ -1985,7 +2013,7 @@
   ],
   "practiceDetails": [
     {
-      "insight": "Expire timestamps strictly before inclusive cutoff.",
+      "insight": "Expiration queue. Inclusive lower time bound.",
       "secondary": "Ordered two pointers"
     },
     {
@@ -2021,7 +2049,7 @@
       "secondary": "Implicit graph"
     },
     {
-      "insight": "Visited state is complete wheel string; dead start fails.",
+      "insight": "Implicit BFS. Start state can be forbidden.",
       "secondary": "State-space encoding"
     },
     {

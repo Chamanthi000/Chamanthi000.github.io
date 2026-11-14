@@ -321,6 +321,39 @@
       "O(V+E) on finite tree",
       "O(V) worst explicit frames",
       "A bare node stack does not preserve recursive exit-time work automatically."
+    ],
+    [
+      "Worked histogram plateau: a pop need not be maximal",
+      "For [2,2], stack reaches [0,1]. Final sentinel i=2 pops index 1: left=0, width=1, area=2. Then pops index 0: left=-1, width=2, area=4. Both bars have maximal geometric width 2, but this tie policy only needs one equal bar to realize it.",
+      [
+        "heights = [2, 2]",
+        "stack = [0, 1]",
+        "i = 2",
+        "j = stack.pop()",
+        "left = stack[-1] if stack else -1",
+        "assert heights[j]*(i-left-1) == 2",
+        "j = stack.pop()",
+        "left = stack[-1] if stack else -1",
+        "assert heights[j]*(i-left-1) == 4",
+        "result = heights[j]*(i-left-1)"
+      ],
+      "O(n) scan versus O(n²) running-minimum enumeration",
+      "O(n)",
+      "Index 0 is a real boundary; top or -1 fabricates width 2 too early."
+    ],
+    [
+      "Worked minimum ties: assign the shared interval once",
+      "For [2,2], previous strictly-less boundaries are [-1,-1], next less-or-equal are [1,2]. Contributions are 2*1*1=2 and 2*2*1=4, total 6. The two-element subarray belongs to the rightmost minimum. Strict boundaries on both sides count it twice (8); nonstrict on both miss it (4).",
+      [
+        "values = [2, 2]",
+        "left, right = [-1, -1], [1, 2]",
+        "contributions = [values[i]*(i-left[i])*(right[i]-i) for i in range(2)]",
+        "assert contributions == [2, 4] and sum(contributions) == 6",
+        "result = contributions"
+      ],
+      "O(n) stack boundaries; O(n²) ranges with running minima",
+      "O(n)",
+      "Histogram maximum and subarray ownership are different tie-handling proofs."
     ]
   ],
   "patterns": [
@@ -417,7 +450,7 @@
       "O(n)",
       "84 Largest Rectangle in Histogram; 85 Maximal Rectangle",
       "Width is i-left-1 after popping, not i-popped_index.",
-      "Every popped bar gets its maximal legal span at its first strictly lower right boundary.",
+      "Stack heights are nondecreasing. On pop, new top is the previous <= boundary; current is strictly lower. Equal bars may restrict this pop, but an earlier equal bar eventually receives the full plateau width.",
       "For arbitrary 2D weighted regions without histogram reduction."
     ],
     [
@@ -551,6 +584,30 @@
       "Water needs two walls and a height difference, unlike histogram area.",
       "Resolved layers have valid walls and are counted once above popped bottoms.",
       "Two pointers reduces space; variable widths require prefix-width accounting."
+    ],
+    [
+      "Stack-based graph reachability",
+      "CORE",
+      "Visit every reachable vertex without recursion overflow",
+      "Push start, mark on push, then pop and push unvisited neighbors in reverse desired order.",
+      "O(V+E) expected",
+      "O(V)",
+      "144 Binary Tree Preorder Traversal; 200 Number of Islands",
+      "Graph traversal needs visited; simple trees can omit it.",
+      "Each scheduled vertex is marked, preventing duplicate scheduling.",
+      "For exact recursive DFS discovery/finish order, cycle colors, edge classification or low-link logic; use neighbor-iterator frames. BFS is needed for minimum unweighted distances."
+    ],
+    [
+      "Compressed online stock spans",
+      "IMPORTANT",
+      "For each price count consecutive earlier prices <= it",
+      "Keep decreasing (price,span) blocks; pop blocks <= new price, sum spans, push merged block.",
+      "O(q) total for q calls; O(1) amortized, O(q) one-call worst",
+      "O(q) worst",
+      "901 Online Stock Span",
+      "Equal prices are included; do not pop only strictly smaller.",
+      "Each block summarizes contiguous absorbed prices; live block prices strictly decrease bottom to top.",
+      "When old prices expire from a fixed-width window; use expiry-aware state."
     ]
   ],
   "recognize": [
@@ -627,7 +684,7 @@
     [
       "Deep graph/tree traversal",
       "Explicit LIFO graph traversal",
-      "Why: Each scheduled vertex is marked once; iterator frames retain one active neighbor cursor per DFS ancestor. Boundary/exception: DFS is not shortest path BFS. Limit: For shortest paths in unweighted graph; BFS is the correct frontier."
+      "Use iterator frames for exact recursive DFS semantics; BFS for minimum unweighted distance."
     ],
     [
       "Need work after descendants",
@@ -658,6 +715,11 @@
       "Water between bars",
       "Rain-water basin resolution",
       "Why: Resolved layers have valid walls and are counted once above popped bottoms. Boundary/exception: Not histogram; two pointers reduces auxiliary memory. Limit: Two pointers reduces space; variable widths require prefix-width accounting."
+    ],
+    [
+      "Exact DFS preorder or deferred parent continuation",
+      "Stack of neighbor iterators",
+      "Consume one neighbor at a time; eager sibling marking is only a reachability traversal."
     ]
   ],
   "contrasts": [
@@ -700,6 +762,10 @@
     [
       "Histogram vs rain water",
       "Histogram uses limiting bar height; water uses minimum of two walls minus basin bottom."
+    ],
+    [
+      "Reachability stack vs recursive DFS",
+      "Marking all siblings on push avoids duplicates but can pre-discover a vertex through the wrong parent. Iterator frames suspend each parent after one neighbor and reproduce recursive discovery semantics."
     ]
   ],
   "edges": [
@@ -792,6 +858,11 @@
       "Deep nesting",
       "depth 2000",
       "Algorithm-specific: Iterative frames avoid recursion error; output still needs memory. Reveals recursive overflow."
+    ],
+    [
+      "Cross-edge DFS order",
+      "s:[a,b], a:[b,c]",
+      "Mark-on-push reachability returns s,a,c,b; recursive-style iterator DFS returns s,a,b,c. Both reach all nodes, but discovery trees differ."
     ]
   ],
   "mistakes": [
@@ -817,7 +888,7 @@
     ],
     [
       "Wrong histogram width",
-      "After popping j, width is i-(new_top or -1)-1."
+      "After popping, left=stack[-1] if stack else -1; width=i-left-1. Do not write stack[-1] or -1: valid boundary index 0 is falsey."
     ],
     [
       "Unflushed histogram",
@@ -990,6 +1061,11 @@
       "Water layer",
       "(min(left,right)-bottom)*(right_index-left_index-1)",
       "Requires surviving left wall after bottom pops."
+    ],
+    [
+      "Stock span equality",
+      "pop while previous_price <= current; add popped span",
+      "Equal earlier prices belong in the span, unlike next strictly greater."
     ]
   ],
   "templates": [
@@ -1873,6 +1949,20 @@
       "result": "[1, 2, 0]",
       "edge": "Graphs need visited; high-degree push-all can need O(V) frames.",
       "takeaway": "Exit work is a scheduled event."
+    },
+    {
+      "why": "For [2,2], stack reaches [0,1]. Final sentinel i=2 pops index 1: left=0, width=1, area=2. Then pops index 0: left=-1, width=2, area=4. Both bars have maximal geometric width 2, but this tie policy only needs one equal bar to realize it.",
+      "use": "For [2,2], stack reaches [0,1]. Final sentinel i=2 pops index 1: left=0, width=1, area=2. Then pops index 0: left=-1, width=2, area=4. Both bars have maximal geometric width 2, but this tie policy only needs one equal bar to realize it.",
+      "result": "4",
+      "edge": "Index 0 is a real boundary; top or -1 fabricates width 2 too early.",
+      "takeaway": "For [2,2], stack reaches [0,1]. Final sentinel i=2 pops index 1: left=0, width=1, area=2. Then pops index 0: left=-1, width=2, area=4. Both bars have maximal geometric width 2, but this tie policy only needs one equal bar to realize it."
+    },
+    {
+      "why": "For [2,2], previous strictly-less boundaries are [-1,-1], next less-or-equal are [1,2]. Contributions are 2*1*1=2 and 2*2*1=4, total 6. The two-element subarray belongs to the rightmost minimum. Strict boundaries on both sides count it twice (8); nonstrict on both miss it (4).",
+      "use": "For [2,2], previous strictly-less boundaries are [-1,-1], next less-or-equal are [1,2]. Contributions are 2*1*1=2 and 2*2*1=4, total 6. The two-element subarray belongs to the rightmost minimum. Strict boundaries on both sides count it twice (8); nonstrict on both miss it (4).",
+      "result": "[2, 4]",
+      "edge": "Histogram maximum and subarray ownership are different tie-handling proofs.",
+      "takeaway": "For [2,2], previous strictly-less boundaries are [-1,-1], next less-or-equal are [1,2]. Contributions are 2*1*1=2 and 2*2*1=4, total 6. The two-element subarray belongs to the rightmost minimum. Strict boundaries on both sides count it twice (8); nonstrict on both miss it (4)."
     }
   ],
   "patternDetails": [
@@ -1963,7 +2053,7 @@
     {
       "steps": [
         "Maintain increasing heights.",
-        "On lower bar pop and derive i-left-1 width.",
+        "On a lower bar pop and derive i-left-1 width. An equal-height bar may later obtain a wider rectangle; an individual pop need not be globally maximal.",
         "Flush sentinel; matrix version updates row heights."
       ],
       "templates": [
@@ -2106,6 +2196,28 @@
       ],
       "related": "Histogram multiplies popped height by maximal span.",
       "variations": "Two pointers uses O(1) auxiliary; variable widths need width-prefix sums."
+    },
+    {
+      "steps": [
+        "Push start, mark on push, then pop and push unvisited neighbors in reverse desired order.",
+        "Each scheduled vertex is marked, preventing duplicate scheduling."
+      ],
+      "templates": [
+        "Validate bracket-only text"
+      ],
+      "related": "144 Binary Tree Preorder Traversal; 200 Number of Islands",
+      "variations": "For exact recursive DFS discovery/finish order, cycle colors, edge classification or low-link logic; use neighbor-iterator frames. BFS is needed for minimum unweighted distances."
+    },
+    {
+      "steps": [
+        "Keep decreasing (price,span) blocks; pop blocks <= new price, sum spans, push merged block.",
+        "Each block summarizes contiguous absorbed prices; live block prices strictly decrease bottom to top."
+      ],
+      "templates": [
+        "Online stock span by compressed groups"
+      ],
+      "related": "901 Online Stock Span",
+      "variations": "When old prices expire from a fixed-width window; use expiry-aware state."
     }
   ],
   "templateDetails": [

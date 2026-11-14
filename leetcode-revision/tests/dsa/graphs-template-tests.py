@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Run: python3 graphs-template-tests.py (Python 3.10+, standard library)."""
 import ast
 import copy
@@ -11,10 +12,9 @@ from pathlib import Path
 DATA = json.loads(Path(__file__).with_name('graphs-guide.json').read_text())
 
 def fresh(index):
-    namespace = {}
-    code = '\n'.join(DATA['templates'][index][3])
-    exec(compile(ast.parse(code), f'graph_template_{index}', 'exec'), namespace)
-    return namespace
+    row = DATA['templates'][index]
+    ns = load_template(row)
+    return ns
 
 def reach(adj, start):
     seen, stack = {start}, [start]
@@ -517,4 +517,7 @@ class IdentityCloneTests(unittest.TestCase):
         self.assertEqual(count,5000)
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    result = unittest.main(verbosity=2, exit=False)
+    if not result.result.wasSuccessful():
+        raise SystemExit(1)
+    verify(DATA)

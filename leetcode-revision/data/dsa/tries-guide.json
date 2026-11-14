@@ -2,13 +2,13 @@
   "id": "tries",
   "title": "Tries",
   "subtitle": "A trie shares common key prefixes so each traversed edge refines the set of possible completions.",
-  "variables": "L = query/key length in Python Unicode code points; Lmax = maximum dictionary key length (0 for no nonempty keys); k = requested suggestion count; T = total dictionary input size, sum(len(word)+1) over supplied key occurrences (so empty and duplicate keys count); P = number of allocated prefix nodes (P ≤ T+1 for an ordinary character trie); A = alphabet size; N = number of supplied keys/values, including duplicates; M = text length; B = chosen integer bit width; Z = total characters in returned output; R*C = board cells. Dictionary-backed child transitions are expected O(1); whole-string hashing/comparison costs O(L) initially/worst-case and substring creation is not free. Complexity uses a bounded-word arithmetic model; Python arbitrary-sized integers and normalization have additional costs. Trie storage is O(P) dictionary entries/nodes, but Python per-node constants are substantial. Auxiliary space includes explicit stacks/recursion and excludes separately stated output; operations that create stored nodes identify persistent growth. All templates are standard-library Python 3.10+, iterative at unbounded input depth. C = maximum lexicographic string comparison cost for sorting suggestions. Cached suggestion output is a new list of existing string references; copying text would add O(Z). Hash expectations are not adversarial guarantees: many colliding keys can make a lookup linear in table size. For empty strings an O(L) walk means O(1+L) including fixed call/root work. Python list append/pop may resize linearly on a single call; amortized bounds apply over sequences.",
+  "variables": "L = query/key length in Python Unicode code points; Lmax = maximum dictionary key length (0 for no nonempty keys); k = requested suggestion count; T = total dictionary input size, sum(len(word)+1) over supplied key occurrences (so empty and duplicate keys count); P = number of allocated prefix nodes (P ≤ T+1 for an ordinary character trie); A = alphabet size; N = number of supplied keys/values, including duplicates; M = text length; B = chosen integer bit width; Z = sum(len(word)+1) over returned strings (including one slot per empty result string); R*C = board cells. Dictionary-backed child transitions are expected O(1); whole-string hashing/comparison costs O(L) initially/worst-case and substring creation is not free. Complexity uses a bounded-word arithmetic model; Python arbitrary-sized integers and normalization have additional costs. Trie storage is O(P) dictionary entries/nodes, but Python per-node constants are substantial. Q = number of queries for offline XOR; d = node degree; D = min(Lmax,RC). Empty keys still take O(1) method work, so lookup/update costs are O(L+1). For zero-column boards, validating row headers still costs O(R). Auxiliary space includes explicit stacks/recursion and excludes separately stated output; operations that create stored nodes identify persistent growth. All templates are standard-library Python 3.10+, iterative at unbounded input depth. C = maximum lexicographic string comparison cost for sorting suggestions. Cached suggestion output is a new list of existing string references; copying text would add O(Z). Hash expectations are not adversarial guarantees: many colliding keys can make a lookup linear in table size. For empty strings an O(L) walk means O(1+L) including fixed call/root work. Python list append/pop may resize linearly on a single call; amortized bounds apply over sequences.",
   "operations": [
     [
       "Core API",
       "trie.insert(word)",
       "Add a distinct string key",
-      "O(L) expected",
+      "O(L+1) expected",
       "O(L) persistent growth worst",
       "Terminal marker distinguishes a key from a prefix; duplicate policy matters."
     ],
@@ -16,7 +16,7 @@
       "Core API",
       "trie.search(word)",
       "Exact whole-word membership",
-      "O(L) expected",
+      "O(L+1) expected",
       "O(1) auxiliary",
       "Must end at a terminal node, not just any existing path."
     ],
@@ -24,7 +24,7 @@
       "Core API",
       "trie.starts_with(prefix)",
       "Check prefix path",
-      "O(L) expected",
+      "O(L+1) expected",
       "O(1) auxiliary",
       "Empty prefix exists at root even in an empty trie under this guide’s path semantics."
     ],
@@ -72,7 +72,7 @@
       "Counts",
       "trie.count_equal(word)",
       "Count exact multiplicity",
-      "O(L) expected",
+      "O(L+1) expected",
       "O(1)",
       "Requires end count, not a boolean terminal."
     ],
@@ -80,7 +80,7 @@
       "Counts",
       "trie.count_prefix(prefix)",
       "Count inserted occurrences sharing prefix",
-      "O(L) expected",
+      "O(L+1) expected",
       "O(1)",
       "Maintain pass counts, including at root for empty prefix."
     ],
@@ -88,41 +88,49 @@
       "Deletion",
       "trie.erase(word)",
       "Remove one existing occurrence",
-      "O(L) expected",
-      "O(L) auxiliary path",
+      "O(L+1) expected",
+      "O(L+1) auxiliary path",
       "Check whole word exists before modifying counts; preserve shared prefixes."
     ],
     [
       "Enumeration",
       "completions(words, prefix)",
       "Build trie then return all matching words",
-      "O(T+L+visited nodes+Z) expected",
-      "O(P+depth) auxiliary plus O(Z) output",
+      "O(T+L+visited nodes+Z+1) expected",
+      "O(P+maximum key depth) temporary trie/traversal plus O(Z) output bound",
       "Unlimited completions can dwarf prefix lookup cost; output ordering is a separate choice."
     ],
     [
       "Wildcard",
       "wildcard_match(words, pattern)",
       "Match . as any one code point",
-      "O(T+P) expected upper bound per build/query",
+      "O(T+P+1) expected upper bound per build/query",
       "O(P) storage and frontier worst",
-      "Branching destroys the O(L) single-path bound; dot does not mean arbitrary-length substring."
+      "Branching destroys the O(L+1) single-path bound; dot does not mean arbitrary-length substring."
     ],
     [
       "Bitwise",
       "max_pair_xor(nums, bits)",
       "Maximum XOR using B-bit trie",
-      "O(NB) expected",
-      "O(NB) stored trie worst",
+      "O(1+NB) expected",
+      "O(1+NB) stored trie worst",
       "Requires nonnegative numbers fitting bits; signed order/width must be defined."
     ],
     [
       "Validation",
       "normalized = text.casefold()",
       "Case-insensitive preprocessing",
-      "O(L) output-sensitive",
-      "O(L) output",
+      "O(L+1) output-sensitive",
+      "O(L+1) output",
       "Casefold can change length; normalize inserts and queries consistently when required."
+    ],
+    [
+      "Aggregates",
+      "index.insert(key, value); index.sum(prefix)",
+      "Overwrite-safe Map Sum updates",
+      "O(L+1) expected per call",
+      "O(L) new prefixes/key text worst; O(1) auxiliary",
+      "Add new-old delta, including at root; zero and negative values are allowed."
     ]
   ],
   "fundamentals": [
@@ -160,7 +168,7 @@
         "assert not root.children[\"a\"].children[\"p\"].children[\"p\"].end",
         "assert node.end"
       ],
-      "O(L) expected",
+      "O(L+1) expected",
       "O(L) nodes",
       "setdefault evaluates Node() even if key exists; full templates avoid that unnecessary allocation."
     ],
@@ -287,6 +295,21 @@
       "O(L) walk",
       "O(1) auxiliary",
       "A hash set may still be simpler and faster for exact membership; a trie is not universally superior."
+    ],
+    [
+      "A concrete branching and count trace",
+      "Insert app twice and apple once: the app node has end=2 and pass=3. Erase app once: end=1 and pass=2, so apple remains reachable. A literal app walk is one path; a.. forks into all two-character continuations.",
+      [
+        "end_app, pass_app, end_apple = 2, 3, 1",
+        "end_app -= 1",
+        "pass_app -= 1",
+        "assert (end_app, pass_app, end_apple) == (1, 2, 1)",
+        "assert pass_app == end_app + end_apple",
+        "result = (end_app, pass_app, end_apple)"
+      ],
+      "O(1) for this fixed trace",
+      "O(1) for this fixed trace",
+      "Terminal count, subtree count, and wildcard frontier width answer different questions."
     ]
   ],
   "patterns": [
@@ -295,7 +318,7 @@
       "CORE",
       "Need inserts, exact queries and prefix existence",
       "Walk sparse character children and maintain a terminal marker.",
-      "O(L) expected per operation",
+      "O(L+1) expected per operation",
       "O(P) persistent",
       "208 Implement Trie (Prefix Tree)",
       "Path existence alone is not exact membership.",
@@ -307,7 +330,7 @@
       "CORE",
       "Duplicate inserts, count words equal or starting with a prefix",
       "Maintain pass and end counts; validate an occurrence before decrementing.",
-      "O(L) expected per operation",
+      "O(L+1) expected per operation",
       "O(P) persistent; O(L) erase path",
       "1804 Implement Trie II (Prefix Tree)",
       "Root pass count must include empty keys and all duplicates.",
@@ -343,8 +366,8 @@
       "IMPORTANT",
       "Replace each token by its shortest dictionary ancestor",
       "Scan a token until first terminal, preserve token if no root.",
-      "O(T+M) expected",
-      "O(P+M) including output",
+      "O(T+M+1) expected",
+      "O(P+M+1) including output",
       "648 Replace Words",
       "A stored empty root would replace every token with empty; choose/validate contract.",
       "First terminal on the path is the shortest matching root.",
@@ -355,8 +378,8 @@
       "IMPORTANT",
       "Can text split into dictionary words?",
       "From reachable text positions, walk trie until mismatch and mark terminal endpoints.",
-      "O(T+M(1+Lmax)) expected",
-      "O(P+M)",
+      "O(T+M(1+Lmax)+1) expected",
+      "O(P+M+1)",
       "139 Word Break; 472 Concatenated Words",
       "Restart only at reachable positions; concatenated words must exclude self-only split.",
       "reachable[j] iff prefix text[:j] can be segmented into complete stored words.",
@@ -367,8 +390,8 @@
       "IMPORTANT",
       "Many dictionary words on one board",
       "Build trie, explore board paths only while their prefix exists; mark cells per current path.",
-      "O(T + RC*4*3^(min(Lmax,RC)-1)) upper bound for nonempty words",
-      "O(P+RC+Lmax+Z)",
+      "O(T+R+RC*3^D+1) expected upper bound, D=min(Lmax,RC)",
+      "O(P+T+min(Lmax,RC)+Z) text-inclusive upper bound; no board-sized visited array",
       "212 Word Search II",
       "Visited is path-local; do not reuse a cell within one word or globally ban it across starts.",
       "Current trie node and used-cell set represent exactly the current board path.",
@@ -379,8 +402,8 @@
       "IMPORTANT",
       "Maximize x XOR y over fixed-width nonnegative keys",
       "Process bits high to low, prefer the opposite existing branch.",
-      "O(NB) time for N inserts/queries",
-      "O(NB) nodes worst",
+      "O(1+NB) time for N inserts/queries under fixed-width arithmetic",
+      "O(1+NB) nodes worst",
       "421 Maximum XOR of Two Numbers in an Array; 1707 Maximum XOR With an Element From Array",
       "Signed Python integers have infinite sign extension; enforce finite unsigned width.",
       "At the first differing XOR bit, 1 dominates every choice in all lower bits.",
@@ -403,10 +426,10 @@
       "ADVANCED",
       "Repeated small-k lexicographic suggestions on static vocabulary",
       "Insert sorted distinct words and cache only first k suggestions at each prefix.",
-      "O(T+N log N*C) expected build; O(L+min(k,N)) expected one-prefix query returning references",
-      "O(P + P*k references) worst",
+      "O(T+N log(N+2)*Lmax+1) expected build; one-prefix query O(L+1+k) returned references",
+      "O(P(1+k)+T+N) build/storage upper bound including retained text and sorting",
       "1268 Search Suggestions System",
-      "Caching every completion at every node can duplicate O(T*N) references in loose bounds.",
+      "For a whole typed search word, query all prefixes incrementally: O(L(1+k)) reference output, not O(L+k). Copying text adds output characters.",
       "Each node cache contains the smallest k eligible words seen in globally sorted order.",
       "Changing rankings or variable unbounded k without a new data structure."
     ],
@@ -433,6 +456,18 @@
       "Stopping at first terminal solves shortest root, not longest prefix.",
       "best is the deepest terminal among exactly the already consumed prefix nodes.",
       "Arbitrary substring match or path-component routing without a matching token/bit model."
+    ],
+    [
+      "Prefix aggregate overwrite updates",
+      "IMPORTANT",
+      "Map each string to a value and query sum for a prefix",
+      "Keep old exact value; add new-old delta at root and each key-prefix node.",
+      "O(L+1) expected insert/sum under unit-cost arithmetic",
+      "O(P+stored distinct-key characters) persistent",
+      "677 Map Sum Pairs",
+      "Overwriting apple=3 with apple=2 changes affected sums by -1, not +2.",
+      "Each node total equals the sum of current exact-key values in its subtree.",
+      "Substring sums, arbitrary ranges, or nonlinear aggregates without an update rule."
     ]
   ],
   "recognize": [
@@ -510,6 +545,11 @@
       "Overwrite key values, ask sums by prefix",
       "Prefix aggregate delta updates",
       "Why: Per-prefix totals can be maintained using overwrite differences. Exception / constraint: Use a value map for deltas; count tries count occurrences, not arbitrary values."
+    ],
+    [
+      "Overwrite key values; sum by prefix",
+      "Delta-maintained trie aggregates",
+      "Keep old value to avoid double-counting; empty prefix queries the total."
     ]
   ],
   "contrasts": [
@@ -544,6 +584,10 @@
     [
       "DFS enumeration vs top-k cache",
       "DFS pays for visited descendants and emitted strings; cached small k trades persistent references and update work for fast repeated suggestions."
+    ],
+    [
+      "Occurrence counts vs value sums",
+      "Counted tries add/remove occurrences. Map Sum assigns one current value per distinct key; overwriting propagates a delta, and negative sums remain valid."
     ]
   ],
   "edges": [
@@ -626,6 +670,11 @@
       "Algorithm-specific: Output ordering",
       "insert cat before car",
       "Unsorted enumeration may yield cat first; sort or maintain cache if lexical order required. Exposes: assuming insertion order is lexicographic."
+    ],
+    [
+      "Single XOR value",
+      "nums=[7]",
+      "Returns 0 by empty/singleton convention; for N≥2, partners come from distinct positions (duplicates allowed)."
     ]
   ],
   "mistakes": [
@@ -759,7 +808,7 @@
     ],
     [
       "Lookup",
-      "O(L) expected",
+      "O(L+1) expected",
       "Sparse dict transitions assumed expected O(1)."
     ],
     [
@@ -780,7 +829,7 @@
     [
       "Completion output",
       "O(prefix length + visited nodes + Z)",
-      "Z counts emitted characters; lexical sorting adds work."
+      "Z counts emitted characters plus one list slot per word, including empty strings; lexical sorting adds work."
     ],
     [
       "Binary choice",
@@ -806,12 +855,17 @@
       "Longest prefix",
       "remember last terminal before mismatch",
       "None means no stored match; empty string is a valid root match if inserted."
+    ],
+    [
+      "Map Sum overwrite",
+      "delta = new_value - old_value",
+      "Add delta along root-to-key path, including root for empty-prefix queries."
     ]
   ],
   "templates": [
     [
       "Basic Unicode character trie",
-      "O(L) expected per operation",
+      "O(L+1) expected per operation",
       "O(P) persistent; O(1) auxiliary per operation",
       [
         "class TrieNode:",
@@ -850,8 +904,8 @@
     ],
     [
       "Counted multiset trie with safe erase",
-      "O(L) expected per operation",
-      "O(P) persistent; O(L) auxiliary erase path",
+      "O(L+1) expected per operation",
+      "O(P) persistent; O(L+1) auxiliary erase path",
       [
         "class CountNode:",
         "    def __init__(self):",
@@ -912,7 +966,7 @@
     ],
     [
       "Single-character wildcard matching",
-      "O(T+P) expected upper bound for build and one query",
+      "O(T+P+1) expected upper bound for build and one query",
       "O(P) trie and O(P) frontier worst",
       [
         "def wildcard_match(words, pattern):",
@@ -941,8 +995,8 @@
     ],
     [
       "Enumerate distinct prefix completions iteratively",
-      "O(T+L+visited nodes+Z) expected",
-      "O(P+maximum key depth) auxiliary plus O(Z) output",
+      "O(T+L+visited nodes+Z+1) expected",
+      "O(P+maximum key depth) temporary trie/traversal plus O(Z) output bound",
       [
         "def completions(words, prefix):",
         "    root = {}",
@@ -983,8 +1037,8 @@
     ],
     [
       "Replace tokens by shortest dictionary roots",
-      "O(T+M) expected",
-      "O(P+M) including tokenization and output",
+      "O(T+M+1) expected",
+      "O(P+M+1) including tokenization and output",
       [
         "def replace_roots(roots, sentence):",
         "    root = {}",
@@ -1015,8 +1069,8 @@
     ],
     [
       "Word Break via reachable-prefix trie DP",
-      "O(T+M(1+Lmax)) expected worst",
-      "O(P+M)",
+      "O(T+M(1+Lmax)+1) expected worst",
+      "O(P+M+1)",
       [
         "def word_break(text, words):",
         "    root = {}",
@@ -1048,8 +1102,8 @@
     ],
     [
       "Maximum pair XOR with a fixed-width binary trie",
-      "O(NB) expected",
-      "O(NB) persistent temporary trie worst",
+      "O(1+NB) expected",
+      "O(1+NB) temporary trie worst; O(1) extra under word model",
       [
         "def max_pair_xor(nums, bits=31):",
         "    if not isinstance(bits, int) or bits <= 0:",
@@ -1083,8 +1137,8 @@
     ],
     [
       "Iterative Word Search II with trie pruning",
-      "O(T+RC*4*3^(min(Lmax,RC)-1)) upper bound for nonempty words",
-      "O(P+RC+Lmax+Z) including output",
+      "O(T+R+RC*3^D+1) expected upper bound, D=min(Lmax,RC)",
+      "O(P+T+min(Lmax,RC)+Z) text-inclusive upper bound; no board-sized visited array",
       [
         "def find_board_words(board, words):",
         "    rows = len(board)",
@@ -1134,7 +1188,7 @@
         "                stack.append((nr, nc, child, 0))",
         "    return out"
       ],
-      "Four-direction rectangular board, each cell exactly one Unicode code point, string dictionary. Returns distinct found words once in discovery order, not sorted; duplicate inputs suppressed by terminal metadata. Empty word accepted as an empty path even on an empty board; empty board otherwise returns []. Cell cannot repeat within a path; board and dictionary unchanged. Temporary trie terminal removal suppresses duplicate output but preserves descendant paths; traversal is iterative."
+      "Four-direction rectangular board, each cell exactly one Unicode code point, string dictionary. Returns distinct found words once in discovery order, not sorted; duplicate inputs suppressed by terminal metadata. Empty word accepted as an empty path even on an empty board; empty board otherwise returns []. Cell cannot repeat within a path; board and dictionary unchanged. Temporary trie terminal removal suppresses duplicate output but preserves descendant paths; traversal is iterative. Board scan/validation is paid even when every supplied word is empty. Output reuses existing word strings, so actual list storage is O(number of results); Z is a conservative text-inclusive bound. Terminal metadata temporarily retains original word strings; T accounts for this text when words arrive from a one-pass iterable. If dictionary text is excluded as pre-existing input, working references/nodes are O(P+min(Lmax,RC)) plus result references."
     ],
     [
       "Offline bounded-value maximum XOR queries",
@@ -1217,7 +1271,7 @@
     ],
     [
       "MapSum prefix aggregates with overwrite deltas",
-      "O(L) expected per insert or sum",
+      "O(L+1) expected per insert or sum",
       "O(P+T) persistent key text and nodes; O(1) working auxiliary",
       [
         "class SumNode:",
@@ -1283,14 +1337,14 @@
       "208 Implement Trie (Prefix Tree)",
       "Exact/prefix API",
       "Medium",
-      "O(L) expected per operation, O(P) persistent",
+      "O(L+1) expected per operation, O(P) persistent",
       "search is not startsWith."
     ],
     [
       "1804 Implement Trie II (Prefix Tree)",
       "Counts and erase",
       "Medium",
-      "O(L) expected per operation, O(P) storage",
+      "O(L+1) expected per operation, O(P) storage",
       "Count occurrences and update root pass count."
     ],
     [
@@ -1304,35 +1358,35 @@
       "648 Replace Words",
       "Shortest terminal prefix",
       "Medium",
-      "O(T+M) expected time, O(P+M) space",
+      "O(T+M+1) expected time, O(P+M+1) space",
       "Shortest root wins; choose tokenization policy."
     ],
     [
       "1268 Search Suggestions System",
       "Cached top-three or prefix ranges",
       "Medium",
-      "Trie build O(T+N log N * word comparison cost), queries O(L+output characters) with fixed-size cache",
+      "Static cache build O(T+N log(N+2)*Lmax+1) expected; all prefixes of a length-L search word O(L(1+k)) returned references with incremental traversal, k=3",
       "Deduplicate products if API requires unique suggestions."
     ],
     [
       "677 Map Sum Pairs",
       "Prefix aggregate delta updates",
       "Medium",
-      "O(L) expected insert/query, O(P+T) storage including key values",
+      "O(L+1) expected insert/query, O(P+stored distinct-key characters) persistent",
       "Overwriting a value requires adding delta, not full new value."
     ],
     [
       "139 Word Break",
       "Trie-guided reachable-prefix DP",
       "Medium",
-      "O(T+M(1+Lmax)) expected time, O(P+M) space",
+      "O(T+M(1+Lmax)+1) expected time, O(P+M+1) space",
       "Greedy longest match can fail."
     ],
     [
       "140 Word Break II",
       "Trie + memoized enumeration",
       "Hard",
-      "Exponential output-sensitive; O(T+M²+MZ) conservative time/space upper bound for memoized suffix strings, Z=final output characters",
+      "Exponential output-sensitive; O(T+M²+(M+1)(Z+1)) conservative time/space upper bound for memoized suffix strings, Z=final output characters plus result slots",
       "Materialized suffix strings can dominate space."
     ],
     [
@@ -1367,7 +1421,7 @@
       "212 Word Search II",
       "Trie-pruned board backtracking",
       "Hard",
-      "O(T+RC*4*3^(min(Lmax,RC)-1)) worst upper bound for nonempty words; O(P+RC+Z) space",
+      "O(T+R+RC*3^D+1) expected worst upper bound, D=min(Lmax,RC); O(P+T+D+Z) text-inclusive space bound",
       "No cell reuse; duplicate word output suppression."
     ],
     [
@@ -2026,6 +2080,48 @@
       "result": "strasse 6 7",
       "use": "Define case-insensitive equivalence before indexing.",
       "mutation": "Allocates normalized string; original string immutable."
+    },
+    {
+      "code": [
+        "class SumNode:",
+        "    def __init__(self):",
+        "        self.children = {}",
+        "        self.total = 0",
+        "",
+        "class MapSum:",
+        "    def __init__(self):",
+        "        self.root = SumNode()",
+        "        self.values = {}",
+        "",
+        "    def insert(self, key, value):",
+        "        delta = value-self.values.get(key, 0)",
+        "        self.values[key] = value",
+        "        node = self.root",
+        "        node.total += delta",
+        "        for ch in key:",
+        "            if ch not in node.children:",
+        "                node.children[ch] = SumNode()",
+        "            node = node.children[ch]",
+        "            node.total += delta",
+        "",
+        "    def sum(self, prefix):",
+        "        node = self.root",
+        "        for ch in prefix:",
+        "            node = node.children.get(ch)",
+        "            if node is None:",
+        "                return 0",
+        "        return node.total",
+        "index = MapSum()",
+        "index.insert(\"app\", 3)",
+        "index.insert(\"apple\", 2)",
+        "index.insert(\"app\", -1)",
+        "result = index.sum(\"app\")",
+        "assert result == 1",
+        "print(result)"
+      ],
+      "result": "1",
+      "use": "Maintain overwrite-safe sums for a shared prefix.",
+      "mutation": "insert changes owned nodes and the value map; sum only reads them."
     }
   ],
   "fundamentalDetails": [
@@ -2098,6 +2194,13 @@
       "result": "characters_examined=6 for prefix; no substring slices are created.",
       "edge": "Exact membership alone may favor a hash set rather than a node-heavy trie.",
       "takeaway": "Avoid hidden quadratic prefix slicing, not sets categorically."
+    },
+    {
+      "why": "Insert app twice and apple once: the app node has end=2 and pass=3. Erase app once: end=1 and pass=2, so apple remains reachable. A literal app walk is one path; a.. forks into all two-character continuations.",
+      "use": "Insert app twice and apple once: the app node has end=2 and pass=3. Erase app once: end=1 and pass=2, so apple remains reachable. A literal app walk is one path; a.. forks into all two-character continuations.",
+      "result": "(1, 2, 1)",
+      "edge": "Terminal count, subtree count, and wildcard frontier width answer different questions.",
+      "takeaway": "Insert app twice and apple once: the app node has end=2 and pass=3. Erase app once: end=1 and pass=2, so apple remains reachable. A literal app walk is one path; a.. forks into all two-character continuations."
     }
   ],
   "patternDetails": [
@@ -2244,6 +2347,17 @@
       ],
       "related": "Shortest matching root; Exact and prefix dictionary",
       "variations": "Retain a trie object for repeated queries. Longest bit-prefix routing uses an explicit address width and bit transitions rather than unconstrained character prefixes."
+    },
+    {
+      "steps": [
+        "Keep old exact value; add new-old delta at root and each key-prefix node.",
+        "Each node total equals the sum of current exact-key values in its subtree."
+      ],
+      "templates": [
+        "MapSum prefix aggregates with overwrite deltas"
+      ],
+      "related": "677 Map Sum Pairs",
+      "variations": "Substring sums, arbitrary ranges, or nonlinear aggregates without an update rule."
     }
   ],
   "templateDetails": [
@@ -2284,7 +2398,7 @@
     },
     {
       "pattern": "Board search with prefix pruning",
-      "preconditions": "Four-direction rectangular board, each cell exactly one Unicode code point, string dictionary. Returns distinct found words once in discovery order, not sorted; duplicate inputs suppressed by terminal metadata. Empty word accepted as an empty path even on an empty board; empty board otherwise returns []. Cell cannot repeat within a path; board and dictionary unchanged. Temporary trie terminal removal suppresses duplicate output but preserves descendant paths; traversal is iterative.",
+      "preconditions": "Four-direction rectangular board, each cell exactly one Unicode code point, string dictionary. Returns distinct found words once in discovery order, not sorted; duplicate inputs suppressed by terminal metadata. Empty word accepted as an empty path even on an empty board; empty board otherwise returns []. Cell cannot repeat within a path; board and dictionary unchanged. Temporary trie terminal removal suppresses duplicate output but preserves descendant paths; traversal is iterative. Board scan/validation is paid even when every supplied word is empty. Output reuses existing word strings, so actual list storage is O(number of results); Z is a conservative text-inclusive bound. Terminal metadata temporarily retains original word strings; T accounts for this text when words arrive from a one-pass iterable. If dictionary text is excluded as pre-existing input, working references/nodes are O(P+min(Lmax,RC)) plus result references.",
       "observation": "Visited cells are local to the current path, and terminal clearing only suppresses output duplicates."
     },
     {
@@ -2310,11 +2424,11 @@
   ],
   "practiceDetails": [
     {
-      "insight": "Foundation — Whole-key membership requires terminal metadata at the last consumed character. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: search is not startsWith.",
+      "insight": "Exact/prefix API. search is not startsWith.",
       "secondary": "API design; prefix paths"
     },
     {
-      "insight": "Foundation — Pass/end counters count occurrences and safe erase validates before changing them. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Count occurrences and update root pass count.",
+      "insight": "Counts and erase. Count occurrences and update root pass count.",
       "secondary": "Root metadata; multiset semantics"
     },
     {
@@ -2322,23 +2436,23 @@
       "secondary": "Frontier search; output-free existential query"
     },
     {
-      "insight": "Foundation — The first terminal root is shortest; longer matching roots cannot improve replacement. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Shortest root wins; choose tokenization policy.",
+      "insight": "Shortest terminal prefix. Shortest root wins; choose tokenization policy.",
       "secondary": "Tokenization; greedy prefix proof"
     },
     {
-      "insight": "Transfer — Lexicographically sorted insertions allow each prefix to cache only its first three references. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Deduplicate products if API requires unique suggestions.",
+      "insight": "Cached top-three or prefix ranges. Deduplicate products if API requires unique suggestions.",
       "secondary": "Sorted-array prefix ranges; fixed-k caching"
     },
     {
-      "insight": "Transfer — Remember prior exact value and propagate new-minus-old, including the root. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Overwriting a value requires adding delta, not full new value.",
+      "insight": "Prefix aggregate delta updates. Overwriting a value requires adding delta, not full new value.",
       "secondary": "Hash map; prefix aggregate invariant"
     },
     {
-      "insight": "Transfer — Only reachable text boundaries may launch trie walks; greedy root selection is unsafe. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Greedy longest match can fail.",
+      "insight": "Trie-guided reachable-prefix DP. Greedy longest match can fail.",
       "secondary": "Dynamic programming; segmentation"
     },
     {
-      "insight": "Transfer — Feasibility DP is insufficient for every sentence; memoized enumeration still pays for every output character. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Materialized suffix strings can dominate space.",
+      "insight": "Trie + memoized enumeration. Materialized suffix strings can dominate space.",
       "secondary": "Output-sensitive backtracking; suffix memoization"
     },
     {
@@ -2358,7 +2472,7 @@
       "secondary": "Offline monotone sweep; original-index restoration"
     },
     {
-      "insight": "Stretch — Trie prefixes prune board paths; path-local cell usage and terminal clearing solve different problems. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: No cell reuse; duplicate word output suppression.",
+      "insight": "Trie-pruned board backtracking. No cell reuse; duplicate word output suppression.",
       "secondary": "Iterative backtracking; output deduplication"
     },
     {

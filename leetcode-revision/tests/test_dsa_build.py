@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from guide_fixtures import TOPICS, guide, write_guides
 
@@ -74,6 +75,44 @@ class SchemaTests(unittest.TestCase):
         build.validate_guide(data, 'trees')
 
 
+    def test_rejects_unusable_or_duplicate_template_titles(self):
+        for title in ['', '   ', '...', '123', '---', 'Template', 'Template #2', 'TODO', 'TBD']:
+            with self.subTest(title=title):
+                data = guide('trees')
+                data['templates'][0][0] = title
+                with self.assertRaisesRegex(ValueError, 'templates'):
+                    build.validate_guide(data, 'trees')
+        data = guide('trees')
+        data['templates'][1][0] = '  ' + data['templates'][0][0].upper() + '  '
+        with self.assertRaisesRegex(ValueError, 'duplicate template title'):
+            build.validate_guide(data, 'trees')
+
+    def test_rejects_empty_code_and_explicit_ast_placeholders(self):
+        for field, column in [('fundamentals', 2), ('templates', 3)]:
+            for code in [['', '# no statements'], ['def unfinished():', '    ...'],
+                         ['def unfinished():', '    return ...'],
+                         ['raise NotImplementedError'], ['raise NotImplementedError("pending")']]:
+                with self.subTest(field=field, code=code):
+                    data = guide('trees')
+                    data[field][0][column] = code
+                    with self.assertRaisesRegex(ValueError, field):
+                        build.validate_guide(data, 'trees')
+
+    def test_accepts_literal_placeholder_words_and_valid_ellipsis_syntax(self):
+        data = guide('trees')
+        data['templates'][0][0] = 'Template for 2D prefix sums'
+        data['patternDetails'][0]['templates'][0] = 'Template for 2D prefix sums'
+        data['templates'][0][3] = [
+            '# ... and NotImplementedError describe text, not a code stub',
+            'from typing import Callable',
+            'class Node:', '    pass',
+            'def identity(values: tuple[int, ...], callback: Callable[..., int]):',
+            '    message = "... NotImplementedError TODO"',
+            '    try:', '        return values[...]',
+            '    except NotImplementedError:', '        return NotImplemented',
+        ]
+        self.assertIs(build.validate_guide(data, 'trees'), data)
+
 class BuildTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix='recall-dsa-test-')
@@ -116,6 +155,33 @@ class BuildTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(self.output.read_text(), 'previous bundle')
 
+
+    def test_failed_replacement_keeps_previous_bundle_and_cleans_temporary(self):
+        self.output.write_text('previous bundle')
+        with patch.object(Path, 'replace', side_effect=OSError('simulated replacement failure')):
+            with self.assertRaisesRegex(OSError, 'simulated replacement failure'):
+                build.write_bundle(self.output, 'new bundle')
+        self.assertEqual(self.output.read_text(), 'previous bundle')
+        self.assertEqual(list(self.directory.iterdir()), [self.output])
+
+    def test_failed_write_keeps_previous_bundle_and_cleans_temporary(self):
+        self.output.write_text('previous bundle')
+        create_temporary = tempfile.NamedTemporaryFile
+
+        def failing_temporary(**kwargs):
+            handle = create_temporary(**kwargs)
+
+            def fail_write(value):
+                raise OSError('simulated write failure')
+
+            handle.write = fail_write
+            return handle
+
+        with patch.object(build.tempfile, 'NamedTemporaryFile', side_effect=failing_temporary):
+            with self.assertRaisesRegex(OSError, 'simulated write failure'):
+                build.write_bundle(self.output, 'new bundle')
+        self.assertEqual(self.output.read_text(), 'previous bundle')
+        self.assertEqual(list(self.directory.iterdir()), [self.output])
 
 if __name__ == '__main__':
     unittest.main()

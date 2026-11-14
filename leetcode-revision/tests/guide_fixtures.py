@@ -8,7 +8,7 @@ TOPICS = ('arrays', 'strings', 'hash-maps', 'linked-lists', 'stacks', 'queues', 
 
 def guide(topic):
     def value(field):
-        return f'{topic} {field} </script><img src=x onerror=alert(1)> & "quoted" \'single\''
+        return f'{topic} {field} \u2028\u2029 </script><img src=x onerror=alert(1)> & "quoted" \'single\''
     code = [f'# {value("python comment")}', 'def echo(value):', '    return value']
     return {
         'id': topic, 'title': value('title'), 'subtitle': value('subtitle'),

@@ -2,7 +2,7 @@
   "id": "hash-maps",
   "title": "Hash Maps & Sets",
   "subtitle": "Trade repeated searches for a table of precisely the information a future step needs.",
-  "variables": "n and m = input lengths; u = distinct keys; k = requested count/window; L = total characters; R = number of returned items. Expected hash-table bounds assume well-distributed hashes, O(1) key hash/equality and fixed-size arithmetic; collisions can make a lookup O(u) and a build O(n²). Hashing a fresh length-l string/tuple costs O(l); Python may cache string hashes but equality still can scan characters. Python integers have bit-length-dependent costs. Space distinguishes auxiliary state from output; dict preserves insertion order, set has no ordering contract. a,b,c,d may denote independent population lengths for pair joins; u_t = distinct target symbols. Hash full-scan bounds are expected and can degrade quadratically with collisions. Count snapshots, buckets, composite keys and output slices. Templates here are iterative. u_a/u_b denote distinct keys in each input table. API costs assume CPython-like hash tables; capacities/tombstones can affect scans. Counter multiset arithmetic drops nonpositive results unlike signed balance updates. Operation table costs describe the named operation on preexisting state; executable examples also construct small fixtures and verify results, whose setup/assertion cost is not the operation cost.",
+  "variables": "n and m = input lengths; u = distinct keys; k = requested count/window; L = total characters; R = number of returned items. Expected hash-table bounds assume well-distributed hashes, O(1) key hash/equality and fixed-size arithmetic; collisions can make a lookup O(u) and a build O(n²). Hashing a fresh length-l string costs O(l); Python may cache string hashes but equality still can scan characters. Tuple hashing visits all l members on each call and pays their hash costs; nested or long members need more than O(l). Python integers have bit-length-dependent costs. Space distinguishes auxiliary state from output; dict preserves insertion order, set has no ordering contract. a,b,c,d may denote independent population lengths for pair joins; u_t = distinct target symbols. Hash full-scan bounds are expected and can degrade quadratically with collisions. Count snapshots, buckets, composite keys and output slices. Templates here are iterative. u_a/u_b denote distinct keys in each input table. API costs assume CPython-like hash tables; capacities/tombstones can affect scans. Counter multiset arithmetic drops nonpositive results unlike signed balance updates. Operation table costs describe the named operation on preexisting state; executable examples also construct small fixtures and verify results, whose setup/assertion cost is not the operation cost.",
   "operations": [
     [
       "Create",
@@ -239,10 +239,10 @@
     [
       "Delete",
       "s.pop()",
-      "Remove an arbitrary remaining element",
-      "O(1) average; O(table capacity) worst scan",
+      "Remove and return an arbitrary set member",
+      "O(1) amortized under ordinary table occupancy; a sparse-table scan can be linear in capacity",
       "O(1)",
-      "Empty raises KeyError; arbitrary is not uniform random or sorted."
+      "Empty raises KeyError; arbitrary does not mean uniform random or most recently inserted."
     ],
     [
       "Sets",
@@ -296,9 +296,9 @@
         "result = (a[(1,2)],a[frozenset({1,2})])",
         "assert repr(result) == \"('pair', 'unordered pair')\""
       ],
-      "O(key size) to hash composite keys",
+      "O(key construction + member hash/equality costs)",
       "O(key size)",
-      "A tuple containing a list is still unhashable."
+      "A tuple containing a list is unhashable. A tuple of long strings is not a constant-time key merely because its outer length is small."
     ],
     [
       "Presence is not truthiness",
@@ -379,7 +379,7 @@
         "result = dict(groups)",
         "assert repr(result) == \"{'aet': ['eat', 'tea', 'aet']}\""
       ],
-      "O(n + sum l log(l+1)) including empty words",
+      "O(n + sum l log(max(2,l))) expected",
       "O(L+n) keys and grouped references",
       "A set of characters loses repetition, so ab and aab collide semantically."
     ],
@@ -466,6 +466,41 @@
       "O(n) expected",
       "O(n)",
       "The empty prefix is a boundary, not an extra array element."
+    ],
+    [
+      "Worked prefix trace: frequencies, not presence",
+      "For [1,-1,0] with k=0: seed freq={0:1}; prefix 1 adds 0; prefix 0 adds 1; prefix 0 adds 2. Total 3 ranges: [1,-1], [0], [1,-1,0]. Querying after increment counts three nonexistent empty ranges.",
+      [
+        "freq = {0: 1}",
+        "prefix = answer = 0",
+        "added = []",
+        "for x in [1, -1, 0]:",
+        "    prefix += x",
+        "    added.append(freq.get(prefix, 0))",
+        "    answer += added[-1]",
+        "    freq[prefix] = freq.get(prefix, 0) + 1",
+        "assert added == [0, 1, 2] and answer == 3",
+        "result = (added, answer)"
+      ],
+      "O(n) expected, versus O(n²) range enumeration with running sums",
+      "O(n)",
+      "A set adds only one at the final step, losing repeated left boundaries."
+    ],
+    [
+      "Equal numeric keys can be different types",
+      "Python bool is an int subtype; 1, True and 1.0 compare equal and share a hash. A map/set uses equality, not type identity. Tag types only when the problem requires these to be distinct.",
+      [
+        "d = {1: 'integer'}",
+        "d[True] = 'boolean'",
+        "d[1.0] = 'float'",
+        "assert len(d) == 1 and d[1] == 'float'",
+        "tagged = {(type(x), x) for x in [1, True, 1.0]}",
+        "assert len(tagged) == 3",
+        "result = (len(d), len(tagged))"
+      ],
+      "O(1) expected per operation",
+      "O(u)",
+      "Type-tagging changes semantics; do not add it when numeric equality is intended."
     ]
   ],
   "patterns": [
@@ -510,7 +545,7 @@
       "CORE",
       "Group objects under an equivalence relation",
       "Map a collision-free semantic signature to a group; for words use sorted characters or alphabet counts.",
-      "O(n + sum l log(l+1))",
+      "O(n + sum l log(max(2,l))) expected for sorted signatures",
       "O(L+n) including grouped output references",
       "49 Group Anagrams",
       "Do not concatenate ambiguous unseparated counts.",
@@ -580,10 +615,10 @@
     [
       "Window frequency with distinct count",
       "IMPORTANT",
-      "At most k distinct or count exactly-k-distinct ranges",
+      "Count ranges with at most/exactly k distinct values",
       "Increment entering; shrink invalid window; delete keys whose count reaches zero.",
       "O(n) expected",
-      "O(min(u,k+1)) live keys, k>=0",
+      "O(min(u,k+1)) live keys for at-most k",
       "904 Fruit Into Baskets; 992 Subarrays with K Different Integers",
       "Exactly-k counts use at_most(k)-at_most(k-1).",
       "Map contains positive counts exactly for the active window.",
@@ -747,6 +782,11 @@
       "Shortest substring covers target occurrences",
       "Demand-covering sliding window",
       "Why: missing equals target occurrences not supplied by active window. Boundary/exception: Shrink while covered; presence alone fails for repeated target symbols. Limit: Subsequence matching and arbitrary exact sums do not obey this coverage rule."
+    ],
+    [
+      "Find by key and evict least recently used",
+      "Map + doubly linked recency chain",
+      "Hash lookup alone cannot find/unlink the least-recent key; see Linked Lists LRU template."
     ]
   ],
   "contrasts": [
@@ -785,6 +825,14 @@
     [
       "At-most support vs demand coverage",
       "At-most windows shrink while invalid; minimum-cover windows shrink while valid. Both require monotone endpoint rules."
+    ],
+    [
+      "Insertion order vs access order",
+      "Reading an ordinary dict does not change its order. LRU explicitly moves accessed keys; a hash index plus doubly linked list or OrderedDict maintains recency."
+    ],
+    [
+      "set.pop vs dict.popitem",
+      "set.pop removes an arbitrary member, not a random sample; dict.popitem removes the most recently inserted remaining key/value pair. Neither sorts by value."
     ]
   ],
   "edges": [
@@ -862,6 +910,16 @@
       "Tie outputs",
       "Two keys with equal frequencies",
       "Algorithm-specific: Template keeps first-appearance order within frequency. Reveals unstated tie ordering."
+    ],
+    [
+      "Many empty strings",
+      "group_anagrams([\"\"] * n)",
+      "Time and grouped references are O(n), even when total character count L is zero."
+    ],
+    [
+      "Equal cross-type keys",
+      "{1, True, 1.0}",
+      "One set member under Python equality, not three."
     ]
   ],
   "mistakes": [
@@ -924,6 +982,10 @@
     [
       "Hash as signature",
       "Store full canonical keys; raw hash collisions are possible."
+    ],
+    [
+      "Ignoring zero-length keys",
+      "Include O(n) per-word work in anagram grouping; sum l log l alone misses n empty words."
     ]
   ],
   "impress": [
@@ -1060,7 +1122,7 @@
     ],
     [
       "Group anagrams by sorted signature",
-      "O(n + sum l log(l+1))",
+      "O(n + sum l log(max(2,l))) expected",
       "O(L+n) including keys/grouped references",
       [
         "def group_anagrams(words):",
@@ -1164,7 +1226,7 @@
     [
       "Exactly k distinct subarrays",
       "O(n) expected",
-      "O(min(u,k+1)) live keys; sequential scans",
+      "O(min(u,k+1)) live keys",
       [
         "def exactly_k_distinct(nums, k):",
         "    if k < 0:",
@@ -1429,7 +1491,7 @@
       "49 Group Anagrams",
       "Canonical grouping",
       "Medium",
-      "O(n + sum l log(l+1)) time; O(L+n) space",
+      "O(n + sum l log(max(2,l))) expected; O(L+n)",
       "Character-set signatures are wrong."
     ],
     [
@@ -1464,7 +1526,7 @@
       "974 Subarray Sums Divisible by K",
       "Remainder frequencies",
       "Medium",
-      "O(n) expected; O(min(n,k))",
+      "O(n) expected; O(min(n+1,k))",
       "Normalize negative remainders in languages that require it."
     ],
     [
@@ -1499,7 +1561,7 @@
       "992 Subarrays with K Different Integers",
       "At-most difference",
       "Hard",
-      "O(n) expected; O(u)",
+      "O(n) expected; O(min(u,k+1)) live keys",
       "Subtract at_most(k-1), not two independent exact windows."
     ],
     [
@@ -1841,7 +1903,7 @@
       "why": "Stable equivalence lets lookup find stored keys.",
       "use": "Coordinates/unordered signatures.",
       "result": "('pair', 'unordered pair')",
-      "edge": "Tuple containing [] raises TypeError.",
+      "edge": "A tuple containing a list is unhashable. A tuple of long strings is not a constant-time key merely because its outer length is small.",
       "takeaway": "Canonicalize meaning, not raw hash."
     },
     {
@@ -1913,6 +1975,20 @@
       "result": "3",
       "edge": "Seed empty prefix for ranges starting at zero.",
       "takeaway": "Count earlier states before publishing."
+    },
+    {
+      "why": "For [1,-1,0] with k=0: seed freq={0:1}; prefix 1 adds 0; prefix 0 adds 1; prefix 0 adds 2. Total 3 ranges: [1,-1], [0], [1,-1,0]. Querying after increment counts three nonexistent empty ranges.",
+      "use": "For [1,-1,0] with k=0: seed freq={0:1}; prefix 1 adds 0; prefix 0 adds 1; prefix 0 adds 2. Total 3 ranges: [1,-1], [0], [1,-1,0]. Querying after increment counts three nonexistent empty ranges.",
+      "result": "([0, 1, 2], 3)",
+      "edge": "A set adds only one at the final step, losing repeated left boundaries.",
+      "takeaway": "For [1,-1,0] with k=0: seed freq={0:1}; prefix 1 adds 0; prefix 0 adds 1; prefix 0 adds 2. Total 3 ranges: [1,-1], [0], [1,-1,0]. Querying after increment counts three nonexistent empty ranges."
+    },
+    {
+      "why": "Python bool is an int subtype; 1, True and 1.0 compare equal and share a hash. A map/set uses equality, not type identity. Tag types only when the problem requires these to be distinct.",
+      "use": "Python bool is an int subtype; 1, True and 1.0 compare equal and share a hash. A map/set uses equality, not type identity. Tag types only when the problem requires these to be distinct.",
+      "result": "(1, 3)",
+      "edge": "Type-tagging changes semantics; do not add it when numeric equality is intended.",
+      "takeaway": "Python bool is an int subtype; 1, True and 1.0 compare equal and share a hash. A map/set uses equality, not type identity. Tag types only when the problem requires these to be distinct."
     }
   ],
   "patternDetails": [
@@ -2152,7 +2228,7 @@
       "secondary": "Split allocation"
     },
     {
-      "insight": "Full sorted signatures retain multiplicity. Mastery: derive signature equivalence, implement grouping with stable output, justify O(n + sum l log(l+1)) including empty words and O(L+n) space, and exhibit why character sets fail on ab/aab.",
+      "insight": "Canonical grouping. Character-set signatures are wrong.",
       "secondary": "Alphabet-count tuple"
     },
     {
@@ -2172,7 +2248,7 @@
       "secondary": "Binary transform"
     },
     {
-      "insight": "Equal remainders define divisible differences. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(min(n,k)), and expose this trap: Normalize negative remainders in languages that require it.",
+      "insight": "Remainder frequencies. Normalize negative remainders in languages that require it.",
       "secondary": "Modulo sign"
     },
     {
@@ -2192,7 +2268,7 @@
       "secondary": "Meet-in-the-middle"
     },
     {
-      "insight": "Exactly k subtracts nested at-most families. Mastery: derive invariant unaided, implement the pattern, justify O(n) expected; O(u), and expose this trap: Subtract at_most(k-1), not two independent exact windows.",
+      "insight": "At-most difference. Subtract at_most(k-1), not two independent exact windows.",
       "secondary": "Two scans"
     },
     {

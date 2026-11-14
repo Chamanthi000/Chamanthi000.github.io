@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Fresh-namespace functional and adversarial tests for every hash-map template."""
 import ast
 import json
@@ -10,9 +11,8 @@ GUIDE = json.loads(Path(__file__).with_name('hash-maps-guide.json').read_text())
 COVERED = set()
 
 def template(index):
-    entry = GUIDE['templates'][index]
-    ns = {}
-    exec(compile(ast.parse(chr(10).join(entry[3])), entry[0], 'exec'), ns)
+    row = GUIDE['templates'][index]
+    ns = load_template(row)
     COVERED.add(index)
     return ns
 
@@ -193,4 +193,8 @@ class HashMapTests(unittest.TestCase):
             self.assertTrue(source['title']); self.assertTrue(source['note'])
             self.assertTrue(source['url'].startswith('https://'))
 
-if __name__=='__main__': unittest.main(verbosity=2)
+if __name__=='__main__':
+    result = unittest.main(verbosity=2, exit=False)
+    if not result.result.wasSuccessful():
+        raise SystemExit(1)
+    verify(GUIDE)

@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Run: python3 tries-template-tests.py (Python 3.10+, standard library)."""
 import ast
 import copy
@@ -11,10 +12,9 @@ from pathlib import Path
 DATA = json.loads(Path(__file__).with_name('tries-guide.json').read_text())
 
 def fresh(index):
-    namespace = {}
-    code = '\n'.join(DATA['templates'][index][3])
-    exec(compile(ast.parse(code), f'trie_template_{index}', 'exec'), namespace)
-    return namespace
+    row = DATA['templates'][index]
+    ns = load_template(row)
+    return ns
 
 def board_has(board, word):
     if not word:
@@ -361,4 +361,7 @@ class LongestPrefixTests(unittest.TestCase):
         self.assertEqual(f([text],text+'b'),text)
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    result = unittest.main(verbosity=2, exit=False)
+    if not result.result.wasSuccessful():
+        raise SystemExit(1)
+    verify(DATA)

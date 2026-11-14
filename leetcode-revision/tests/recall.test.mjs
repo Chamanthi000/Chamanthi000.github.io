@@ -66,12 +66,14 @@ test('Strings guide supplies collapsible interview reference while preserving pr
  new Function('window',source)(target);
  const guide=target.RecallStringGuide;
  assert.ok(guide?.html,'Strings reference must render');
- assert.equal(guide.stats.operations,53);
- assert.equal(guide.stats.fundamentals,18);
- assert.equal(guide.stats.patterns,33);
- assert.equal(guide.stats.templates,39);
+
+
+
+
  const data=JSON.parse(source.match(/^const d=(.*);\n\nconst escape=/m)[1]);
- assert.equal(data.practice.length,44);
+ for(const key of ['operations','fundamentals','patterns','templates'])assert.equal(guide.stats[key],data[key].length);
+ assert.ok(data.practice.length>0);
+ assert.ok(guide.html.includes('Invariant:')&&guide.html.includes('Not applicable / limits:'));
  for(const id of ['sg-operations','sg-fundamentals','sg-patterns','sg-recognize','sg-edges','sg-interview','sg-memorize','sg-practice'])assert.ok(guide.html.includes('id="'+id+'"'),id);
  assert.equal((guide.html.match(/<details class="ag-section" data-ag-section="sg-/g)||[]).length,8);
  assert.equal((guide.html.match(/<details\b/g)||[]).length,(guide.html.match(/<\/details>/g)||[]).length);

@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Run: python3 trees-template-tests.py. Deterministic, standard-library tests."""
 import ast
 import json
@@ -9,11 +10,8 @@ DATA = json.loads(Path(__file__).with_name('trees-guide.json').read_text())
 USED = set()
 
 def namespace(name):
-    row = next(t for t in DATA['templates'] if t[0] == name)
-    code = '\n'.join(row[3])
-    ast.parse(code)
-    ns = {}
-    exec(compile(code, name, 'exec'), ns)
+    row = next(row for row in DATA['templates'] if row[0] == name)
+    ns = load_template(row)
     USED.add(name)
     return ns
 
@@ -524,8 +522,33 @@ class TreeTemplates(unittest.TestCase):
         self.assertEqual(f(n, ((i-1,i) for i in range(1,n))),
                          [i*(i+1)//2+(n-1-i)*(n-i)//2 for i in range(n)])
 
+    def test_take_skip_tree_dp(self):
+        ns = namespace('Independent-set tree DP (take or skip)')
+        Node, f = ns['Node'], ns['rob_tree']
+        self.assertEqual(f(None), 0)
+        self.assertEqual(f(Node(4, Node(3), Node(3))), 6)
+        self.assertEqual(f(Node(-2, Node(-3), Node(-4))), 0)
+        self.assertEqual(f(Node(3, Node(2, None, Node(3)), Node(3, None, Node(1)))), 7)
+        rng = random.Random(43)
+        for _ in range(160):
+            root, nodes = random_tree(Node, rng, rng.randrange(12))
+            index = {node: i for i, node in enumerate(nodes)}
+            edges = [(i, index[child]) for i, node in enumerate(nodes)
+                     for child in (node.left, node.right) if child is not None]
+            expected = 0
+            for mask in range(1 << len(nodes)):
+                if all(not (mask >> a & 1 and mask >> b & 1) for a, b in edges):
+                    expected = max(expected, sum(node.val for i, node in enumerate(nodes) if mask >> i & 1))
+            before = signature(root)
+            self.assertEqual(f(root), expected)
+            self.assertEqual(signature(root), before)
+        self.assertEqual(f(chain(Node, 3000)), 1500)
+
     def test_zz_every_template_executed(self):
         self.assertEqual(USED, {t[0] for t in DATA['templates']})
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    result = unittest.main(verbosity=2, exit=False)
+    if not result.result.wasSuccessful():
+        raise SystemExit(1)
+    verify(DATA)

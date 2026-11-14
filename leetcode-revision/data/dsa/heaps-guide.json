@@ -56,9 +56,9 @@
       "Update",
       "heapq.heappop(h)",
       "Remove smallest",
-      "O(log(n+1)) amortized; O(n) resize worst case",
+      "O(log(n+1)) amortized",
       "O(1) auxiliary",
-      "IndexError when empty; remaining list is still a heap. Python list shrinking may resize; logarithmic comparison work does not imply an individual logarithmic allocation bound."
+      "IndexError when empty; heap order preserved. Sift comparisons are O(log n), but an individual underlying list shrink can copy O(n) references. Python list shrinking may resize; logarithmic comparison work does not imply an individual logarithmic allocation bound."
     ],
     [
       "Update",
@@ -190,7 +190,11 @@
         "h = [7, 2, 9, 1]",
         "heapq.heapify(h)",
         "assert h[0] == 1",
-        "assert all(h[(i-1)//2] <= h[i] for i in range(1, len(h)))"
+        "assert all(h[(i-1)//2] <= h[i] for i in range(1, len(h)))",
+        "# A valid heap where index 1 is not the second-smallest:",
+        "h = [1, 4, 2, 5, 6, 3]",
+        "assert all(h[(i-1)//2] <= h[i] for i in range(1, len(h)))",
+        "assert h[1] == 4 and sorted(h)[1] == 2"
       ],
       "O(n) build",
       "O(1) auxiliary after list allocation",
@@ -218,7 +222,7 @@
         "heapq.heapify(h)",
         "assert -heapq.heappop(h) == 8"
       ],
-      "O(n) build; O(log n) pop",
+      "O(n) build; O(log(n+1)) amortized pop",
       "O(n)",
       "Remember to un-negate every extracted score."
     ],
@@ -234,7 +238,7 @@
         "heapq.heappush(h, (4, next(serial), {'id': 'b'}))",
         "assert heapq.heappop(h)[2]['id'] == 'a'"
       ],
-      "O(log n) push/pop",
+      "O(log(n+1)) amortized push/pop",
       "O(n)",
       "(priority, payload) can raise TypeError when equal priorities reach dict payloads."
     ],
@@ -257,15 +261,14 @@
     ],
     [
       "Why heapify is linear",
-      "Most nodes are leaves or nearly leaves. Sum of sift distances over internal nodes is linear, unlike repeated insertion.",
+      "Sum sift distances by levels: at most floor(n/2^j) nodes have height at least j, so total height is less than n. Each sift costs O(1 + its node height). This aggregate proof is deterministic.",
       [
         "n = 16",
-        "# Complete-tree node heights sum to a linear quantity.",
-        "heights = [0] * n",
-        "for i in range(n - 1, -1, -1):",
-        "    children = [heights[j] for j in (2*i+1, 2*i+2) if j < n]",
-        "    heights[i] = 1 + max(children) if children else 0",
-        "assert sum(heights) == 15 < n"
+        "# Bound total height by counting nodes of height at least j.",
+        "height_sum_bound = sum(n // (2 ** j) for j in range(1, n.bit_length()))",
+        "assert height_sum_bound == 15 < n",
+        "# Repeated insertion lacks this bottom-up bound and can take O(n log n).",
+        "result = height_sum_bound"
       ],
       "O(n) heapify and O(n) illustration",
       "O(1) heapify auxiliary; O(n) illustration heights",
@@ -295,7 +298,7 @@
         "median = (-lower[0] + upper[0]) / 2",
         "assert median == 3.5"
       ],
-      "O(log n) per update",
+      "O(log(n+1)) amortized per update",
       "O(n)",
       "Both order and size invariants are necessary."
     ],
@@ -395,7 +398,7 @@
       "CORE",
       "Running middle value",
       "Max-heap lower half, min-heap upper half, rebalance",
-      "O(log n) amortized add; O(1) median under fixed-word arithmetic",
+      "O(log(n+1)) amortized add; O(1) query",
       "O(n)",
       "Find Median from Data Stream",
       "No arbitrary removal in the basic design.",
@@ -467,8 +470,8 @@
       "IMPORTANT",
       "k smallest sums from two sorted arrays",
       "Start one row frontier per relevant first-array item; advance its column",
-      "O(k log(min(k,n)+1))",
-      "O(min(k,n)) auxiliary + O(k) output",
+      "O(m+q log(m+1)), m=min(k,len(a)), q=min(k,len(a)*len(b))",
+      "O(m) auxiliary + O(q) output",
       "Find K Pairs with Smallest Sums",
       "Duplicates at different indices are distinct pair choices.",
       "Each row frontier is its smallest unseen pair; heap merges sorted rows.",
@@ -480,7 +483,7 @@
       "Cancel/update queued tasks",
       "Map each live key to current entry; invalidate old entries and compact",
       "O(log(a+2)) amortized; individual pop O((a+1) log(a+2))",
-      "O(a) after compaction",
+      "O(a+1) after compaction",
       "Design Task Manager",
       "Physical stale size differs from live size; one pop may drain many stale entries, and rebuild is O(a+1).",
       "Only the mapped entry version can execute for a task key. Threshold H>2a+16 rebuilds after enough invalidations; each stale entry is removed once and charged to its creating edit.",
@@ -561,7 +564,7 @@
     ],
     [
       "Shortest distance with 0/1 costs",
-      "0\u20131 BFS",
+      "0–1 BFS",
       "Heap is not required."
     ],
     [
@@ -636,8 +639,8 @@
       "FIFO respects arrival sequence; priority selection needs explicit fairness/tie order."
     ],
     [
-      "Dijkstra vs BFS vs Bellman\u2013Ford",
-      "BFS is for equal costs, Dijkstra for nonnegative costs, Bellman\u2013Ford supports negative edges and can detect reachable negative cycles."
+      "Dijkstra vs BFS vs Bellman–Ford",
+      "BFS is for equal costs, Dijkstra for nonnegative costs, Bellman–Ford supports negative edges and can detect reachable negative cycles."
     ],
     [
       "Logical deletion vs physical deletion",
@@ -748,6 +751,11 @@
       "Repeated priority replacement",
       "Same task updated thousands of times",
       "Only latest entry executes; compaction bounds stale memory. Incorrect implementation exposed: Executing stale versions or retaining O(updates) stale memory."
+    ],
+    [
+      "Updated equal-priority key",
+      "set(a,1), set(b,1), set(a,1)",
+      "Current b executes before updated a; stale original a must never execute. Generic queue ties use serial order, not taskId ordering."
     ]
   ],
   "mistakes": [
@@ -1137,7 +1145,7 @@
       [
         "import heapq",
         "from collections import Counter, deque",
-        "from itertools import count",
+        "from itertools import count, repeat",
         "def cooldown_schedule(tasks, cooldown):",
         "    if cooldown < 0:",
         "        raise ValueError('cooldown must be nonnegative')",
@@ -1155,7 +1163,7 @@
         "            heapq.heappush(available, (amount, next(serial), task))",
         "        if not available:",
         "            release = waiting[0][0]",
-        "            out.extend([None] * (release - time))",
+        "            out.extend(repeat(None, release - time))",
         "            time = release",
         "            continue",
         "        amount, _, task = heapq.heappop(available)",
@@ -1166,7 +1174,7 @@
         "        time += 1",
         "    return out"
       ],
-      "Hashable unit-duration tasks except None; nonnegative integer uniform cooldown. Returns a minimum-length schedule with None idle slots, each input task occurrence used once. Does not mutate input; may allocate a large output when cooldown is huge."
+      "Hashable unit-duration tasks except None; nonnegative integer uniform cooldown. Returns a minimum-length schedule with None idle slots, each input task occurrence used once. Does not mutate input; may allocate a large output when cooldown is huge. Idle gaps use repeat rather than allocating a second gap-sized temporary list, keeping auxiliary state O(u) apart from the returned schedule."
     ],
     [
       "Reorganize string without equal neighbors",
@@ -1281,7 +1289,7 @@
         "    def __len__(self):",
         "        return len(self.live)"
       ],
-      "Hashable stable keys; consistently comparable finite numeric priorities; arbitrary unorderable payloads. set inserts/replaces key, ties execute in most-recent set serial order; remove returns bool; pop returns (key,priority,payload), raises IndexError when no live items. New versions invalidate old entries by identity. With compaction H <= 2a+16 after edits, a single pop can drain O(a+1) stale entries at O(log(a+2)) each: O((a+1) log(a+2)) worst case. A threshold rebuild costs O(a+1), while set can cost O(a+1) on a rebuild and remove likewise. Amortized O(log(a+2)) bounds charge each stale extraction to the edit that created it and each rebuild to the many invalidations since the preceding rebuild; use the maximum live size across a sequence for a uniform sequence bound."
+      "Hashable stable keys; consistently comparable finite numeric priorities; arbitrary unorderable payloads. set inserts/replaces key, equal priorities execute oldest-current-set first (FIFO by latest set timestamp; replacing a key moves it behind already-live ties); remove returns bool; pop returns (key,priority,payload), raises IndexError when no live items. New versions invalidate old entries by identity. With compaction H <= 2a+16 after edits, a single pop can drain O(a+1) stale entries at O(log(a+2)) each: O((a+1) log(a+2)) worst case. A threshold rebuild costs O(a+1), while set can cost O(a+1) on a rebuild and remove likewise. Amortized O(log(a+2)) bounds charge each stale extraction to the edit that created it and each rebuild to the many invalidations since the preceding rebuild; use the maximum live size across a sequence for a uniform sequence bound."
     ],
     [
       "Optimal nonnegative merge cost",
@@ -1363,7 +1371,7 @@
       "703. Kth Largest Element in a Stream",
       "Bounded min-heap",
       "Easy",
-      "O(log(k+1)) add; O(k) space",
+      "O(log(k+1)) amortized add; O(k) space",
       "Duplicates count toward rank."
     ],
     [
@@ -1405,7 +1413,7 @@
       "295. Find Median from Data Stream",
       "Two heaps",
       "Hard",
-      "O(log n) add; O(1) median; O(n) space",
+      "O(log(n+1)) amortized add; O(1) median; O(n) space",
       "Partition and size invariants."
     ],
     [
@@ -1433,7 +1441,7 @@
       "373. Find K Pairs with Smallest Sums",
       "Sorted row merge",
       "Medium",
-      "O(k log(min(k,n)+1)); O(k) output",
+      "O(m+q log(m+1)), m=min(k,len(a)), q=min(k,len(a)*len(b)); O(m) auxiliary + O(q) output",
       "Repeated values represent distinct index pairs."
     ],
     [
@@ -1762,7 +1770,7 @@
     {
       "why": "Partial order is enough to expose the minimum without fully sorting.",
       "use": "Priority frontier.",
-      "result": "heapify [7,2,9,1] exposes1 and every parent<=children.",
+      "result": "Assertions in the example verify the stated invariant.",
       "edge": "Second array position is not necessarily second-smallest.",
       "takeaway": "Root best; rest only partially ordered."
     },
@@ -1797,7 +1805,7 @@
     {
       "why": "Most complete-tree nodes have very small sift distance.",
       "use": "Bulk construction proof.",
-      "result": "For n16 the exact sum of node heights is15 <16.",
+      "result": "15",
       "edge": "Repeated pushes are O(n log n) worst even though heapify is linear.",
       "takeaway": "Sum heights, not worst height times nodes."
     },
@@ -1909,7 +1917,7 @@
         "Dijkstra with tie-safe stale records"
       ],
       "related": "Compare Meeting-room reuse by what the heap root certifies and what makes entries eligible.",
-      "variations": "Unit weights use BFS, binary weights deque0\u20131 BFS; negative edges invalidate Dijkstra."
+      "variations": "Unit weights use BFS, binary weights deque0–1 BFS; negative edges invalidate Dijkstra."
     },
     {
       "steps": [
@@ -2021,11 +2029,11 @@
     }
   ],
   "decisionProcess": [
-    "0\u201330s: identify requested extremum/rank, static versus online, comparable key/tie policy, updates/deletions and whether full sorting is needed.",
-    "30\u201360s: retain largest k -> min-heap of winners; online median -> two heaps; merge sorted sources -> one head per source. Heap direction exposes worst winner or best available as required.",
-    "60\u201390s: nonnegative weighted shortest paths -> Dijkstra; unit weights -> BFS;0/1 -> deque. Validate weights and stale-state rule.",
-    "90\u2013120s: intervals/projects -> sort eligibility then heap the choice key; cooldown -> available heap plus release queue; optimal merge -> two smallest with exchange proof.",
-    "120\u2013180s: write invariant and prove greedy choice where applicable. Account for sorting copies, output length, stale H, compaction latency, key comparisons and Python list resizing. Test ties, empty, k bounds and stale root."
+    "0–30s: identify requested extremum/rank, static versus online, comparable key/tie policy, updates/deletions and whether full sorting is needed.",
+    "30–60s: retain largest k -> min-heap of winners; online median -> two heaps; merge sorted sources -> one head per source. Heap direction exposes worst winner or best available as required.",
+    "60–90s: nonnegative weighted shortest paths -> Dijkstra; unit weights -> BFS;0/1 -> deque. Validate weights and stale-state rule.",
+    "90–120s: intervals/projects -> sort eligibility then heap the choice key; cooldown -> available heap plus release queue; optimal merge -> two smallest with exchange proof.",
+    "120–180s: write invariant and prove greedy choice where applicable. Account for sorting copies, output length, stale H, compaction latency, key comparisons and Python list resizing. Test ties, empty, k bounds and stale root."
   ],
   "templateDetails": [
     {
@@ -2070,7 +2078,7 @@
     },
     {
       "pattern": "Cooldown scheduling",
-      "preconditions": "Hashable unit-duration tasks except None; nonnegative integer uniform cooldown. Returns a minimum-length schedule with None idle slots, each input task occurrence used once. Does not mutate input; may allocate a large output when cooldown is huge.",
+      "preconditions": "Hashable unit-duration tasks except None; nonnegative integer uniform cooldown. Returns a minimum-length schedule with None idle slots, each input task occurrence used once. Does not mutate input; may allocate a large output when cooldown is huge. Idle gaps use repeat rather than allocating a second gap-sized temporary list, keeping auxiliary state O(u) apart from the returned schedule.",
       "observation": "Uniform cooldown release times are FIFO."
     },
     {
@@ -2090,7 +2098,7 @@
     },
     {
       "pattern": "Lazy keyed priority updates",
-      "preconditions": "Hashable stable keys; consistently comparable finite numeric priorities; arbitrary unorderable payloads. set inserts/replaces key, ties execute in most-recent set serial order; remove returns bool; pop returns (key,priority,payload), raises IndexError when no live items. New versions invalidate old entries by identity. With compaction H <= 2a+16 after edits, a single pop can drain O(a+1) stale entries at O(log(a+2)) each: O((a+1) log(a+2)) worst case. A threshold rebuild costs O(a+1), while set can cost O(a+1) on a rebuild and remove likewise. Amortized O(log(a+2)) bounds charge each stale extraction to the edit that created it and each rebuild to the many invalidations since the preceding rebuild; use the maximum live size across a sequence for a uniform sequence bound.",
+      "preconditions": "Hashable stable keys; consistently comparable finite numeric priorities; arbitrary unorderable payloads. set inserts/replaces key, equal priorities execute oldest-current-set first (FIFO by latest set timestamp; replacing a key moves it behind already-live ties); remove returns bool; pop returns (key,priority,payload), raises IndexError when no live items. New versions invalidate old entries by identity. With compaction H <= 2a+16 after edits, a single pop can drain O(a+1) stale entries at O(log(a+2)) each: O((a+1) log(a+2)) worst case. A threshold rebuild costs O(a+1), while set can cost O(a+1) on a rebuild and remove likewise. Amortized O(log(a+2)) bounds charge each stale extraction to the edit that created it and each rebuild to the many invalidations since the preceding rebuild; use the maximum live size across a sequence for a uniform sequence bound.",
       "observation": "Current entry identity is authoritative; stale entries still use memory."
     },
     {
@@ -2115,7 +2123,7 @@
       "secondary": "Numeric max-priority"
     },
     {
-      "insight": "Retain k largest; root after k arrivals is kth.",
+      "insight": "Bounded min-heap. Duplicates count toward rank.",
       "secondary": "Streaming selection"
     },
     {
@@ -2139,7 +2147,7 @@
       "secondary": "Pointer rewiring"
     },
     {
-      "insight": "Partition ordering plus logical sizes defines median.",
+      "insight": "Two heaps. Partition and size invariants.",
       "secondary": "Exact arithmetic"
     },
     {
@@ -2155,7 +2163,7 @@
       "secondary": "Greedy feasibility"
     },
     {
-      "insight": "Each first-array index defines a sorted sum row.",
+      "insight": "Sorted row merge. Repeated values represent distinct index pairs.",
       "secondary": "K-way merge"
     },
     {

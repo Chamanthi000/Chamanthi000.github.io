@@ -2,7 +2,7 @@
   "id": "trees",
   "title": "Trees & BSTs",
   "subtitle": "A tree decomposes into child subproblems; a BST adds ancestor-wide ordering that lets a search discard whole subtrees.",
-  "variables": "n = nodes, h = height in nodes (empty 0, leaf 1), w = maximum level width, k = requested rank, B = serialized byte/character length, L = total materialized path output length. Trees are finite rooted binary trees with no cycles or shared children unless explicitly stated. Node identity, not equal val, identifies a vertex. Keys are mutually comparable, not NaN; numeric arithmetic/comparison costs use the fixed-word model, while Python large integers cost by bit length. Hash operations are expected O(1) on identity keys; long string key hashing/comparison costs must be added. Space includes recursion/explicit stacks and excludes output unless labeled. An unbalanced BST may have h=n; logarithmic operations require a balancing guarantee, not merely the BST property. All templates avoid depth-linear Python recursion; balanced construction recurses only O(log n). Paired traversal n counts compared positions and h their maximum active depth. The rerooting template uses an undirected unweighted tree with integer-labeled vertices, not binary Node links. BSTIterator O(1) amortized next is across a full traversal; init plus a prefix of m calls is O(h+m), and one call may cost O(h).",
+  "variables": "n = nodes, h = height in nodes (empty 0, leaf 1), w = maximum level width, k = requested rank, B = serialized byte/character length, L = total materialized path output length. Trees are finite rooted binary trees with no cycles or shared children unless explicitly stated. Node identity, not equal val, identifies a vertex. Keys are mutually comparable, not NaN; numeric arithmetic/comparison costs use the fixed-word model, while Python large integers cost by bit length. Hash operations are expected O(1) on identity keys; long string key hashing/comparison costs must be added. Space includes recursion/explicit stacks and excludes output unless labeled. An unbalanced BST may have h=n; logarithmic operations require a balancing guarantee, not merely the BST property. All templates avoid depth-linear Python recursion; balanced construction recurses only O(log n). Full traversals that materialize values need O(n) output; materialized root-to-leaf paths need O(L) time/storage even when auxiliary DFS state is O(h). Paired traversal n counts compared positions and h their maximum active depth. The rerooting template uses an undirected unweighted tree with integer-labeled vertices, not binary Node links. BSTIterator O(1) amortized next is across a full traversal; init plus a prefix of m calls is O(h+m), and one call may cost O(h).",
   "operations": [
     [
       "Nodes",
@@ -330,6 +330,36 @@
       "O(1) illustration",
       "O(1)",
       "Cycle input can make traversal nonterminating; templates assume valid trees."
+    ],
+    [
+      "Worked take/skip state trace",
+      "At root 4 with leaves 3 and 3, each leaf returns (take=3,skip=0); taking the root gets 4 but skipping it gets 6. A subtree must retain both alternatives.",
+      [
+        "left, right, value = (3, 0), (3, 0), 4",
+        "take = value + left[1] + right[1]",
+        "skip = max(left) + max(right)",
+        "assert (take, skip) == (4, 6)",
+        "assert max(take, skip) == 6",
+        "result = (take, skip)"
+      ],
+      "O(1) combine; O(n) full DP",
+      "O(h) with explicit frames",
+      "Greedy selection of the largest available node chooses 4 and misses 3+3. Negative weights are safe when skipping all nodes is permitted."
+    ],
+    [
+      "Output paths can dominate traversal",
+      "Copying the active path only at leaves avoids per-edge prefix copies. All materialized paths still cost their total length L, potentially quadratic.",
+      [
+        "# A comb has one side leaf at each depth and one continuing child.",
+        "depth = 6",
+        "path_lengths = list(range(2, depth + 1)) + [depth]",
+        "assert sum(path_lengths) == 26",
+        "# There are 2*depth-1 nodes, but total path lengths grow quadratically.",
+        "result = sum(path_lengths)"
+      ],
+      "O(n+L) with leaf-only copies",
+      "O(h) active path + O(L) output",
+      "In a depth-h comb, n=Theta(h) but L=Theta(h^2). An O(n) visit count does not justify O(n) time for materializing every root-to-leaf path. String formatting adds payload-length costs."
     ]
   ],
   "patterns": [
@@ -365,7 +395,7 @@
       "O(n)",
       "O(h)",
       "Balanced Binary Tree; Diameter of Binary Tree",
-      "Repeated subtree height calls can cost O(n\u00b2).",
+      "Repeated subtree height calls can cost O(n²).",
       "Completed child summaries are correct before combination.",
       "Not enough when parent choices alter child state."
     ],
@@ -524,6 +554,18 @@
       "Avoid rescanning neighbors for every child.",
       "Each directed edge summary represents the component on its far side.",
       "Requires an undirected tree model and problem-specific transitions, not just binary node traversal."
+    ],
+    [
+      "Decision-state tree DP",
+      "IMPORTANT",
+      "Choose nodes but forbid adjacent parent/child choices",
+      "Postorder returns (take,skip); selecting parent forces child skip, skipping parent permits either child state",
+      "O(n)",
+      "O(h)",
+      "House Robber III",
+      "Taking the largest local value greedily can block a better combination.",
+      "take=v+left.skip+right.skip; skip=max(left)+max(right). Child subtrees are independent once the parent choice is fixed.",
+      "Not valid for graphs with shared descendants/cycles; different distance constraints require additional states."
     ]
   ],
   "recognize": [
@@ -611,6 +653,11 @@
       "Answer for every possible root",
       "Rerooting / tree DP",
       "Subtree sizes let a root move reuse the previous sum in O(1); requires a connected acyclic undirected model."
+    ],
+    [
+      "Parent choice forbids adjacent choices",
+      "Take/skip tree DP",
+      "Child decisions depend on parent state; one scalar optimum loses needed information."
     ]
   ],
   "contrasts": [
@@ -653,6 +700,10 @@
     [
       "Single-query vs preprocessed rank/LCA",
       "Simple traversal often wins once; repeated queries can justify augmented sizes or ancestor tables."
+    ],
+    [
+      "Tree DP optimum vs one scalar",
+      "House Robber III needs both take and skip for each subtree: the globally better child state can be illegal when its parent is taken. Maximum path gain is a different state; do not reuse its recurrence."
     ]
   ],
   "edges": [
@@ -755,6 +806,11 @@
       "Input is a cycle/DAG",
       "child points to root or shared child",
       "Outside tree-template preconditions; validate topology first if untrusted. Incorrect implementation exposed: No-visited tree traversal used on graph input."
+    ],
+    [
+      "Negative independent-set weights",
+      "root=-2 with children -3,-4",
+      "Take/skip DP returns 0 because empty selection is allowed; max_path_sum instead must return -2."
     ]
   ],
   "mistakes": [
@@ -821,6 +877,10 @@
     [
       "Unstated duplicates",
       "Choose reject, count-per-key, or side policy and apply consistently."
+    ],
+    [
+      "One child optimum regardless of parent",
+      "Return conditional take/skip states; otherwise parent-child exclusions can be violated."
     ]
   ],
   "impress": [
@@ -867,6 +927,10 @@
     [
       "Practice mastery rubric",
       "Recognize from fresh clue, reconstruct unaided, state null base/frame invariant, prove combine/pruning, derive height/frontier/output costs, test skew/duplicates, and adapt changed endpoint/root/duplicate policy. Revisit failures after a delay."
+    ],
+    [
+      "Derive conditional states",
+      "Fix the parent choice first, show why children become independent, and only then maximize."
     ]
   ],
   "memory": [
@@ -934,6 +998,11 @@
       "Null-marked preorder",
       "n values + (n+1) null markers",
       "Exactly 2n+1 tokens for a binary tree."
+    ],
+    [
+      "Independent-set DP",
+      "take=v+L.skip+R.skip; skip=max(L.take,L.skip)+max(R.take,R.skip)",
+      "Empty subtree states (0,0); answer max(take,skip) permits empty selection."
     ]
   ],
   "templates": [
@@ -1496,7 +1565,7 @@
         "        self._push_left(node.right)",
         "        return node.val"
       ],
-      "Strict BST unchanged during iteration. Yields increasing values, empty exhausted immediately. No mutation/full output allocation; initializing plus m calls costs O(h+m)."
+      "Strict BST unchanged during iteration. Yields increasing values, empty exhausted immediately. No mutation/full output allocation; initializing plus m calls costs O(h+m). __next__ raises StopIteration at exhaustion; has_next is O(1). Across a full traversal next is O(1) amortized; a prefix of m calls plus initialization costs O(h+m)."
     ],
     [
       "BST floor ceiling and strict successor",
@@ -1574,6 +1643,40 @@
         "    return answer"
       ],
       "Undirected unweighted tree 0..n-1. Validates edge count/cycles/connectivity. Returns sum of edge distances from each vertex; n=0 -> []. No input mutation, consumes edge iterable. Moving root into child shortens size[child] distances and lengthens all others."
+    ],
+    [
+      "Independent-set tree DP (take or skip)",
+      "O(n)",
+      "O(h)",
+      [
+        "class Node:",
+        "    def __init__(self, val, left=None, right=None):",
+        "        self.val, self.left, self.right = val, left, right",
+        "",
+        "def rob_tree(root):",
+        "    empty = (0, 0)  # (take this root, skip this root)",
+        "    last = empty",
+        "    stack = [(root, 0, empty)] if root is not None else []",
+        "    while stack:",
+        "        node, phase, left = stack.pop()",
+        "        if phase == 0:",
+        "            stack.append((node, 1, empty))",
+        "            last = empty",
+        "            if node.left is not None:",
+        "                stack.append((node.left, 0, empty))",
+        "        elif phase == 1:",
+        "            stack.append((node, 2, last))",
+        "            last = empty",
+        "            if node.right is not None:",
+        "                stack.append((node.right, 0, empty))",
+        "        else:",
+        "            right = last",
+        "            take = node.val + left[1] + right[1]",
+        "            skip = max(left) + max(right)",
+        "            last = (take, skip)",
+        "    return max(last)"
+      ],
+      "Finite binary tree with integer weights. Returns maximum sum of selected nodes with no selected parent-child pair; empty selection allowed, so empty/all-negative trees return 0. No mutation. Each child returns take/skip states, not a greedy local choice; explicit frames avoid recursion depth limits. No cycles or shared children."
     ]
   ],
   "practice": [
@@ -1751,6 +1854,13 @@
       "Hard",
       "O(n) time; O(n) auxiliary/output",
       "Use n-2*subtree_size, not n-subtree_size."
+    ],
+    [
+      "337. House Robber III",
+      "Postorder take/skip decision DP",
+      "Medium",
+      "O(n); O(h) explicit-frame auxiliary",
+      "Root choice constrains immediate children, not grandchildren."
     ]
   ],
   "operationExamples": [
@@ -2403,6 +2513,20 @@
       "result": "left and right alias same child: identity sharing True.",
       "edge": "Cycles can loop forever; sharing can repeat counts/work.",
       "takeaway": "Tree assumptions are preconditions."
+    },
+    {
+      "why": "At root 4 with leaves 3 and 3, each leaf returns (take=3,skip=0); taking the root gets 4 but skipping it gets 6. A subtree must retain both alternatives.",
+      "use": "At root 4 with leaves 3 and 3, each leaf returns (take=3,skip=0); taking the root gets 4 but skipping it gets 6. A subtree must retain both alternatives.",
+      "result": "(4, 6)",
+      "edge": "Greedy selection of the largest available node chooses 4 and misses 3+3. Negative weights are safe when skipping all nodes is permitted.",
+      "takeaway": "At root 4 with leaves 3 and 3, each leaf returns (take=3,skip=0); taking the root gets 4 but skipping it gets 6. A subtree must retain both alternatives."
+    },
+    {
+      "why": "Copying the active path only at leaves avoids per-edge prefix copies. All materialized paths still cost their total length L, potentially quadratic.",
+      "use": "Copying the active path only at leaves avoids per-edge prefix copies. All materialized paths still cost their total length L, potentially quadratic.",
+      "result": "26",
+      "edge": "In a depth-h comb, n=Theta(h) but L=Theta(h^2). An O(n) visit count does not justify O(n) time for materializing every root-to-leaf path. String formatting adds payload-length costs.",
+      "takeaway": "Copying the active path only at leaves avoids per-edge prefix copies. All materialized paths still cost their total length L, potentially quadratic."
     }
   ],
   "patternDetails": [
@@ -2602,14 +2726,25 @@
       ],
       "related": "Compare Iterative depth-first traversal by output/dependency direction; check stated limits.",
       "variations": "Weighted reroot update is weight*(n-2*child_size); other states need their own exclusion merge."
+    },
+    {
+      "steps": [
+        "Postorder returns (take,skip); selecting parent forces child skip, skipping parent permits either child state",
+        "take=v+left.skip+right.skip; skip=max(left)+max(right). Child subtrees are independent once the parent choice is fixed."
+      ],
+      "templates": [
+        "Independent-set tree DP (take or skip)"
+      ],
+      "related": "House Robber III",
+      "variations": "Not valid for graphs with shared descendants/cycles; different distance constraints require additional states."
     }
   ],
   "decisionProcess": [
-    "0\u201330s: confirm true tree/no sharing/cycles, binary versus adjacency model, identity versus key, empty result and duplicate policy.",
-    "30\u201360s: ordered query -> BST pruning O(h); rank/iterator -> inorder; structural equality -> paired traversal. Balance is a separate guarantee.",
-    "60\u201390s: depth output/nearest leaf -> BFS; root path aggregate -> inherited DFS; subtree metric -> postorder summary.",
-    "90\u2013120s: downward target count -> prefix frequency plus exit undo; turning optimum -> one-arm return/two-arm answer; single LCA -> parent map or verified BST split.",
-    "120\u2013180s: reconstruct from constraints, serialize with nulls, reroot for every-root answers. State h/w/output costs; choose iterative for deep chains; dry-run empty/skew/duplicate/missing target."
+    "0–30s: confirm true tree/no sharing/cycles, binary versus adjacency model, identity versus key, empty result and duplicate policy.",
+    "30–60s: ordered query -> BST pruning O(h); rank/iterator -> inorder; structural equality -> paired traversal. Balance is a separate guarantee.",
+    "60–90s: depth output/nearest leaf -> BFS; root path aggregate -> inherited DFS; subtree metric -> postorder summary.",
+    "90–120s: downward target count -> prefix frequency plus exit undo; turning optimum -> one-arm return/two-arm answer; single LCA -> parent map or verified BST split.",
+    "120–180s: reconstruct from constraints, serialize with nulls, reroot for every-root answers. State h/w/output costs; choose iterative for deep chains; dry-run empty/skew/duplicate/missing target."
   ],
   "templateDetails": [
     {
@@ -2699,7 +2834,7 @@
     },
     {
       "pattern": "Inorder order statistic",
-      "preconditions": "Strict BST unchanged during iteration. Yields increasing values, empty exhausted immediately. No mutation/full output allocation; initializing plus m calls costs O(h+m).",
+      "preconditions": "Strict BST unchanged during iteration. Yields increasing values, empty exhausted immediately. No mutation/full output allocation; initializing plus m calls costs O(h+m). __next__ raises StopIteration at exhaustion; has_next is O(1). Across a full traversal next is O(1) amortized; a prefix of m calls plus initialization costs O(h+m).",
       "observation": "Each node pushed/popped once across iterator lifetime."
     },
     {
@@ -2711,6 +2846,11 @@
       "pattern": "Rerooting / tree DP",
       "preconditions": "Undirected unweighted tree 0..n-1. Validates edge count/cycles/connectivity. Returns sum of edge distances from each vertex; n=0 -> []. No input mutation, consumes edge iterable. Moving root into child shortens size[child] distances and lengthens all others.",
       "observation": "Root move makes child_size distances shorter and others longer."
+    },
+    {
+      "pattern": "Decision-state tree DP",
+      "preconditions": "Finite binary tree with integer weights. Returns maximum sum of selected nodes with no selected parent-child pair; empty selection allowed, so empty/all-negative trees return 0. No mutation. Each child returns take/skip states, not a greedy local choice; explicit frames avoid recursion depth limits. No cycles or shared children.",
+      "observation": "Time: O(n). Space / allocation: O(h)."
     }
   ],
   "practiceDetails": [
@@ -2813,6 +2953,10 @@
     {
       "insight": "Root move changes sum by n-2*child_size.",
       "secondary": "Subtree-size DP"
+    },
+    {
+      "insight": "Postorder take/skip decision DP. Root choice constrains immediate children, not grandchildren.",
+      "secondary": "State the preconditions and compare alternative approaches."
     }
   ],
   "sources": [

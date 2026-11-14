@@ -350,6 +350,39 @@
       "O(1) splice",
       "O(1) auxiliary",
       "Maintain both directions; singly linked algorithms cannot assume prev."
+    ],
+    [
+      "Worked identity trace: reverse and restore",
+      "For a(1)->b(2)->c(3)->d(1), slow stops at b. Reverse c->d to d->c and attach b.next=d. Compare a/d: match; b/c: mismatch. finally reverses d->c back to c->d and restores b.next=c. Aliases see the exact original topology after return, but not during the call.",
+      [
+        "class Node:",
+        "    def __init__(self, val, next=None): self.val, self.next = val, next",
+        "d = Node(1)",
+        "c = Node(3, d)",
+        "b = Node(2, c)",
+        "a = Node(1, b)",
+        "original_links = [a.next, b.next, c.next, d.next]",
+        "assert original_links == [b, c, d, None]",
+        "result = [node.val if node is not None else None for node in original_links]"
+      ],
+      "O(n) full check including restoration",
+      "O(1) algorithm auxiliary; example records O(n) links",
+      "A saved head reference alone cannot restore overwritten links."
+    ],
+    [
+      "LRU is an index plus an ordering structure",
+      "Map key -> node gives expected O(1) lookup; doubly linked sentinels give O(1) unlink/splice of that node. Leftmost real node is LRU, rightmost is MRU. A get hit and every put refresh recency; a miss does not.",
+      [
+        "order = ['A', 'B']  # illustration, not the O(1) implementation",
+        "order.remove('A'); order.append('A')",
+        "assert order == ['B', 'A']",
+        "order.pop(0); order.append('C')",
+        "assert order == ['A', 'C']",
+        "result = order"
+      ],
+      "List illustration O(capacity); map + doubly linked implementation expected O(1) amortized per operation",
+      "O(capacity)",
+      "A Python list or singly linked node without predecessor search cannot remove an arbitrary known node in O(1)."
     ]
   ],
   "patterns": [
@@ -477,11 +510,11 @@
       "Reverse second half and restore",
       "IMPORTANT",
       "Palindrome with O(1) auxiliary space",
-      "Split at first-half tail, reverse second, compare, reverse back even on mismatch.",
+      "Locate first-half tail, reverse second, compare in try, reverse back in finally even on mismatch or comparison exception.",
       "O(n)",
       "O(1)",
       "234 Palindrome Linked List",
-      "Do not early-return before restoration.",
+      "Do not return or propagate comparison failure without restoration.",
       "Paired traversals compare mirrored positions; stored split reconnects original chain.",
       "Read-only or concurrently observed list cannot tolerate temporary rewiring."
     ],
@@ -580,6 +613,30 @@
       "Repair both neighbor directions; zero capacity must evict immediately.",
       "Map and list contain the same real nodes exactly once, ordered least-to-most recent.",
       "LFU or TTL eviction needs additional frequency/time indexes."
+    ],
+    [
+      "Hash-indexed LRU cache",
+      "IMPORTANT",
+      "Look up by key and evict least recently used",
+      "Map keys to doubly linked nodes; detach/splice on hits and updates; evict leftmost real node on overflow.",
+      "Expected O(1) amortized get/put",
+      "O(capacity)",
+      "146 LRU Cache",
+      "A dict read does not refresh order; updates must not create duplicate nodes.",
+      "Map and real chain nodes are a bijection; chain runs LRU to MRU and size is bounded after each operation.",
+      "When eviction is LFU, TTL or weighted capacity rather than count-based recency."
+    ],
+    [
+      "Read-only random-pointer clone",
+      "IMPORTANT",
+      "Clone structure but cannot temporarily alter input",
+      "Allocate an identity-map clone per next-chain node, then wire clone.next/random through the map.",
+      "O(n) expected",
+      "O(n) identity map plus O(n) output",
+      "138 Copy List with Random Pointer",
+      "Payloads are reused by reference; deep topology copy is not arbitrary deepcopy.",
+      "Every original identity maps to exactly one fresh clone identity.",
+      "For external random targets or cyclic next chains without adapting traversal to the full graph."
     ]
   ],
   "recognize": [
@@ -641,7 +698,7 @@
     [
       "Mirrored values with O(1) memory",
       "Reverse second half and restore",
-      "Why: Paired traversals compare mirrored positions; stored split reconnects original chain. Boundary/exception: Restore even if mismatch occurs. Limit: Read-only or concurrently observed list cannot tolerate temporary rewiring."
+      "Restore in finally even if overloaded comparison raises."
     ],
     [
       "Alternating outside-in order",
@@ -682,6 +739,16 @@
       "Lookup plus recency eviction",
       "Hash-indexed doubly linked recency",
       "Why: Map and list contain the same real nodes exactly once, ordered least-to-most recent. Boundary/exception: LFU/TTL require different indexes. Limit: LFU or TTL eviction needs additional frequency/time indexes."
+    ],
+    [
+      "Capacity-bounded recency eviction",
+      "Map + doubly linked list",
+      "get hit and put refresh MRU; miss does not; capacity zero stores nothing."
+    ],
+    [
+      "Clone without changing source links",
+      "Two-pass identity map",
+      "Spend O(n) map memory instead of interleaving; same explicit next-chain/random contract."
     ]
   ],
   "contrasts": [
@@ -716,6 +783,10 @@
     [
       "Reversing links vs swapping values",
       "Link reversal changes topology while preserving node payloads; value swaps may violate identity-sensitive contracts."
+    ],
+    [
+      "Interleaved vs map clone",
+      "Interleaving uses O(1) auxiliary but temporarily mutates source and assumes successful allocation; a two-pass map uses O(n) auxiliary without source writes. Both allocate O(n) fresh nodes and reuse payload objects by reference."
     ]
   ],
   "edges": [
@@ -798,6 +869,21 @@
       "Final carry",
       "[9,9] + [1]",
       "Algorithm-specific: [0,0,1] newly allocated. Reveals missing carry."
+    ],
+    [
+      "Comparison exception",
+      "Palindrome payload __ne__ raises",
+      "finally restores original next links before propagating the exception."
+    ],
+    [
+      "LRU endpoints",
+      "capacity 0 or 1; overwrite current key",
+      "Zero retains nothing; overwrite updates value and recency without duplicate entries."
+    ],
+    [
+      "Mutable clone payload",
+      "original.val is a list",
+      "Clone node is fresh but clone.val is original.val; use an explicit payload-copy policy if needed."
     ]
   ],
   "mistakes": [
@@ -843,7 +929,7 @@
     ],
     [
       "Early palindrome return",
-      "Restore second-half links before returning mismatch."
+      "Use finally to restore second-half links before returning mismatch or propagating a comparison exception."
     ],
     [
       "Short k-block reversal",
@@ -988,6 +1074,16 @@
       "LRU consistency",
       "map nodes == real DLL nodes",
       "Order least-to-most recent; update both neighbor directions."
+    ],
+    [
+      "LRU recency",
+      "hit/update: detach then append MRU; overflow: evict LRU",
+      "Keep map and links in agreement."
+    ],
+    [
+      "Restoration",
+      "try: compare; finally: undo rewiring",
+      "False and comparison errors must not strand a reversed suffix."
     ]
   ],
   "templates": [
@@ -1213,15 +1309,17 @@
         "        slow, fast = slow.next, fast.next.next",
         "    second = reverse(slow.next)",
         "    slow.next = second",
-        "    a, b, same = head, second, True",
-        "    while b is not None:",
-        "        if a.val != b.val:",
-        "            same = False",
-        "        a, b = a.next, b.next",
-        "    slow.next = reverse(second)",
-        "    return same"
+        "    try:",
+        "        a, b = head, second",
+        "        while b is not None:",
+        "            if a.val != b.val:",
+        "                return False",
+        "            a, b = a.next, b.next",
+        "        return True",
+        "    finally:",
+        "        slow.next = reverse(second)"
       ],
-      "Acyclic chain with non-throwing value equality; temporarily rewires second half but restores exact original links on normal return, even mismatch. Empty True. Not concurrently observable/read-only safe."
+      "Acyclic chain; temporarily rewires second half but restores exact original links in finally on True, False or a value-comparison exception. Comparisons must not mutate topology. Empty True. Not concurrently observable/read-only safe; restoration cannot recover arbitrary concurrent mutation."
     ],
     [
       "Reorder outside-in by weaving",
@@ -1260,10 +1358,6 @@
       "O(n)",
       "O(1) auxiliary plus O(n) cloned output",
       [
-        "class Node:",
-        "    def __init__(self, val=0, next=None):",
-        "        self.val = val",
-        "        self.next = next",
         "class RandomNode:",
         "    def __init__(self, val=0, next=None, random=None):",
         "        self.val, self.next, self.random = val, next, random",
@@ -1701,10 +1795,10 @@
     ],
     [
       "146 LRU Cache",
-      "Hash-indexed doubly linked recency",
+      "Hash index + doubly linked recency",
       "Medium",
-      "O(1) expected amortized get/put; O(capacity)",
-      "Zero capacity, updates, and accesses change recency."
+      "Expected O(1) amortized get/put; O(capacity)",
+      "Capacity 2: put A, put B, get A, put C evicts B; updating A must not duplicate its node."
     ]
   ],
   "operationExamples": [
@@ -2210,6 +2304,20 @@
       "result": "(True, True, True, True)",
       "edge": "Update both forward and backward links.",
       "takeaway": "A map finds the node; DLL gives its predecessor."
+    },
+    {
+      "why": "For a(1)->b(2)->c(3)->d(1), slow stops at b. Reverse c->d to d->c and attach b.next=d. Compare a/d: match; b/c: mismatch. finally reverses d->c back to c->d and restores b.next=c. Aliases see the exact original topology after return, but not during the call.",
+      "use": "For a(1)->b(2)->c(3)->d(1), slow stops at b. Reverse c->d to d->c and attach b.next=d. Compare a/d: match; b/c: mismatch. finally reverses d->c back to c->d and restores b.next=c. Aliases see the exact original topology after return, but not during the call.",
+      "result": "[2, 3, 1, None]",
+      "edge": "A saved head reference alone cannot restore overwritten links.",
+      "takeaway": "For a(1)->b(2)->c(3)->d(1), slow stops at b. Reverse c->d to d->c and attach b.next=d. Compare a/d: match; b/c: mismatch. finally reverses d->c back to c->d and restores b.next=c. Aliases see the exact original topology after return, but not during the call."
+    },
+    {
+      "why": "Map key -> node gives expected O(1) lookup; doubly linked sentinels give O(1) unlink/splice of that node. Leftmost real node is LRU, rightmost is MRU. A get hit and every put refresh recency; a miss does not.",
+      "use": "Map key -> node gives expected O(1) lookup; doubly linked sentinels give O(1) unlink/splice of that node. Leftmost real node is LRU, rightmost is MRU. A get hit and every put refresh recency; a miss does not.",
+      "result": "['A', 'C']",
+      "edge": "A Python list or singly linked node without predecessor search cannot remove an arbitrary known node in O(1).",
+      "takeaway": "Map key -> node gives expected O(1) lookup; doubly linked sentinels give O(1) unlink/splice of that node. Leftmost real node is LRU, rightmost is MRU. A get hit and every put refresh recency; a miss does not."
     }
   ],
   "patternDetails": [
@@ -2444,6 +2552,28 @@
       ],
       "related": "RandomizedSet uses dense positions, not recency.",
       "variations": "LFU/TTL are different eviction contracts; zero capacity is valid."
+    },
+    {
+      "steps": [
+        "Map keys to doubly linked nodes; detach/splice on hits and updates; evict leftmost real node on overflow.",
+        "Map and real chain nodes are a bijection; chain runs LRU to MRU and size is bounded after each operation."
+      ],
+      "templates": [
+        "LRU cache with sentinel doubly linked order"
+      ],
+      "related": "146 LRU Cache",
+      "variations": "When eviction is LFU, TTL or weighted capacity rather than count-based recency."
+    },
+    {
+      "steps": [
+        "Allocate an identity-map clone per next-chain node, then wire clone.next/random through the map.",
+        "Every original identity maps to exactly one fresh clone identity."
+      ],
+      "templates": [
+        "Read-only random-pointer clone with identity map"
+      ],
+      "related": "138 Copy List with Random Pointer",
+      "variations": "For external random targets or cyclic next chains without adapting traversal to the full graph."
     }
   ],
   "templateDetails": [
@@ -2489,7 +2619,7 @@
     },
     {
       "pattern": "Fast/slow midpoint split",
-      "preconditions": "Acyclic chain with non-throwing value equality; temporarily rewires second half but restores exact original links on normal return, even mismatch. Empty True. Not concurrently observable/read-only safe.",
+      "preconditions": "Acyclic chain; temporarily rewires second half but restores exact original links in finally on True, False or a value-comparison exception. Comparisons must not mutate topology. Empty True. Not concurrently observable/read-only safe; restoration cannot recover arbitrary concurrent mutation.",
       "observation": "Reconstruct invariant: Fast advances twice as far; chosen stop leaves balanced disjoint halves. Adaptation: Second middle for LC876; first-half tail for palindrome/weave."
     },
     {
@@ -2636,7 +2766,7 @@
       "secondary": "Bounded reversal"
     },
     {
-      "insight": "Map and DLL must contain exactly the same nodes. Mastery: reconstruct unaided, demonstrate node/link invariant on paper, justify O(1) expected amortized get/put; O(capacity), and expose: Zero capacity, updates, and accesses change recency.",
+      "insight": "Hash index + doubly linked recency. Capacity 2: put A, put B, get A, put C evicts B; updating A must not duplicate its node.",
       "secondary": "Sentinels; hash lookup"
     }
   ],

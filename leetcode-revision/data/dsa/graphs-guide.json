@@ -2,7 +2,7 @@
   "id": "graphs",
   "title": "Graphs",
   "subtitle": "Model relationships as vertices and edges, then choose a frontier or ordering whose invariant matches the question.",
-  "variables": "V = number of vertices, E = number of input edges (undirected adjacency stores 2E entries), R*C = grid cells, K = number of states per vertex, W = maximum edge weight, Q = queries; S = number of supplied BFS sources. Unless specified, vertices are integer IDs 0..V-1 and adjacency endpoints are valid; inputs are not mutated. Adjacency-list traversal is O(V+E), matrix traversal O(V²). Hash-table costs are expected; long string labels cost O(label length) to hash initially and compare in the worst case, so map to integer IDs for repeated work. Python integers are arbitrary precision: stated arithmetic bounds use a unit-cost bounded-word model. Auxiliary space includes stacks/queues and algorithm state, excludes input and separately identified output. Heap bounds refer to lazy heapq implementations and count duplicate entries. H = heap size; B = allowed edge budget for bounded relaxation. heapq sift work is logarithmic, but CPython list resize can make a single heap operation linear; sequence bounds use amortization. Exact path-count DP may hold exponentially large integers; modulus bounds bit costs. Hash expectations are not adversarial guarantees: many colliding keys can make a lookup linear in table size. For empty strings an O(L) walk means O(1+L) including fixed call/root work. Python list append/pop may resize linearly on a single call; amortized bounds apply over sequences.",
+  "variables": "V = number of vertices, E = number of input edges (undirected adjacency stores 2E entries), R*C = grid cells, K = number of states per vertex, W = maximum edge weight, Q = queries; S = number of supplied BFS sources. Unless specified, vertices are integer IDs 0..V-1 and adjacency endpoints are valid; inputs are not mutated. Adjacency-list traversal is O(V+E), matrix traversal O(V²). Hash-table costs are expected; long string labels cost O(label length) to hash initially and compare in the worst case, so map to integer IDs for repeated work. Python integers are arbitrary precision: stated arithmetic bounds use a unit-cost bounded-word model. Auxiliary space includes stacks/queues and algorithm state, excludes input and separately identified output. Heap bounds refer to lazy heapq implementations and count duplicate entries. H = heap size; B = allowed edge budget for bounded relaxation. heapq sift work is logarithmic, but CPython list resize can make a single heap operation linear; sequence bounds use amortization. Exact path-count DP may hold exponentially large integers; modulus bounds bit costs. Parallel edges and self-loops are allowed unless a contract narrows them; E counts multiplicity, so E need not be O(V²). A simple graph has no parallel edges/self-loops and permits log(E+2)=O(log(V+2)). Finite real weights/heights are preconditions, not comprehensive type/NaN validation; exact integer arithmetic is recommended. With floats, assume no overflow and allow rounding error; exact negative-cycle and equality arguments need exact arithmetic. For zero-column grids, row validation/output headers still cost O(R), not O(RC). Any adjacency scanned more than once must have reusable rows (lists/tuples), not one-shot iterators. α = inverse Ackermann function in Kruskal’s balanced, path-compressed DSU operations. Hash expectations are not adversarial guarantees: many colliding keys can make a lookup linear in table size. For empty strings an O(L) walk means O(1+L) including fixed call/root work. Python list append/pop may resize linearly on a single call; amortized bounds apply over sequences.",
   "operations": [
     [
       "Representation",
@@ -42,7 +42,7 @@
       "Allocate adjacency matrix",
       "O(V²)",
       "O(V²)",
-      "Good for dense graphs or many membership queries, expensive for sparse graphs."
+      "Good for dense graphs or many membership queries; Boolean cells lose parallel-edge multiplicity. A shortest-path weight matrix usually keeps the minimum edge per ordered pair."
     ],
     [
       "Neighbors",
@@ -335,7 +335,7 @@
         "assert can_use_dijkstra and min(negative_possible) < 0"
       ],
       "O(E) to inspect weights",
-      "O(1) auxiliary",
+      "O(E) for the illustrative weight lists; O(1) extra for all()",
       "A reachable negative cycle destroys finite shortest distances downstream."
     ],
     [
@@ -394,6 +394,20 @@
       "O(V+E) expected for reached subgraph",
       "O(V)",
       "Marking all siblings on push and reversing their exit order is not a safe substitute for actual DFS finishing order in SCC algorithms."
+    ],
+    [
+      "A weighted counterexample, step by step",
+      "In 0→1 (2), 0→2 (5), 2→1 (-4), settling vertex 1 at 2 is premature: the later route through 2 costs 1. Bellman–Ford accepts this acyclic negative-edge graph.",
+      [
+        "edges = [(0, 1, 2), (0, 2, 5), (2, 1, -4)]",
+        "dist = [0, 2, 5]",
+        "dist[1] = min(dist[1], dist[2] - 4)",
+        "assert dist == [0, 1, 5]",
+        "result = dist"
+      ],
+      "O(1) for this fixed trace",
+      "O(1) for this fixed trace",
+      "Reachable negative cycles are different: no finite shortest walk exists for their downstream vertices; this template rejects the whole result."
     ]
   ],
   "patterns": [
@@ -426,7 +440,7 @@
       "CORE",
       "Nearest zero, simultaneous spread, distance to any source",
       "Initialize all sources at zero before any expansion.",
-      "O(V+E)",
+      "O(V+E+S), including supplied source enumeration",
       "O(V)",
       "994 Rotting Oranges; 542 01 Matrix",
       "Adding sources one after another with separate BFS repeats work.",
@@ -508,14 +522,14 @@
     [
       "Bellman–Ford",
       "IMPORTANT",
-      "Negative edges, or bounded-edge cheapest path",
+      "Negative edges in unrestricted single-source paths",
       "Relax all edges up to V-1 passes; detect further reachable improvement.",
-      "O(VE)",
+      "O(VE+V)",
       "O(V)",
-      "787 Cheapest Flights Within K Stops",
+      "Bellman–Ford with negative edges; 787 Cheapest Flights Within K Stops uses the separate bounded-round variant",
       "A K-stop budget needs snapshot distances for each edge-count round.",
       "After k full passes distances are no worse than any source path using at most k edges.",
-      "Huge nonnegative sparse graphs where Dijkstra is faster."
+      "Unrestricted reachable negative cycles (no finite optimum); use the edge-budget variant for bounded walks."
     ],
     [
       "Floyd–Warshall",
@@ -526,7 +540,7 @@
       "O(V²) distance output",
       "1334 Find the City With the Smallest Number of Neighbors at a Threshold Distance",
       "Negative diagonal flags a negative cycle; not all pair answers remain meaningful.",
-      "After k, dist[i][j] is optimal among paths with processed intermediate vertices.",
+      "Without negative cycles, after k, dist[i][j] is optimal among walks with processed intermediate vertices; a negative diagonal instead triggers rejection.",
       "Large sparse single-source queries."
     ],
     [
@@ -534,7 +548,7 @@
       "IMPORTANT",
       "Connect all vertices with minimum total undirected edge cost",
       "Prim grows a cut-safe tree; Kruskal sorts edges and unions components.",
-      "Prim: O(V+E log(E+2)); Kruskal: O(E log E + V)",
+      "Prim: O(V+E log(E+2)); Kruskal: O(V+E log(E+2)+E α(V)); dense implicit Prim: O(V²)",
       "O(V+E) Prim heap worst",
       "1584 Min Cost to Connect All Points; 1135 Connecting Cities With Minimum Cost",
       "Disconnected input produces a forest, not a spanning tree.",
@@ -550,7 +564,7 @@
       "O(V+E)",
       "2360 Longest Cycle in a Graph; SCC condensation (general directed-graph extension)",
       "Undirected components and DFS trees are not SCCs.",
-      "The next transpose traversal extracts one whole remaining source SCC in the original condensation ordering.",
+      "Decreasing original DFS finish times chooses a source SCC of the remaining original condensation; transpose traversal cannot leave it for another remaining SCC.",
       "Only undirected grouping, where simpler DFS/DSU suffices."
     ],
     [
@@ -580,7 +594,7 @@
     [
       "Reverse graph elimination",
       "IMPORTANT",
-      "Nodes that eventually cannot enter a cycle",
+      "Vertices from which every possible walk eventually terminates",
       "Reverse outgoing edges, queue terminals, decrement remaining outgoing degree.",
       "O(V+E)",
       "O(V+E)",
@@ -730,6 +744,10 @@
     [
       "Path count vs path enumeration",
       "A DAG DP may count exponentially many paths in polynomial arithmetic operations; materializing them still costs total output length."
+    ],
+    [
+      "Simple graph vs multigraph heap bounds",
+      "A lazy heap has O(E) entries and log(E+2) operations. Only for simple graphs can E=O(V²) justify simplifying the logarithm to log(V+2); parallel edges can make E much larger."
     ]
   ],
   "edges": [
@@ -817,6 +835,11 @@
       "Algorithm-specific: clone identity",
       "a and b are distinct nodes both value=7; a.neighbors=[a,b,b]",
       "Clone has a self-loop and two references to the same separate cloned b; exposes value-keyed maps and copying a node more than once."
+    ],
+    [
+      "Grid shape",
+      "[],[[]],[[0,0,0]],ragged rows",
+      "Empty shapes have no traversable cells: nearest_sources returns a same-shape empty distance result; obstacle BFS returns -1; minimax effort returns None. Ragged rows raise ValueError."
     ]
   ],
   "mistakes": [
@@ -1015,13 +1038,18 @@
       "Minimax extension",
       "candidate = max(best[u], edge_cost)",
       "This differs from sum-based shortest paths and from total-weight MST."
+    ],
+    [
+      "Bounded walks",
+      "B rounds read previous distances only",
+      "At most B edges permits a finite answer even with a negative cycle; it is not unrestricted shortest paths."
     ]
   ],
   "templates": [
     [
       "BFS distances and one shortest path",
       "O(V+E)",
-      "O(V) auxiliary plus O(path length) returned path",
+      "O(V) total state (including returned distances) plus O(path length) returned path",
       [
         "from collections import deque",
         "def bfs_path(adj, source, target):",
@@ -1051,7 +1079,7 @@
     [
       "Undirected connected-component labels",
       "O(V+E)",
-      "O(V) auxiliary and O(V) returned labels",
+      "O(V) returned labels plus O(V) stack worst",
       [
         "def component_labels(adj):",
         "    labels = [-1]*len(adj)",
@@ -1074,8 +1102,8 @@
     ],
     [
       "Multi-source grid BFS with walls",
-      "O(RC + S)",
-      "O(RC) distance output and O(RC) queue worst",
+      "O(R+RC+S)",
+      "O(R+RC) distance output and O(RC) queue worst",
       [
         "from collections import deque",
         "def nearest_sources(grid, sources):",
@@ -1156,7 +1184,7 @@
     [
       "Bipartite coloring over all components",
       "O(V+E)",
-      "O(V)",
+      "O(V) returned colors plus O(V) queue worst",
       [
         "from collections import deque",
         "def bipartite_colors(adj):",
@@ -1206,7 +1234,7 @@
         "                heappush(heap, (candidate, v))",
         "    return dist"
       ],
-      "Weighted directed or symmetric undirected adjacency as (neighbor, nonnegative finite numeric weight). Integer IDs make heap ties orderable. Returns distances, infinity for unreachable. No mutation; invalid source, endpoint or negative weight raises ValueError. For arbitrary node objects add an itertools.count tie-breaker."
+      "Weighted directed or symmetric undirected adjacency as (neighbor, nonnegative finite real weight). Integer IDs make heap ties orderable. Returns distances, infinity for unreachable. No mutation; invalid source, endpoint or negative weight raises ValueError. For arbitrary node objects add an itertools.count tie-breaker."
     ],
     [
       "0–1 BFS with stale-entry protection",
@@ -1267,7 +1295,7 @@
         "            raise ValueError('source-reachable negative cycle')",
         "    return dist"
       ],
-      "n vertices; reusable sequence edges of directed (u,v,finite numeric weight); negative edges allowed. Returns finite shortest distances or infinity unreachable, but rejects any source-reachable negative cycle instead of returning partially invalid answers. Unreachable negative cycles ignored. No mutation. For a stop budget use a copied next-round array, not this in-place unbounded-path variant."
+      "n vertices; reusable sequence edges of directed (u,v,finite real weight); negative edges allowed. Returns finite shortest distances or infinity unreachable, but rejects any source-reachable negative cycle instead of returning partially invalid answers. Unreachable negative cycles ignored. No mutation. For a stop budget use a copied next-round array, not this in-place unbounded-path variant."
     ],
     [
       "DAG shortest paths with negative edges",
@@ -1302,12 +1330,12 @@
         "                dist[v] = min(dist[v], dist[u]+w)",
         "    return dist"
       ],
-      "Weighted directed DAG with valid integer endpoints and finite numeric weights, including negative ones. Rejects cycles anywhere, even unreachable components. Returns distance array; infinity for unreachable. No mutation; O(V+E) without a heap."
+      "Weighted directed DAG with valid integer endpoints and finite real weights, including negative ones. Rejects cycles anywhere, even unreachable components. Returns distance array; infinity for unreachable. No mutation; O(V+E) without a heap."
     ],
     [
       "Floyd–Warshall all pairs",
       "O(V³ + E)",
-      "O(V²) returned matrix",
+      "O(V²) returned matrix; O(1) extra beyond output",
       [
         "def floyd_warshall(n, edges):",
         "    if n < 0:",
@@ -1331,7 +1359,7 @@
         "        raise ValueError('negative cycle')",
         "    return dist"
       ],
-      "Directed edge iterable, finite numeric weights; add both directions for undirected input. Parallel edges use minimum weight; empty n=0 returns []. Any negative cycle anywhere raises ValueError rather than exposing invalid pair distances. No input mutation; negative undirected edges necessarily produce a negative closed walk."
+      "Directed edge iterable, finite real weights; add both directions for undirected input. Parallel edges use minimum weight; empty n=0 returns []. Any negative cycle anywhere raises ValueError rather than exposing invalid pair distances. No input mutation; negative undirected edges necessarily produce a negative closed walk."
     ],
     [
       "Prim minimum spanning tree weight",
@@ -1358,7 +1386,7 @@
         "                heappush(heap, (w, v))",
         "    return total if count == n else None"
       ],
-      "Symmetric undirected weighted adjacency, valid integer endpoints and finite numeric weights; negative weights/parallel edges allowed. Returns MST total, None if disconnected, 0 for empty or singleton. Self-loops ignored. Does not return chosen edges or mutate input; do not apply to directed graphs."
+      "Symmetric undirected weighted adjacency, valid integer endpoints and finite real weights; negative weights/parallel edges allowed. Returns MST total, None if disconnected, 0 for empty or singleton. Self-loops ignored. Does not return chosen edges or mutate input; do not apply to directed graphs."
     ],
     [
       "Iterative Kosaraju strongly connected components",
@@ -1453,8 +1481,8 @@
     ],
     [
       "Obstacle-elimination expanded-state BFS",
-      "O(RC(K+1))",
-      "O(RC(K+1))",
+      "O(R+RC(K+1)) expected",
+      "O(RC(K+1)) auxiliary for nonempty grid; O(1) for empty shapes",
       [
         "from collections import deque",
         "def shortest_with_eliminations(grid, k):",
@@ -1539,11 +1567,11 @@
         "        dist = nxt",
         "    return dist"
       ],
-      "Directed finite numeric edge weights, possibly negative; B=max_edges≥0. Returns cheapest walk using at most B edges (not unrestricted shortest paths); bounded negative cycles are well-defined. Each round reads only the previous snapshot. A K-stop flight permits K+1 edges. Copies edge iterable; no caller mutation. O(BV) copying matters, so not simply O(BE)."
+      "Directed finite real edge weights, possibly negative; B=max_edges≥0. Returns cheapest walk using at most B edges (not unrestricted shortest paths); bounded negative cycles are well-defined. Each round reads only the previous snapshot. A K-stop flight permits K+1 edges. Copies edge iterable; no caller mutation. O(BV) copying matters, so not simply O(BE)."
     ],
     [
       "Minimax Dijkstra on grid heights",
-      "O(RC log(RC+2))",
+      "O(R+RC log(RC+2))",
       "O(RC) auxiliary",
       [
         "from heapq import heappush, heappop",
@@ -1571,7 +1599,7 @@
         "                    best[nr][nc] = candidate",
         "                    heappush(heap, (candidate, nr, nc))"
       ],
-      "Rectangular finite numeric heights, four directions. Returns minimum possible largest adjacent absolute difference, 0 on singleton and None for empty shapes. No input mutation. Monotone max-extension, not additive relaxation, justifies settling; negative heights themselves are fine."
+      "Rectangular finite real heights, four directions. Returns minimum possible largest adjacent absolute difference, 0 on singleton and None for empty shapes. No input mutation. Monotone max-extension, not additive relaxation, justifies settling; negative heights themselves are fine."
     ],
     [
       "Dense implicit Prim for Manhattan points",
@@ -1793,7 +1821,7 @@
       "1631 Path With Minimum Effort",
       "Minimax Dijkstra",
       "Medium",
-      "O(RC log(RC)) time, O(RC) space",
+      "O(R+RC log(RC+2)) time, O(RC) auxiliary for nonempty grid",
       "Relax with max(current effort, edge difference), not sum."
     ],
     [
@@ -2124,6 +2152,13 @@
       "result": "finish=[2,1,0], with descendants exiting before ancestors.",
       "edge": "A 5000-vertex chain fits an explicit stack; recursive DFS may raise RecursionError.",
       "takeaway": "Simulate call frames, not just a bag of pending vertices."
+    },
+    {
+      "why": "In 0→1 (2), 0→2 (5), 2→1 (-4), settling vertex 1 at 2 is premature: the later route through 2 costs 1. Bellman–Ford accepts this acyclic negative-edge graph.",
+      "use": "In 0→1 (2), 0→2 (5), 2→1 (-4), settling vertex 1 at 2 is premature: the later route through 2 costs 1. Bellman–Ford accepts this acyclic negative-edge graph.",
+      "result": "[0, 1, 5]",
+      "edge": "Reachable negative cycles are different: no finite shortest walk exists for their downstream vertices; this template rejects the whole result.",
+      "takeaway": "In 0→1 (2), 0→2 (5), 2→1 (-4), settling vertex 1 at 2 is premature: the later route through 2 costs 1. Bellman–Ford accepts this acyclic negative-edge graph."
     }
   ],
   "patternDetails": [
@@ -2370,7 +2405,7 @@
     },
     {
       "pattern": "Dijkstra",
-      "preconditions": "Weighted directed or symmetric undirected adjacency as (neighbor, nonnegative finite numeric weight). Integer IDs make heap ties orderable. Returns distances, infinity for unreachable. No mutation; invalid source, endpoint or negative weight raises ValueError. For arbitrary node objects add an itertools.count tie-breaker.",
+      "preconditions": "Weighted directed or symmetric undirected adjacency as (neighbor, nonnegative finite real weight). Integer IDs make heap ties orderable. Returns distances, infinity for unreachable. No mutation; invalid source, endpoint or negative weight raises ValueError. For arbitrary node objects add an itertools.count tie-breaker.",
       "observation": "Only a current minimum pop settles a nonnegative distance."
     },
     {
@@ -2380,22 +2415,22 @@
     },
     {
       "pattern": "Bellman–Ford",
-      "preconditions": "n vertices; reusable sequence edges of directed (u,v,finite numeric weight); negative edges allowed. Returns finite shortest distances or infinity unreachable, but rejects any source-reachable negative cycle instead of returning partially invalid answers. Unreachable negative cycles ignored. No mutation. For a stop budget use a copied next-round array, not this in-place unbounded-path variant.",
+      "preconditions": "n vertices; reusable sequence edges of directed (u,v,finite real weight); negative edges allowed. Returns finite shortest distances or infinity unreachable, but rejects any source-reachable negative cycle instead of returning partially invalid answers. Unreachable negative cycles ignored. No mutation. For a stop budget use a copied next-round array, not this in-place unbounded-path variant.",
       "observation": "V−1 passes suffice for simple paths; one extra reachable improvement signals a bad cycle."
     },
     {
       "pattern": "DAG dynamic programming",
-      "preconditions": "Weighted directed DAG with valid integer endpoints and finite numeric weights, including negative ones. Rejects cycles anywhere, even unreachable components. Returns distance array; infinity for unreachable. No mutation; O(V+E) without a heap.",
+      "preconditions": "Weighted directed DAG with valid integer endpoints and finite real weights, including negative ones. Rejects cycles anywhere, even unreachable components. Returns distance array; infinity for unreachable. No mutation; O(V+E) without a heap.",
       "observation": "A topological order settles incoming dependencies even when edge weights are negative."
     },
     {
       "pattern": "Floyd–Warshall",
-      "preconditions": "Directed edge iterable, finite numeric weights; add both directions for undirected input. Parallel edges use minimum weight; empty n=0 returns []. Any negative cycle anywhere raises ValueError rather than exposing invalid pair distances. No input mutation; negative undirected edges necessarily produce a negative closed walk.",
+      "preconditions": "Directed edge iterable, finite real weights; add both directions for undirected input. Parallel edges use minimum weight; empty n=0 returns []. Any negative cycle anywhere raises ValueError rather than exposing invalid pair distances. No input mutation; negative undirected edges necessarily produce a negative closed walk.",
       "observation": "The intermediate vertex loop must be outermost."
     },
     {
       "pattern": "Minimum spanning tree",
-      "preconditions": "Symmetric undirected weighted adjacency, valid integer endpoints and finite numeric weights; negative weights/parallel edges allowed. Returns MST total, None if disconnected, 0 for empty or singleton. Self-loops ignored. Does not return chosen edges or mutate input; do not apply to directed graphs.",
+      "preconditions": "Symmetric undirected weighted adjacency, valid integer endpoints and finite real weights; negative weights/parallel edges allowed. Returns MST total, None if disconnected, 0 for empty or singleton. Self-loops ignored. Does not return chosen edges or mutate input; do not apply to directed graphs.",
       "observation": "Prim accepts the cheapest crossing edge, not a shortest source path."
     },
     {
@@ -2420,12 +2455,12 @@
     },
     {
       "pattern": "Bellman–Ford",
-      "preconditions": "Directed finite numeric edge weights, possibly negative; B=max_edges≥0. Returns cheapest walk using at most B edges (not unrestricted shortest paths); bounded negative cycles are well-defined. Each round reads only the previous snapshot. A K-stop flight permits K+1 edges. Copies edge iterable; no caller mutation. O(BV) copying matters, so not simply O(BE).",
+      "preconditions": "Directed finite real edge weights, possibly negative; B=max_edges≥0. Returns cheapest walk using at most B edges (not unrestricted shortest paths); bounded negative cycles are well-defined. Each round reads only the previous snapshot. A K-stop flight permits K+1 edges. Copies edge iterable; no caller mutation. O(BV) copying matters, so not simply O(BE).",
       "observation": "Reading old distances prevents spending several edges in one budget round."
     },
     {
       "pattern": "Dijkstra",
-      "preconditions": "Rectangular finite numeric heights, four directions. Returns minimum possible largest adjacent absolute difference, 0 on singleton and None for empty shapes. No input mutation. Monotone max-extension, not additive relaxation, justifies settling; negative heights themselves are fine.",
+      "preconditions": "Rectangular finite real heights, four directions. Returns minimum possible largest adjacent absolute difference, 0 on singleton and None for empty shapes. No input mutation. Monotone max-extension, not additive relaxation, justifies settling; negative heights themselves are fine.",
       "observation": "A bottleneck extends by max, not addition."
     },
     {
@@ -2518,7 +2553,7 @@
       "secondary": "Cut property; Kruskal tradeoff"
     },
     {
-      "insight": "Transfer — The path cost is its maximum step, so replace addition by max in monotone relaxation. Mastery: implement from a blank editor, explain the governing invariant and stated complexity, and demonstrate this check: Relax with max(current effort, edge difference), not sum.",
+      "insight": "Minimax Dijkstra. Relax with max(current effort, edge difference), not sum.",
       "secondary": "Binary search on threshold plus traversal"
     },
     {

@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Execute all JSON templates with ordinary, boundary, adversarial and differential cases."""
 import ast,contextlib,io,json,pathlib,random,itertools,collections
 D=json.loads(pathlib.Path(__file__).with_name('strings-guide.json').read_text());
@@ -19,7 +20,7 @@ for row in D['operationExamples']:ast.parse('\n'.join(row['code']),feature_versi
 
 NS=[]
 for t in D['templates']:
-    ns={};code='\n'.join(t[3]);ast.parse(code);exec(compile(code,t[0],'exec'),ns);NS.append(ns)
+    ns = load_template(t); NS.append(ns)
 
 # Each fundamental's displayed result is checked, not merely executed.
 fundamental_checks = ["stdout=='1 2\\n2\\n'","stdout=='ABC\\n'","stdout=='bcd ef\\n'","stdout=='True\\n'","stdout=='olleh\\n'","stdout=='True\\nbb\\n'","stdout=='True\\nTrue\\n'","stdout=='a3b2c1\\n'","stdout=='False\\nTrue\\n'","stdout=='ab\\nbc\\ncd\\n'","stdout=='3 1 2\\n'","stdout=='2\\n'","stdout=='[]\\n'","stdout=='4\\n'","stdout=='1\\n'","stdout=='False\\nTrue\\n'","stdout==\"['a', 'b']\\n['', 'a', '', 'b', '']\\n\"","stdout==\"['ban', 'ana', 'nan', 'ana']\\n\""]
@@ -135,3 +136,5 @@ for _ in range(150):
  test(43,'longest_duplicate_rolling',(text,),len(NS[41]['longest_duplicate_substring'](text)),len)
 assert covered==set(range(len(NS))),set(range(len(NS)))-covered
 print(f"PASS strings: {len(NS)} templates, {checks} runtime assertions; {len(D['operationExamples'])} operation examples; {len(D['fundamentals'])} fundamentals executed")
+
+verify(D)

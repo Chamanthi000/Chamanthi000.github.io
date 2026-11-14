@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Run: python3 union-find-template-tests.py (Python 3.10+, standard library)."""
 import ast
 import copy
@@ -11,10 +12,9 @@ from pathlib import Path
 DATA = json.loads(Path(__file__).with_name('union-find-guide.json').read_text())
 
 def fresh(index):
-    namespace = {}
-    code = '\n'.join(DATA['templates'][index][3])
-    exec(compile(ast.parse(code),f'dsu_template_{index}','exec'),namespace)
-    return namespace
+    row = DATA['templates'][index]
+    ns = load_template(row)
+    return ns
 
 def groups(n, edges):
     adj = [[] for _ in range(n)]
@@ -58,6 +58,18 @@ def island_sizes(grid):
     return sizes
 
 class UnionFindTemplates(unittest.TestCase):
+    def test_embedded_dsu_component_sizes(self):
+        for i, row in enumerate(DATA['templates']):
+            if any('def component_size' in line for line in row[3]):
+                cls = fresh(i)['DSU']
+                dsu = cls(4)
+                self.assertEqual(dsu.component_size(0), 1)
+                self.assertTrue(dsu.union(0, 1))
+                self.assertEqual(dsu.component_size(1), 2)
+                self.assertFalse(dsu.union(1, 0))
+                self.assertEqual(dsu.component_size(0), 2)
+                self.assertEqual(dsu.component_size(3), 1)
+
     def test_schema_and_all_fundamentals(self):
         sizes = {'operations':6,'fundamentals':6,'patterns':10,'recognize':3,
                  'contrasts':2,'edges':3,'mistakes':2,'impress':2,'memory':3,
@@ -459,4 +471,7 @@ class AddedDSUVariants(unittest.TestCase):
                         self.assertEqual(t.relation(u,v),expected)
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    result = unittest.main(verbosity=2, exit=False)
+    if not result.result.wasSuccessful():
+        raise SystemExit(1)
+    verify(DATA)

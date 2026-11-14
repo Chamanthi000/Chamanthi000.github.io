@@ -2,7 +2,7 @@
   "id": "union-find",
   "title": "Union Find",
   "subtitle": "Maintain a partition that only merges: representatives answer connectivity while root metadata summarizes each component.",
-  "variables": "N = number of initialized elements, E = input edges, Q = queries, M = total DSU operations, α = inverse Ackermann function, A = number of accounts, H = email occurrences, U = unique emails, R*C = grid positions; L = output/query text length; U_g = distinct emails in output group g; E_lifetimes = number of active edge intervals in offline mixed-update problems. With union by size/rank plus path compression, M operations cost O(N+M α(N)) amortized total after initialization; a single operation is not guaranteed O(1). Weighted/rollback variants have explicitly different bounds. Dictionary-backed labels use expected hashing; hashing and comparing a long string costs O(length) initially/worst-case, and sorting strings adds comparison cost. Main bounds use fixed-width numeric arithmetic; Python large integers have additional bit complexity. Space separates initialized DSU arrays, constructed/sorted input copies, auxiliary stacks and returned output. Templates use standard-library Python 3.10+, integer IDs 0..N-1 unless explicitly mapped; root identifiers are unstable implementation details. I = positive-multiplicity edge lifetime intervals in the mixed-update template (I≤Q); rational-potential arithmetic has numerator/denominator bit costs beyond pointer-operation bounds. Hash expectations are not adversarial guarantees: many colliding keys can make a lookup linear in table size. For empty strings an O(L) walk means O(1+L) including fixed call/root work. Python list append/pop may resize linearly on a single call; amortized bounds apply over sequences. Under size/rank balancing, a single compressed find still has O(log N) worst-case pointer work; the stronger inverse-Ackermann claim is amortized across operations.",
+  "variables": "N = number of initialized elements, E = input edges, Q = queries, M = total DSU operations, α = inverse Ackermann function, A = number of accounts, H = email occurrences, U = unique emails, R*C = grid positions; L = output/query text length; U_g = distinct emails in output group g; E_lifetimes = number of active edge intervals in offline mixed-update problems. With union by size/rank plus path compression, initialization plus M operations cost O(N+M α(N)) amortized total; a single operation is not guaranteed O(1). Weighted/rollback variants have explicitly different bounds. Dictionary-backed labels use expected hashing; hashing and comparing a long string costs O(length) initially/worst-case, and sorting strings adds comparison cost. Main bounds use fixed-width numeric arithmetic; Python large integers have additional bit complexity. Space separates initialized DSU arrays, constructed/sorted input copies, auxiliary stacks and returned output. Templates use standard-library Python 3.10+, integer IDs 0..N-1 unless explicitly mapped; root identifiers are unstable implementation details. Use log(N+2) and α(max(1,N)) when including empty/singleton universes. The logarithmic worst-case bounds describe balanced-tree pointer work; a Python list append/pop can resize in linear time, so history allocation/removal bounds use amortization. Finite real weights/limits are assumed, not fully type/NaN checked. Grid shape validation costs O(R) even when C=0. I = positive-multiplicity edge lifetime intervals in the mixed-update template (I≤Q); rational-potential arithmetic has numerator/denominator bit costs beyond pointer-operation bounds. Hash expectations are not adversarial guarantees: many colliding keys can make a lookup linear in table size. For empty strings an O(L) walk means O(1+L) including fixed call/root work. Python list append/pop may resize linearly on a single call; amortized bounds apply over sequences. Under size/rank balancing, a single compressed find still has O(log N) worst-case pointer work; the stronger inverse-Ackermann claim is amortized across operations.",
   "operations": [
     [
       "Initialize",
@@ -18,7 +18,7 @@
       "Find representative with iterative compression",
       "O(α(N)) amortized",
       "O(1) auxiliary",
-      "Mutates parent pointers even though connectivity is unchanged; validates ID."
+      "Mutates parent pointers even though connectivity is unchanged; validates ID. With balancing, a single find still has O(log(N+2)) worst-case pointer work before compression helps future calls."
     ],
     [
       "Merge",
@@ -104,7 +104,7 @@
       "Rollback",
       "dsu.rollback(token)",
       "Undo successful merges after snapshot",
-      "O(number of undone merges)",
+      "O(number of undone merges) amortized",
       "O(1) auxiliary",
       "Tokens represent stack-prefix state, not immutable version branches."
     ],
@@ -275,8 +275,8 @@
         "    child, parent_root, old_size = history.pop()",
         "assert history == [] and snapshot == 0"
       ],
-      "O(1) snapshot; O(1) undo per logged union",
-      "O(number of successful active merges)",
+      "O(1) snapshot; O(1) amortized list work per logged/undone union",
+      "O(N) arrays plus at most N-1 active successful-merge records",
       "Compression would require logging every rewritten parent; omit it unless implementing that extra machinery."
     ],
     [
@@ -295,6 +295,23 @@
       "O(log N) with union by size and no compression",
       "O(N)",
       "Naive compression without updating relative potentials corrupts constraints."
+    ],
+    [
+      "Trace a merge and a redundant edge",
+      "Process (0,1), (2,3), (1,2), then (0,3). The first three merge separate classes; the last has equal roots and does not reduce the count.",
+      [
+        "components = 4",
+        "successful = [True, True, True, False]",
+        "trace = []",
+        "for merged in successful:",
+        "    components -= int(merged)",
+        "    trace.append(components)",
+        "assert trace == [3, 2, 1, 1]",
+        "result = trace"
+      ],
+      "O(1) for this fixed trace",
+      "O(1) for this fixed trace",
+      "A failed union means an undirected edge is redundant, not that a directed cycle exists."
     ]
   ],
   "patterns": [
@@ -403,7 +420,7 @@
       "O(N+E_lifetimes log Q+Q) typical",
       "Offline dynamic connectivity (custom interview extension)",
       "Use union by size without path compression; duplicate edges need lifetime multiplicity tracking.",
-      "At each time leaf, DSU contains exactly edges whose lifetime intervals cover that time.",
+      "At each time leaf, the partition equals connectivity induced by active edge intervals; DSU stores the partition, not the edge set itself.",
       "Simple additions-only workloads, where compression is easier and faster."
     ],
     [
@@ -807,6 +824,11 @@
       "Ratio link",
       "potential[ra]/potential[rb] = value * wb / wa",
       "wa=a/ra, wb=b/rb and a/b=value; if attaching rb under ra, store the reciprocal."
+    ],
+    [
+      "Rollback cost",
+      "no compression ⇒ balanced find O(log(N+2))",
+      "α(N) needs compression; rollback tokens are current history-prefix positions, not persistent versions."
     ]
   ],
   "templates": [
@@ -1006,7 +1028,7 @@
         "        out.append([accounts[first][0]] + sorted(emails_by_root[root]))",
         "    return out"
       ],
-      "Sequence accounts=[name,email,...], strings case-sensitive and identifier equality exact. Shared email joins accounts, names alone never do. Assumes names within a connected identity are compatible; output uses earliest original account name, groups ordered by earliest index, distinct emails sorted. No-email accounts retained separately, [] input→[], empty account record raises ValueError. No caller input mutation or email-list slicing."
+      "Sequence accounts=[name,email,...], strings case-sensitive and identifier equality exact. Shared email joins accounts, names alone never do. Assumes names within a connected identity are compatible; output uses earliest original account name, groups ordered by earliest index, distinct emails sorted. No-email accounts retained separately, [] input→[], empty account record raises ValueError. No caller input mutation or email-list slicing. The first_by_root dictionary is populated in increasing account-index order, so its insertion order already gives earliest-index group order without an extra group sort."
     ],
     [
       "Offline strict edge-limit connectivity queries",
@@ -1129,7 +1151,7 @@
     ],
     [
       "Largest island after at most one flip",
-      "O(RC α(RC)) amortized",
+      "O(R+RC α(max(1,RC))) amortized",
       "O(RC) auxiliary",
       [
         "class DSU:",
@@ -1197,7 +1219,7 @@
     ],
     [
       "Rollback DSU without path compression",
-      "O(N) initialize; O(log N) find/union worst; O(1) snapshot; O(k) rollback of k merges",
+      "O(N) initialize; O(log(N+2)) find worst / union amortized; O(1) snapshot; O(k) rollback amortized",
       "O(N) arrays and O(N) active successful-merge history",
       [
         "class RollbackDSU:",
@@ -1240,7 +1262,7 @@
         "            self.size[root] = old_size",
         "            self.components += 1"
       ],
-      "Fixed nonnegative n, integer IDs. snapshot returns current history length, rollback restores that ancestor prefix and discards later merges. Tokens valid only for the current ancestral history, NOT persistent versions across diverging branches. No-op union logs nothing; rollback counts successful merges, not method calls. No compression; caller must manage segment-tree/time-interval scheduling separately."
+      "Fixed nonnegative n, integer IDs. snapshot returns current history length, rollback restores that ancestor prefix and discards later merges. Tokens valid only for the current ancestral history, NOT persistent versions across diverging branches. No-op union logs nothing; rollback counts successful merges, not method calls. No compression; caller must manage segment-tree/time-interval scheduling separately. Tree traversal is worst-case logarithmic; history list growth/shrink is amortized. Integer token range is checked, but a stale token from a discarded branch cannot be recognized by its number alone."
     ],
     [
       "Parity constraints with balanced relative-xor DSU",
@@ -1265,7 +1287,7 @@
         "        return x, parity",
         "",
         "    def constrain(self, a, b, required):",
-        "        if required not in (0, 1):",
+        "        if not isinstance(required, int) or required not in (0, 1):",
         "            raise ValueError('parity must be 0 or 1')",
         "        root_a, parity_a = self.find(a)",
         "        root_b, parity_b = self.find(b)",
@@ -1283,7 +1305,7 @@
         "        root_b, parity_b = self.find(b)",
         "        return None if root_a != root_b else parity_a ^ parity_b"
       ],
-      "Constraint color[a] xor color[b] == required (0=same,1=different). constrain returns True for accepted/redundant-consistent constraint, False for contradiction and leaves state unchanged on contradiction; caller decides whether to retain a global inconsistency flag. relation returns known parity or None if unrelated. Fixed IDs validated, no compression to keep relative metadata simple; xor root link is orientation-symmetric, unlike generic additive/ratio potentials."
+      "Constraint color[a] xor color[b] == required (integer 0=same,1=different). constrain returns True for accepted/redundant-consistent constraint, False for contradiction and leaves state unchanged on contradiction; caller decides whether to retain a global inconsistency flag. relation returns known parity or None if unrelated. Fixed IDs validated, no compression to keep relative metadata simple; xor root link is orientation-symmetric, unlike generic additive/ratio potentials."
     ],
     [
       "Reverse-time edge deletions with duplicate requests",
@@ -2211,6 +2233,13 @@
       "result": "Two xor-one links compose to parity zero from node 2 to root 0.",
       "edge": "Xor reverses symmetrically; ratio weights reverse by reciprocal, not xor.",
       "takeaway": "Write the potential equation before the union formula."
+    },
+    {
+      "why": "Process (0,1), (2,3), (1,2), then (0,3). The first three merge separate classes; the last has equal roots and does not reduce the count.",
+      "use": "Process (0,1), (2,3), (1,2), then (0,3). The first three merge separate classes; the last has equal roots and does not reduce the count.",
+      "result": "[3, 2, 1, 1]",
+      "edge": "A failed union means an undirected edge is redundant, not that a directed cycle exists.",
+      "takeaway": "Process (0,1), (2,3), (1,2), then (0,3). The first three merge separate classes; the last has equal roots and does not reduce the count."
     }
   ],
   "patternDetails": [
@@ -2356,8 +2385,8 @@
     },
     {
       "pattern": "Identity merging",
-      "preconditions": "Sequence accounts=[name,email,...], strings case-sensitive and identifier equality exact. Shared email joins accounts, names alone never do. Assumes names within a connected identity are compatible; output uses earliest original account name, groups ordered by earliest index, distinct emails sorted. No-email accounts retained separately, [] input→[], empty account record raises ValueError. No caller input mutation or email-list slicing.",
-      "observation": "Identifier equality provides evidence; shared display names alone do not. Root-map insertion order already follows first account index, avoiding an unnecessary O(A log A) group sort."
+      "preconditions": "Sequence accounts=[name,email,...], strings case-sensitive and identifier equality exact. Shared email joins accounts, names alone never do. Assumes names within a connected identity are compatible; output uses earliest original account name, groups ordered by earliest index, distinct emails sorted. No-email accounts retained separately, [] input→[], empty account record raises ValueError. No caller input mutation or email-list slicing. The first_by_root dictionary is populated in increasing account-index order, so its insertion order already gives earliest-index group order without an extra group sort.",
+      "observation": "Identifier equality provides evidence; names alone do not. first_by_root insertion order follows earliest account indices, so no extra group sort is needed."
     },
     {
       "pattern": "Offline threshold queries",
@@ -2376,12 +2405,12 @@
     },
     {
       "pattern": "Rollback DSU / time segments",
-      "preconditions": "Fixed nonnegative n, integer IDs. snapshot returns current history length, rollback restores that ancestor prefix and discards later merges. Tokens valid only for the current ancestral history, NOT persistent versions across diverging branches. No-op union logs nothing; rollback counts successful merges, not method calls. No compression; caller must manage segment-tree/time-interval scheduling separately.",
+      "preconditions": "Fixed nonnegative n, integer IDs. snapshot returns current history length, rollback restores that ancestor prefix and discards later merges. Tokens valid only for the current ancestral history, NOT persistent versions across diverging branches. No-op union logs nothing; rollback counts successful merges, not method calls. No compression; caller must manage segment-tree/time-interval scheduling separately. Tree traversal is worst-case logarithmic; history list growth/shrink is amortized. Integer token range is checked, but a stale token from a discarded branch cannot be recognized by its number alone.",
       "observation": "Undo only successful attachments in reverse; compression is intentionally absent."
     },
     {
       "pattern": "Parity / weighted constraints",
-      "preconditions": "Constraint color[a] xor color[b] == required (0=same,1=different). constrain returns True for accepted/redundant-consistent constraint, False for contradiction and leaves state unchanged on contradiction; caller decides whether to retain a global inconsistency flag. relation returns known parity or None if unrelated. Fixed IDs validated, no compression to keep relative metadata simple; xor root link is orientation-symmetric, unlike generic additive/ratio potentials.",
+      "preconditions": "Constraint color[a] xor color[b] == required (integer 0=same,1=different). constrain returns True for accepted/redundant-consistent constraint, False for contradiction and leaves state unchanged on contradiction; caller decides whether to retain a global inconsistency flag. relation returns known parity or None if unrelated. Fixed IDs validated, no compression to keep relative metadata simple; xor root link is orientation-symmetric, unlike generic additive/ratio potentials.",
       "observation": "Xor root-link inversion is symmetric, unlike ratio orientation."
     },
     {

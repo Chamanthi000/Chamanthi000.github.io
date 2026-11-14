@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Run: python3 heaps-template-tests.py. Tests all code loaded from JSON."""
 import ast
 from collections import Counter
@@ -12,11 +13,8 @@ DATA = json.loads(Path(__file__).with_name('heaps-guide.json').read_text())
 USED = set()
 
 def namespace(name):
-    row = next(t for t in DATA['templates'] if t[0] == name)
-    code = '\n'.join(row[3])
-    ast.parse(code)
-    ns = {}
-    exec(compile(code, name, 'exec'), ns)
+    row = next(row for row in DATA['templates'] if row[0] == name)
+    ns = load_template(row)
     USED.add(name)
     return ns
 
@@ -445,4 +443,7 @@ class HeapTemplates(unittest.TestCase):
         self.assertEqual(USED, {t[0] for t in DATA['templates']})
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    result = unittest.main(verbosity=2, exit=False)
+    if not result.result.wasSuccessful():
+        raise SystemExit(1)
+    verify(DATA)

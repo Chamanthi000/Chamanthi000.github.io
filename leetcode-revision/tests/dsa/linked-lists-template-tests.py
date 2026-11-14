@@ -1,3 +1,4 @@
+from call_coverage import load_template, verify
 """Identity, mutation, restoration and boundary tests for every list template."""
 import ast
 import json
@@ -7,8 +8,8 @@ from pathlib import Path
 GUIDE=json.loads(Path(__file__).with_name('linked-lists-guide.json').read_text())
 COVERED=set()
 def template(i):
-    ns={}
-    exec(compile(ast.parse(chr(10).join(GUIDE['templates'][i][3])),GUIDE['templates'][i][0],'exec'),ns)
+    row = GUIDE['templates'][i]
+    ns = load_template(row)
     COVERED.add(i)
     return ns
 
@@ -239,4 +240,8 @@ class ListTests(unittest.TestCase):
             self.assertTrue(source['title']); self.assertTrue(source['note'])
             self.assertTrue(source['url'].startswith('https://'))
 
-if __name__=='__main__': unittest.main(verbosity=2)
+if __name__=='__main__':
+    result = unittest.main(verbosity=2, exit=False)
+    if not result.result.wasSuccessful():
+        raise SystemExit(1)
+    verify(GUIDE)
