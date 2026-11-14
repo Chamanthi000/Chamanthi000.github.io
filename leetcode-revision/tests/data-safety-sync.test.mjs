@@ -721,3 +721,93 @@ test('data structure conflict choice retains typed cloud identity and original r
  assert.equal(b.rows('structures')[0].notes,'device algorithm notes');
  assert.ok(b.rows('conflicts').some(row=>row.id==='structure-history'));
 });
+
+
+test('duplicated Arrays and Hash Maps cloud DSA docs are archived atomically with device authoritative',async()=>{
+ const deviceRows=[item('arrays','DEVICE arrays exact notes','2026-01-01'),item('hash-maps','DEVICE hash maps exact notes','2026-01-01')];
+ const originals=[
+  {id:'structure-arrays',row:{...item('arrays','CLOUD arrays A','2026-02-01'),recordType:'structure',extra:'keep A'}},
+  {id:'legacy-arrays',row:{...item('arrays','CLOUD arrays B','2026-02-02'),recordType:'structure',extra:'keep B'}},
+  {id:'structure-hash-maps',row:{...item('hash-maps','CLOUD hashmap A','2026-02-01'),recordType:'structure',nested:{a:1}}},
+  {id:'legacy-hashmaps',row:{...item('hash-maps','CLOUD hashmap B','2026-02-03'),recordType:'structure',nested:{a:2}}}
+ ];
+ const b=browser({structures:deviceRows,conflicts:deviceRows.map((row,i)=>({id:'conflict-'+i,kind:'structures',recordId:row.id,device:row,cloud:originals[i*2].row}))});
+ const f=await firebase(b);
+ for(const original of originals)f.store.set('users/account-A/coding/'+original.id,original.row);
+ await f.auth();const found=await b.window.RecallSyncConflicts.inspect();
+ assert.equal(found.length,2);
+ for(const detail of found){
+  assert.equal(detail.reviewable,true);
+  assert.equal(detail.duplicateCloud,true);
+  assert.equal(detail.cloudCopies.length,2);
+  assert.equal(detail.device.notes,deviceRows.find(x=>x.id===detail.recordId).notes);
+ }
+ for(const id of ['arrays','hash-maps']){
+  const outcome=await b.window.RecallSyncConflicts.resolve('structures',id,'device');
+  assert.equal(outcome.resolved,true);
+ }
+ const current=await f.cloud.readAll({serverOnly:true});
+ for(const id of ['arrays','hash-maps']){
+  const active=current.structures.filter(x=>x.id===id);
+  assert.equal(active.length,1);
+  assert.equal(active[0].notes,deviceRows.find(x=>x.id===id).notes);
+  assert.equal(active[0].recordType,undefined,'returned logical record omits transport marker');
+ }
+ for(const original of originals){
+  const archived=f.store.get('users/account-A/coding/'+original.id);
+  assert.equal(archived.recordType,'syncBackup');
+  assert.equal(archived.originKind,'structures');
+  assert.equal(archived.originId,original.row.id);
+  assert.equal(archived.originPhysicalId,original.id);
+  assert.deepEqual(archived.versions[0].value,original.row,'entire previous cloud original retained verbatim');
+ }
+ assert.deepEqual(b.rows('structures').map(x=>x.notes),deviceRows.map(x=>x.notes));
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+ assert.equal(f.writes.length,6,'two new canonical docs and four preserved archived originals');
+});
+test('duplicate DSA recovery refuses changed originals without partial writes',async()=>{
+ const local=item('arrays','DEVICE original','2026-01-01');
+ const cloudOne={...item('arrays','cloud one'),recordType:'structure'};
+ const cloudTwo={...item('arrays','cloud two'),recordType:'structure'};
+ const b=browser({structures:[local],conflicts:[{id:'dup',kind:'structures',recordId:'arrays',device:local,cloud:cloudOne}]}),f=await firebase(b);
+ f.store.set('users/account-A/coding/structure-arrays',cloudOne);
+ f.store.set('users/account-A/coding/legacy-arrays',cloudTwo);
+ await f.auth();await b.window.RecallSyncConflicts.inspect();
+ f.controls.beforeGet=async key=>{
+  if(key==='users/account-A/coding/legacy-arrays')f.store.set(key,{...cloudTwo,notes:'concurrently changed'});
+ };
+ await assert.rejects(b.window.RecallSyncConflicts.resolve('structures','arrays','device'),/changed during recovery/);
+ assert.equal(f.writes.length,0);
+ assert.deepEqual(f.store.get('users/account-A/coding/structure-arrays'),cloudOne);
+ assert.equal(f.store.get('users/account-A/coding/legacy-arrays').recordType,'structure');
+ assert.deepEqual(b.rows('structures'),[local]);
+});
+test('duplicate DSA recovery keeps cloud originals if conflict archive cannot be persisted',async()=>{
+ const local=item('arrays','DEVICE original','2026-01-01');
+ const one={...item('arrays','cloud one'),recordType:'structure'},two={...item('arrays','cloud two'),recordType:'structure'};
+ const b=browser({structures:[local],conflicts:[{id:'dup',kind:'structures',recordId:'arrays',device:local,cloud:one}]}),f=await firebase(b);
+ f.store.set('users/account-A/coding/structure-arrays',one);f.store.set('users/account-A/coding/legacy-arrays',two);
+ await f.auth();await b.window.RecallSyncConflicts.inspect();
+ b.fault.set=key=>key===KEYS.conflicts;
+ await assert.rejects(b.window.RecallSyncConflicts.resolve('structures','arrays','device'),/recovery copies/);
+ assert.equal(f.writes.length,0);
+ assert.equal(f.store.get('users/account-A/coding/structure-arrays').recordType,'structure');
+ assert.equal(f.store.get('users/account-A/coding/legacy-arrays').recordType,'structure');
+ assert.deepEqual(b.rows('structures'),[local]);
+});
+test('duplicate DSA recovery does not overwrite occupied canonical destination',async()=>{
+ const local=item('arrays','DEVICE original','2026-01-01');
+ const one={...item('arrays','cloud one'),recordType:'structure'},two={...item('arrays','cloud two'),recordType:'structure'};
+ const b=browser({structures:[local],conflicts:[{id:'dup',kind:'structures',recordId:'arrays',device:local,cloud:one}]}),f=await firebase(b);
+ f.store.set('users/account-A/coding/structure-arrays',one);f.store.set('users/account-A/coding/legacy-arrays',two);
+ await f.auth();await b.window.RecallSyncConflicts.inspect();
+ // Pre-existing unrelated record occupying deterministic recovered path must never be changed.
+ const {createHash}=await import('node:crypto');
+ const digest=createHash('sha256').update(JSON.stringify(['structures','arrays'])).digest('hex');
+ const destination='users/account-A/coding/recall-choice-v1-structures-'+digest;
+ f.store.set(destination,{id:'unrelated',recordType:'conceptReview',notes:'KEEP'});
+ await assert.rejects(b.window.RecallSyncConflicts.resolve('structures','arrays','device'),/already occupied/);
+ assert.equal(f.writes.length,0);
+ assert.equal(f.store.get(destination).notes,'KEEP');
+ assert.equal(f.store.get('users/account-A/coding/structure-arrays').recordType,'structure');
+});
