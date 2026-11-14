@@ -537,3 +537,60 @@ test('subscription failures remain per-kind and stale auth errors cannot poison 
  await f.auth();sql.error(new Error('old SQL denied'));concepts.error(new Error('old concepts denied'));f.emit('coding');f.emit('sql');
  assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);assert.doesNotMatch(b.elements.firebaseStatus.textContent,/denied/);
 });
+
+
+test('archived copies stop showing as active conflicts once live server and device data agree',async()=>{
+ const older=item('a','older notes','2026-01-01'),current=item('a','current notes','2026-02-01');
+ const archived={id:'historic-a',kind:'coding',recordId:'a',device:older,cloud:current,savedAt:'2026-02-01'};
+ const b=browser({coding:[current],conflicts:[archived]}),f=await firebase(b);
+ f.store.set(path('a'),current);await f.auth();
+ assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+ const outcome=await b.window.RecallSyncConflicts.verify();
+ assert.deepEqual(outcome,{resolved:1,unresolved:0,total:1});
+ assert.deepEqual(b.rows('conflicts'),[archived],'historical originals never deleted or edited');
+ assert.deepEqual(b.rows('coding'),[current]);
+ assert.deepEqual(f.store.get(path('a')),current);
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+ assert.equal(f.writes.length,0,'verifying only reads');
+});
+
+test('timestamp-only differences do not keep an archived conflict warning',async()=>{
+ const older=item('a','same notes','2026-01-01'),newer=item('a','same notes','2026-02-01');
+ const archive={id:'historic-metadata',kind:'coding',recordId:'a',device:older,cloud:newer};
+ const b=browser({coding:[older],conflicts:[archive]}),f=await firebase(b);
+ f.store.set(path('a'),newer);await f.auth();
+ assert.deepEqual(await b.window.RecallSyncConflicts.verify(),{resolved:1,unresolved:0,total:1});
+ assert.equal(f.writes.length,0);assert.deepEqual(b.rows('conflicts'),[archive]);
+ assert.deepEqual(b.rows('coding'),[older],'verification never silently updates the device');
+});
+
+test('unresolved live differences keep the warning and all archived original versions',async()=>{
+ const older=item('a','device-only content','2026-01-01'),newer=item('a','server-only content','2026-02-01');
+ const archive={id:'still-open',kind:'coding',recordId:'a',device:older,cloud:newer};
+ const b=browser({coding:[older],conflicts:[archive]}),f=await firebase(b);
+ f.store.set(path('a'),newer);await f.auth();
+ assert.deepEqual(await b.window.RecallSyncConflicts.verify(),{resolved:0,unresolved:1,total:1});
+ assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+ assert.deepEqual(b.rows('coding'),[older]);assert.deepEqual(f.store.get(path('a')),newer);
+ assert.deepEqual(b.rows('conflicts'),[archive]);assert.equal(f.writes.length,0);
+});
+
+test('unverified cloud lookup cannot dismiss archived conflicts or modify either side',async()=>{
+ const archive={id:'keep-on-failure',kind:'coding',recordId:'a',device:item('a','local'),cloud:item('a','cloud')};
+ const b=browser({coding:[archive.device],conflicts:[archive]}),f=await firebase(b);
+ f.store.set(path('a'),archive.cloud);await f.auth();
+ f.controls.read=()=>{throw Error('synthetic read rejected')};
+ await assert.rejects(b.window.RecallSyncConflicts.verify(),/synthetic read rejected/);
+ assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+ assert.deepEqual(b.rows('conflicts'),[archive]);assert.deepEqual(b.rows('coding'),[archive.device]);
+ assert.deepEqual(f.store.get(path('a')),archive.cloud);assert.equal(f.writes.length,0);
+});
+
+test('verified old conflicts clear automatically after current subscriptions are server acknowledged',async()=>{
+ const current=item('a','final copy','2026-02-01'),archive={id:'old-snapshot',kind:'coding',recordId:'a',device:item('a','old','2026-01-01'),cloud:current};
+ const b=browser({coding:[current],conflicts:[archive]}),f=await firebase(b);
+ f.store.set(path('a'),current);await f.auth();
+ f.emit('coding');f.emit('sql');await flush();
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+ assert.deepEqual(b.rows('conflicts'),[archive]);assert.equal(f.writes.length,0);
+});
