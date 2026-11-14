@@ -386,7 +386,7 @@ function updateConflictReviewBox(){
  if(!state.user||state.accountPaused){conflictReviewBox.hidden=true;return}
  const count=state.conflicts.size+state.blocked.size;
  conflictReviewBox.hidden=count===0;
- if(count&&!reviewConflictButton.disabled&&!state.conflictReviewHasResult)reviewConflictMessage.textContent=count+' current/unchecked record group(s). Older recovery copies are retained on this device.';
+ if(count&&!reviewConflictButton.disabled&&!state.conflictReviewHasResult)reviewConflictMessage.textContent=count+' records awaiting verification (includes historical conflict snapshots). Select Review to identify any current differences; backups are preserved.';
 }
 function contentEquivalent(a,b){
  if(!a||!b)return a===b;
