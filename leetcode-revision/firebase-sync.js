@@ -389,9 +389,9 @@ async function verifyArchivedConflictCopies(){
   const snapshot=await getDocsFromServer(list(kind,session));
   assertSession(session);
   if(snapshot.metadata?.fromCache!==false||snapshot.metadata?.hasPendingWrites!==false)throw Error('Server confirmation required; originals retained.');
-  const remote=snapshot.docs.map(x=>x.data()).filter(row=>isMember(kind,row));
-  const local=deviceRecords(kind);
-  checks.set(kind,{local,remote});
+  const remoteDocs=snapshot.docs.filter(x=>isMember(kind,x.data())).map(x=>({physicalId:x.id,value:x.data()}));
+  const remote=remoteDocs.map(x=>x.value),local=deviceRecords(kind);
+  checks.set(kind,{local,remote,remoteDocs});
  }
  assertSession(session);
  const latest=window.RecallSyncConflicts.read(),scanned=new Set(archives.map(row=>row.id));
@@ -403,7 +403,8 @@ async function verifyArchivedConflictCopies(){
     issue:'Cloud write still pending or recovery confirmation unavailable'});continue
   }
   const device=check.local.filter(x=>idOf(row.kind,x)===row.recordId);
-  const remote=check.remote.filter(x=>idOf(row.kind,x)===row.recordId);
+  const remoteDocs=check.remoteDocs.filter(x=>idOf(row.kind,x.value)===row.recordId);
+  const remote=remoteDocs.map(x=>x.value);
   // Unique matching live copies (or acknowledged absence on both sides) can
   // prove a historical conflict no longer needs a warning. No records are edited.
   if((device.length===1&&remote.length===1&&contentEquivalent(device[0],remote[0]))||(device.length===0&&remote.length===0))resolved++;
@@ -411,8 +412,10 @@ async function verifyArchivedConflictCopies(){
    unresolved.add(key);
    details.set(key,{kind:row.kind,recordId:row.recordId,device:device.length===1?withoutRecordType(device[0]):null,
     cloud:remote.length===1?withoutRecordType(remote[0]):null,
-    reviewable:device.length<=1&&remote.length<=1&&(device.length+remote.length)>0,
-    issue:device.length>1||remote.length>1?'Multiple live copies require manual recovery':device.length===0?'Missing device record':remote.length===0?'Missing cloud record':'Different content'});
+    cloudCopies:remote.length>1?remoteDocs.map(x=>({physicalId:x.physicalId,value:withoutRecordType(x.value)})):[],
+    duplicateCloud:remote.length>1&&device.length===1,
+    reviewable:device.length<=1&&(remote.length<=1||device.length===1)&&(device.length+remote.length)>0,
+    issue:device.length>1?'Multiple device copies require manual recovery':remote.length>1?'Multiple cloud copies of the same topic; save the device version and archive every cloud original':device.length===0?'Missing device record':remote.length===0?'Missing cloud record':'Different content'});
   }
  }
  assertSession(session);
@@ -445,12 +448,14 @@ function renderConflictComparisons(){
    conflictCompareList.append(card);continue;
   }
   const different=compareFieldNames(record.device,record.cloud);
-  card.append(make('p','Different fields: '+(different.length?different.join(', '):'record presence'),'font-size:12px;overflow-wrap:anywhere;'));
+  if(record.duplicateCloud)card.append(make('p',record.cloudCopies.length+' cloud copies found. Choosing the device version will archive every cloud copy before leaving one current topic.','font-size:12px;color:#31553f;margin:5px 0;'));
+  else card.append(make('p','Different fields: '+(different.length?different.join(', '):'record presence'),'font-size:12px;overflow-wrap:anywhere;'));
   const detail=make('details','');
   detail.style.cssText='margin:8px 0;';
   const summary=make('summary','Compare full current versions','font-size:13px;cursor:pointer;font-weight:700;padding:6px 0;');
   detail.append(summary);
-  for(const [label,value] of [['On this device',record.device],['In Firebase cloud',record.cloud]]){
+  const versions=record.duplicateCloud?[['On this device',record.device],...record.cloudCopies.map((copy,i)=>['Cloud copy '+(i+1)+' ('+copy.physicalId+')',copy.value])]:[['On this device',record.device],['In Firebase cloud',record.cloud]];
+  for(const [label,value] of versions){
    const heading=make('strong',label,'font-size:12px;display:block;margin-top:8px;');
    const full=make('pre',value===null?'No current record':JSON.stringify(value,null,2),'font:12px/1.5 ui-monospace,monospace;overflow:auto;max-height:250px;background:#f7faf7;border:1px solid #e0eae1;padding:10px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;');
    detail.append(heading,full);
@@ -478,8 +483,8 @@ function renderConflictComparisons(){
    });
    actions.append(button);
   };
-  if(record.device)addChoice('device',record.cloud?'Use device version':'Save device copy to cloud');
-  if(record.cloud)addChoice('cloud',record.device?'Use cloud version':'Restore cloud copy to device');
+  if(record.device)addChoice('device',record.duplicateCloud?'Use device version · archive '+record.cloudCopies.length+' duplicates':record.cloud?'Use device version':'Save device copy to cloud');
+  if(record.cloud&&!record.duplicateCloud)addChoice('cloud',record.device?'Use cloud version':'Restore cloud copy to device');
   card.append(actions);
   conflictCompareList.append(card);
  }
@@ -496,10 +501,12 @@ async function readLiveConflict(kind,recordId,session){
  const snapshot=await getDocsFromServer(list(kind,session));
  assertSession(session);
  if(snapshot.metadata?.fromCache!==false||snapshot.metadata?.hasPendingWrites!==false)throw Error('The cloud read is not confirmed.');
- const remote=snapshot.docs.map(x=>x.data()).filter(row=>isMember(kind,row)&&idOf(kind,row)===recordId);
+ const remoteDocs=snapshot.docs.filter(x=>isMember(kind,x.data())&&idOf(kind,x.data())===recordId)
+  .map(x=>({physicalId:x.id,value:x.data()})).sort((a,b)=>a.physicalId.localeCompare(b.physicalId));
  const local=deviceRecords(kind).filter(row=>idOf(kind,row)===recordId);
- if(local.length>1||remote.length>1)throw Error('Multiple live originals require manual review.');
- return {device:local[0]?withoutRecordType(local[0]):null,cloud:remote[0]?withoutRecordType(remote[0]):null};
+ if(local.length>1)throw Error('Multiple live device originals require manual review.');
+ return {device:local[0]?withoutRecordType(local[0]):null,
+  cloud:remoteDocs.length===1?withoutRecordType(remoteDocs[0].value):null,cloudCopies:remoteDocs.length>1?remoteDocs:[]};
 }
 function replaceDeviceConflictRecord(kind,recordId,value,expected){
  const storageKey=LOCAL_KEYS[kind];
@@ -523,8 +530,10 @@ async function resolveReviewedConflict(kind,recordId,choice,reviewed){
  if(!window.RecallSyncConflicts.read().some(row=>row.kind===kind&&row.recordId===recordId))throw Error('Verified conflict archive is missing.');
  const session=captureSession(),live=await readLiveConflict(kind,recordId,session);
  if(!sameRecord(live.device,reviewed.device)||!sameRecord(live.cloud,reviewed.cloud))throw Error('The current versions have changed; review again.');
- if(!live[choice])throw Error('The selected copy is missing.');
- const prompt=choice==='device'?'Use the DEVICE version to replace the cloud version?':'Use the CLOUD version to replace the device version?';
+ if(reviewed.duplicateCloud){
+  if(choice!=='device'||!live.device||live.cloudCopies.length<2||!sameRecord(live.cloudCopies.map(x=>({physicalId:x.physicalId,value:withoutRecordType(x.value)})),reviewed.cloudCopies))throw Error('The duplicate cloud records changed; review again.');
+ }else if(live.cloudCopies.length||!live[choice])throw Error('The selected copy is missing or duplicate cloud records require review.');
+ const prompt=reviewed.duplicateCloud?'Use this device version for '+kind+' · '+recordId+' and archive all '+live.cloudCopies.length+' duplicate cloud records?':choice==='device'?'Use the DEVICE version to replace the cloud version?':'Use the CLOUD version to replace the device version?';
  if(!confirm(prompt+' Both complete originals remain in conflict backups; verify that you have exported the backup if needed.'))return {cancelled:true};
  if(!archiveConflict(kind,live.device,live.cloud))throw Error('Could not confirm a permanent recovery copy.');
  const selected=choice==='device'?{...live.device,updatedAt:new Date().toISOString()}:live.cloud;
@@ -533,7 +542,9 @@ async function resolveReviewedConflict(kind,recordId,choice,reviewed){
  if(original===null)throw Error('Device storage missing.');
  localStorage.setItem(storageKey,original);
  if(localStorage.getItem(storageKey)!==original)throw Error('Device storage readback failed.');
- if(choice==='device'){
+ if(choice==='device'&&reviewed.duplicateCloud){
+  await resolveDuplicateCloudCopies(kind,recordId,selected,live,session);
+ }else if(choice==='device'){
   const outcome=await writeWithHistory(kind,selected,{session,expected:live.cloud,forceHistory:!!live.cloud});
   if(outcome.result==='remote-newer')throw Error('Cloud record changed before the selection could be applied.');
  }
