@@ -412,7 +412,7 @@ async function verifyArchivedConflictCopies(){
    unresolved.add(key);
    details.set(key,{kind:row.kind,recordId:row.recordId,device:device.length===1?withoutRecordType(device[0]):null,
     cloud:remote.length===1?withoutRecordType(remote[0]):null,
-    cloudCopies:remote.length>1?remoteDocs.map(x=>({physicalId:x.physicalId,value:withoutRecordType(x.value)})):[],
+    cloudCopies:remote.length>1?remoteDocs.map(x=>({physicalId:x.physicalId,value:withoutRecordType(x.value)})).sort((a,b)=>a.physicalId.localeCompare(b.physicalId)):[],
     duplicateCloud:remote.length>1&&device.length===1,
     reviewable:device.length<=1&&(remote.length<=1||device.length===1)&&(device.length+remote.length)>0,
     issue:device.length>1?'Multiple device copies require manual recovery':remote.length>1?'Multiple cloud copies of the same topic; save the device version and archive every cloud original':device.length===0?'Missing device record':remote.length===0?'Missing cloud record':'Different content'});
