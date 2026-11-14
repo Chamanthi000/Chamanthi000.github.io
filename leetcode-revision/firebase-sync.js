@@ -59,7 +59,6 @@ const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new Cus
 function idOf(kind,item){return String(item.id||(kind==='coding'?item.number:'')||(kind==='sql'?item.title?.trim().toLowerCase():''));}
 // Structure notebooks share the authorized coding collection; typed records stay separate.
 function list(kind,session){return collection(db,'users',session?.uid||state.user.uid,kind==='structures'||kind==='concepts'?'coding':kind)}
-function isMember(kind,item){return kind==='structures'?item.recordType==='structure':kind==='concepts'?item.recordType==='conceptReview':kind==='coding'?item.recordType!=='structure'&&item.recordType!=='conceptReview'&&item.recordType!=='syncBackup':item.recordType!=='syncBackup'}
 function prepare(kind,item){return kind==='structures'?{...item,recordType:'structure'}:kind==='concepts'?{...item,recordType:'conceptReview'}:item}
 function cloudDocId(kind,item){return kind==='structures'?'structure-'+idOf(kind,item):kind==='concepts'?'concept-'+idOf(kind,item):idOf(kind,item)}
 const LOCAL_KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1',structures:'recall-structures-v1',concepts:'recall-concept-reviews-v1'};
@@ -150,6 +149,7 @@ function writeErrorCode(error){
 function invalidArgumentReason(error){
  // Match SDK/server templates at the start, never keywords in private values or notes.
  const message=typeof error?.message==='string'?error.message:'';
+ if(message==='Cloud document path is invalid; save stopped.')return 'invalid-document-path';
  const data=/^Function (?:setDoc|updateDoc|addDoc|Transaction\.(?:set|update)|WriteBatch\.(?:set|update))\(\) called with invalid data(?: \(via `toFirestore\(\)`\))?\. (.*)$/s.exec(message)?.[1];
  if(data){
   if(/^Nested arrays are not supported(?:$| \(found )/.test(data))return 'nested-arrays';
@@ -176,7 +176,7 @@ function safeWriteError(error,stage){
  if(WRITE_STAGES.has(stage))details.stage=stage;
  if(code==='invalid-argument')details.reason=invalidArgumentReason(error);
  // Preserve only these fixed application guard messages, never an SDK message/cause.
- const safeMessages=['Account changed; operation stopped.','Previous cloud version could not be archived; restore stopped.'];
+ const safeMessages=['Account changed; operation stopped.','Previous cloud version could not be archived; restore stopped.','Cloud document identity mismatch; save stopped.','Cloud history identity mismatch; save stopped.','Multiple cloud documents match this record; save stopped.','Server record lookup was not acknowledged; save stopped.'];
  const safe=new Error(safeMessages.find(message=>message===error?.message)||'Cloud save failed.');
  return Object.assign(safe,details);
 }
@@ -199,13 +199,55 @@ function captureSession(){return {uid:state.user?.uid,epoch:state.epoch}}
 function assertSession(session){
  if(session&&(!session.uid||session.uid!==state.user?.uid||session.epoch!==state.epoch))throw Error('Account changed; operation stopped.');
 }
+// Keep identity/path helpers in the standalone HISTORY_PREFIX test slice.
+function isMember(kind,item){return kind==='structures'?item.recordType==='structure':kind==='concepts'?item.recordType==='conceptReview':kind==='coding'?item.recordType!=='structure'&&item.recordType!=='conceptReview'&&item.recordType!=='syncBackup':item.recordType!=='syncBackup'}
+function wellFormedId(id){return ![...id].some(c=>c.codePointAt(0)>=0xd800&&c.codePointAt(0)<=0xdfff)}
+function validDocumentId(id){return typeof id==='string'&&id.length>0&&!id.includes('/')&&id!=='.'&&id!=='..'&&!/^__.*__$/s.test(id)&&wellFormedId(id)&&new TextEncoder().encode(id).length<=1500}
+function checkedDocumentId(id){
+ if(!validDocumentId(id))throw Object.assign(Error('Cloud document path is invalid; save stopped.'),{code:'invalid-argument'});
+ return id;
+}
+const AMBIGUOUS_PATH_MESSAGE='Multiple cloud documents match a legacy record; copies retained; review required.';
+function hasAmbiguousUnsafeRecords(kind,rows){
+ const seen=new Set();
+ for(const row of rows){
+  if(validDocumentId(cloudDocId(kind,row)))continue;
+  const id=idOf(kind,row);if(seen.has(id))return true;seen.add(id);
+ }
+ return false;
+}
+async function safeDocumentId(kind,value,session){
+ // JSON escapes lone surrogates before UTF-8 encoding, preserving their identity.
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([kind,idOf(kind,value)])));
+ assertSession(session);
+ return checkedDocumentId('recall-key-v1-'+kind+'-'+Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join(''));
+}
+async function resolveDocumentId(kind,value,owner,session){
+ const legacy=cloudDocId(kind,value);
+ if(validDocumentId(legacy))return legacy;
+ // Only an acknowledged scan of this owner's same collection proves absence.
+ const snapshot=await getDocsFromServer(owner);
+ assertSession(session);
+ if(snapshot.metadata?.fromCache!==false||snapshot.metadata?.hasPendingWrites!==false)throw Error('Server record lookup was not acknowledged; save stopped.');
+ const matches=snapshot.docs.filter(document=>{const row=document.data();return isMember(kind,row)&&idOf(kind,row)===idOf(kind,value)});
+ if(matches.length>1)throw Error('Multiple cloud documents match this record; save stopped.');
+ if(matches.length)return checkedDocumentId(matches[0].id);
+ return safeDocumentId(kind,value,session);
+}
 async function writeWithHistory(kind,value,options={}){
  const session=options.session||(state.user?captureSession():null);
  assertSession(session);
  let operation='document-reference';
  try{
- const ref=doc(list(kind,session),cloudDocId(kind,value));
- const backupRef=doc(list(kind,session),historyId(kind,value));
+ const owner=list(kind,session);
+ const physicalId=await resolveDocumentId(kind,value,owner,session);
+ assertSession(session);
+ const ref=doc(owner,checkedDocumentId(physicalId));
+ // Preserve every existing encodable history key, including legacy truncation.
+ // Unpaired surrogates had no usable encodeURIComponent history key.
+ const backupId=wellFormedId(idOf(kind,value))?historyId(kind,value):HISTORY_PREFIX+await safeDocumentId(kind,value,session);
+ assertSession(session);
+ const backupRef=doc(owner,checkedDocumentId(backupId));
  operation='transaction-commit';
  return await runTransaction(db,async tx=>{
   // All reads precede every write; concurrent tabs retry against fresh server state.
@@ -214,6 +256,9 @@ async function writeWithHistory(kind,value,options={}){
   const current=await tx.get(ref);
   assertSession(session);
   const old=current.exists()?current.data():null;
+  // Check identity before unchanged/conflict handling: unrelated documents are
+  // never overwritten, archived, or presented as this record's remote version.
+  if(old&&(!isMember(kind,old)||idOf(kind,old)!==idOf(kind,value)))throw Error('Cloud document identity mismatch; save stopped.');
   const oldClean=old?withoutRecordType(old):null;
   if(old&&sameRecord(oldClean,value)){operation='transaction-commit';return {result:'unchanged'}}
   const oldStamp=String(old?.updatedAt||old?.createdAt||'');
@@ -228,6 +273,7 @@ async function writeWithHistory(kind,value,options={}){
   assertSession(session);
   let archived=false;
   if(old){
+   if(history.exists()&&(history.data()?.recordType!=='syncBackup'||history.data().originKind!==kind||history.data().originId!==idOf(kind,value)))throw Error('Cloud history identity mismatch; save stopped.');
    const previousHistory=Array.isArray(history?.data()?.versions)?history.data().versions:[];
    const last=previousHistory[previousHistory.length-1];
    const now=Date.now();
@@ -235,7 +281,7 @@ async function writeWithHistory(kind,value,options={}){
     const versions=cappedHistory([...previousHistory,{archivedAt:new Date(now).toISOString(),value:oldClean}]);
     if(versions.length&&versions[versions.length-1].value&&sameRecord(versions[versions.length-1].value,oldClean)){
      operation='history-write';
-     tx.set(backupRef,{recordType:'syncBackup',originKind:kind,originId:idOf(kind,value),updatedAt:new Date(now).toISOString(),versions});
+     tx.set(backupRef,{...history.data(),recordType:'syncBackup',originKind:kind,originId:idOf(kind,value),updatedAt:new Date(now).toISOString(),versions});
      archived=true;
     }
    }
@@ -396,6 +442,12 @@ for(const kind of page){
  const unsub=onSnapshot(list(kind,session),{includeMetadataChanges:true},snapshot=>{
   if(terminated||session.epoch!==state.epoch||session.uid!==state.user?.uid)return;
   const remote=snapshot.docs.map(x=>x.data()).filter(x=>isMember(kind,x));
+  // Do not collapse two server originals into one apparent record or replace
+  // the device copy while a legacy physical-path ambiguity needs review.
+  if(hasAmbiguousUnsafeRecords(kind,remote)){
+   state.confirmed.delete(kind);state.subscriptionErrors.set(kind,AMBIGUOUS_PATH_MESSAGE);syncStatus();return;
+  }
+  if(state.subscriptionErrors.get(kind)===AMBIGUOUS_PATH_MESSAGE)state.subscriptionErrors.delete(kind);
   const acknowledged=!snapshot.metadata?.fromCache&&!snapshot.metadata?.hasPendingWrites;
   if(acknowledged)state.confirmed.add(kind);else state.confirmed.delete(kind);
   state.snapshots[kind]=remote;
@@ -457,6 +509,7 @@ window.RecallCloud={
     const entries=await Promise.all(kinds.map(async kind=>{
       const snapshot=await getDocsFromServer(list(kind,session));
       assertSession(session);
+      if(hasAmbiguousUnsafeRecords(kind,snapshot.docs.map(x=>x.data()).filter(x=>isMember(kind,x))))throw Error(AMBIGUOUS_PATH_MESSAGE);
       const byId=new Map(snapshot.docs.map(x=>x.data()).filter(x=>isMember(kind,x)).map(x=>[idOf(kind,x),x]));
       if(!options.serverOnly)for(const [key,item] of state.pending){
         if(key.startsWith(kind+':'))byId.set(idOf(kind,item),item);

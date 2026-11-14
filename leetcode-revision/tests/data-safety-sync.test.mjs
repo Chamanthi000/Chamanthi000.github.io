@@ -98,7 +98,7 @@ test('specific schema reasons win only at the SDK reason position, and only for 
 for(const stage of ['document-reference','target-read','history-read','history-write','record-write','transaction-commit'])test(stage+' failure keeps exact pending, local, cloud and history copies',async()=>{
  const b=browser(),fault={},f=await diagnosticFirebase(b,fault);await f.auth();
  const previous=item('private-record-id','previous '+secret),record=item(previous.id,secret,'2026-02-01');
- const historyKey=path('recall-history-coding-'+record.id),history={recordType:'syncBackup',versions:[{archivedAt:'2025-01-01',value:item(record.id,'archived '+secret)}]};
+ const historyKey=path('recall-history-coding-'+record.id),history={recordType:'syncBackup',originKind:'coding',originId:record.id,versions:[{archivedAt:'2025-01-01',value:item(record.id,'archived '+secret)}]};
  f.store.set(path(record.id),previous);f.store.set(historyKey,history);
  const message=stage==='document-reference'?pathMessage:stage==='transaction-commit'?largeMessage:nestedMessage;
  const fail=()=>{throw writeError('invalid-argument',message)};

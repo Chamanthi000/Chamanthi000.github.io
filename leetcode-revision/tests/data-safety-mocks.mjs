@@ -1,5 +1,6 @@
 // Synthetic browser/Firebase/IndexedDB adapters. No network, credentials, or user storage.
 import {readFileSync} from 'node:fs';
+import {webcrypto} from 'node:crypto';
 export const source=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
 export const KINDS=['coding','sql','goals','habits','structures','concepts','conflicts'];
 export const KEYS={coding:'recall-notes-v1',sql:'recall-sql-v1',goals:'recall-goals-habits-v1',habits:'recall-goals-habits-v1',structures:'recall-structures-v1',concepts:'recall-concept-reviews-v1',conflicts:'recall-sync-conflicts-v1'};
@@ -36,14 +37,20 @@ export function manual(b){
 }
 export const archive=data=>({format:'recall-full-backup',version:2,...empty(),...data});
 export async function firebase(b){
- const store=new Map(),listeners=[],writes=[],transactions=[],controls={beforeGet:null,beforeCommit:null,read:null,fail:false,replay:false};let authCallback;
+ const store=new Map(),listeners=[],writes=[],transactions=[],controls={beforeGet:null,beforeCommit:null,read:null,readMetadata:undefined,hash:null,fail:false,replay:false};let authCallback;
  const sdk={
   initializeApp:()=>({}),getAuth:()=>({}),getFirestore:()=>({}),GoogleAuthProvider:class{},
   signInWithPopup:async()=>{},signInWithRedirect:async()=>{},getRedirectResult:async()=>null,signOut:async()=>{},
   onAuthStateChanged:(_a,fn)=>{authCallback=fn},
-  collection:(_db,...path)=>path.join('/'),doc:(col,id)=>col+'/'+id,
+  collection:(_db,...path)=>path.join('/'),doc:(col,id)=>{
+   const invalid=message=>{throw Object.assign(Error(message),{code:'invalid-argument'})};
+   if(typeof id!=='string'||!id)invalid('Function doc() cannot be called with an empty path.');
+   if(id.includes('/'))invalid('Invalid document reference. Document references must have an even number of segments, but '+col+'/'+id+' has '+(col.split('/').length+id.split('/').length)+'.');
+   if(id==='.'||id==='..'||/^__.*__$/s.test(id)||new TextEncoder().encode(id).length>1500||[...id].some(c=>c.codePointAt(0)>=0xd800&&c.codePointAt(0)<=0xdfff))invalid('Invalid document ID.');
+   return col+'/'+id;
+  },
   onSnapshot:(path,_options,callback,error)=>{const l={path,callback,error,active:true};listeners.push(l);return ()=>{l.active=false}},
-  getDocsFromServer:async path=>{if(controls.read)await controls.read(path);return snapshot(path)},
+  getDocsFromServer:async path=>{if(controls.read)await controls.read(path);return snapshot(path,controls.readMetadata)},
   async runTransaction(_db,fn){
    if(controls.fail)throw Error('synthetic unavailable');
    const staged=new Map(),tx={async get(key){if(controls.beforeGet)await controls.beforeGet(key);const value=structuredClone(store.get(key));return {exists:()=>value!==undefined,data:()=>value}},set(key,value){staged.set(key,structuredClone(value))}};
@@ -52,11 +59,12 @@ export async function firebase(b){
    for(const [key,value] of staged){store.set(key,value);writes.push({key,value})}transactions.push([...staged.keys()]);return result;
   }
  };
- const snapshot=(path,metadata={fromCache:false,hasPendingWrites:false})=>({docs:[...store].filter(([key])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')).map(([,value])=>({data:()=>structuredClone(value)})),metadata});
+ const snapshot=(path,metadata={fromCache:false,hasPendingWrites:false})=>({docs:[...store].filter(([key])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')).map(([key,value])=>({id:key.slice(path.length+1),data:()=>structuredClone(value)})),metadata});
  b.window.RecallLocal=b.rows;
  b.window.addEventListener('recall-cloud-data',e=>{try{b.save(e.detail.kind,e.detail.items)}catch{}});
  const code=source('firebase-sync.js').replace(/import\(base\+'firebase-(?:app|auth|firestore)\.js'\)/g,'Promise.resolve(sdk)');
- b.execute(code,{sdk});await flush();
+ const crypto={subtle:{async digest(...args){if(controls.hash)await controls.hash(...args);return webcrypto.subtle.digest(...args)}}};
+ b.execute(code,{sdk,crypto});await flush();
  return {store,listeners,writes,transactions,controls,cloud:b.window.RecallCloud,async auth(uid='account-A'){await authCallback(uid?{uid,email:'synthetic@example.invalid'}:null);await flush()},emit(kind,metadata){const col=['structures','concepts'].includes(kind)?'coding':kind;for(const l of listeners.filter(l=>l.active&&l.path.endsWith('/'+col)))l.callback(snapshot(l.path,metadata));},emitOld(l,metadata){l.callback(snapshot(l.path,metadata))},local(kind,items){b.save(kind,items);b.window.dispatchEvent({type:'recall-cloud-local',detail:{kind,items}})}};
 }
 // Minimal asynchronous IDB with commit/abort and readback faults, limited to the production API used.
