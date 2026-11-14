@@ -416,6 +416,129 @@ async function verifyArchivedConflictCopies(){
  syncStatus();
  return {resolved,unresolved:unresolved.size,total:latest.length};
 }
+
+function compareFieldNames(device,cloud){
+ const keys=new Set([...Object.keys(device||{}),...Object.keys(cloud||{})]);
+ return [...keys].filter(key=>!sameRecord(device?.[key],cloud?.[key])).slice(0,18);
+}
+function renderConflictComparisons(){
+ conflictCompareList.replaceChildren();
+ const make=(tag,text,css='')=>{
+  const el=document.createElement(tag);
+  el.textContent=text;
+  if(css)el.style.cssText=css;
+  return el;
+ };
+ for(const record of state.conflictDetails){
+  const card=make('section','');
+  card.style.cssText='border:1px solid #d9e5dc;background:white;border-radius:10px;padding:12px;min-width:0;';
+  const title=make('strong',record.kind+' · '+record.recordId,'font-size:13px;overflow-wrap:anywhere;');
+  const explanation=make('p',record.issue+' · Original snapshots remain in the conflict backup.','font-size:12px;color:#57735c;margin:5px 0 9px;');
+  card.append(title,explanation);
+  if(!record.reviewable){
+   card.append(make('p','This record cannot be safely selected automatically. Export its conflict copies and review the originals.','font-size:12px;'));
+   conflictCompareList.append(card);continue;
+  }
+  const different=compareFieldNames(record.device,record.cloud);
+  card.append(make('p','Different fields: '+(different.length?different.join(', '):'record presence'),'font-size:12px;overflow-wrap:anywhere;'));
+  const detail=make('details','');
+  detail.style.cssText='margin:8px 0;';
+  const summary=make('summary','Compare full current versions','font-size:13px;cursor:pointer;font-weight:700;padding:6px 0;');
+  detail.append(summary);
+  for(const [label,value] of [['On this device',record.device],['In Firebase cloud',record.cloud]]){
+   const heading=make('strong',label,'font-size:12px;display:block;margin-top:8px;');
+   const full=make('pre',value===null?'No current record':JSON.stringify(value,null,2),'font:12px/1.5 ui-monospace,monospace;overflow:auto;max-height:250px;background:#f7faf7;border:1px solid #e0eae1;padding:10px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;');
+   detail.append(heading,full);
+  }
+  card.append(detail);
+  const actions=make('div','');
+  actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;';
+  const addChoice=(choice,label)=>{
+   const button=make('button',label);
+   button.type='button';
+   button.style.cssText='min-height:40px;border:1px solid #b4cdbb;border-radius:8px;background:#e9f3ea;color:#275c42;font-size:12px;font-weight:700;padding:8px 12px;cursor:pointer;';
+   button.addEventListener('click',async()=>{
+    if(button.disabled)return;
+    const prompt=choice==='device'?'Keep the DEVICE record and save it to Firebase, replacing the current cloud copy?':'Keep the CLOUD record and replace this device copy?';
+    if(!confirm(prompt+' Both original versions are retained in conflict history. You can export them before proceeding.'))return;
+    button.disabled=true;
+    reviewConflictMessage.textContent='Checking both versions and preserving backups before resolving…';
+    try{
+     await resolveReviewedConflict(record.kind,record.recordId,choice,record);
+     reviewConflictMessage.textContent='✓ Conflict selection saved and checked. Refreshing the website…';
+     location.reload();
+    }catch(e){
+     reviewConflictMessage.textContent='Could not safely complete the selection. The conflict remains and both originals are retained. If another device edited this note, review the latest versions again.';
+     button.disabled=false;
+    }
+   });
+   actions.append(button);
+  };
+  if(record.device)addChoice('device',record.cloud?'Use device version':'Save device copy to cloud');
+  if(record.cloud)addChoice('cloud',record.device?'Use cloud version':'Restore cloud copy to device');
+  card.append(actions);
+  conflictCompareList.append(card);
+ }
+ if(state.conflictDetails.length){
+  const exportButton=make('button','Download conflict copies before choosing');
+  exportButton.type='button';
+  exportButton.style.cssText='border:1px solid #b4cdbb;border-radius:8px;background:white;color:#28573c;font-weight:700;font-size:12px;padding:10px;';
+  exportButton.addEventListener('click',()=>window.RecallSyncConflicts.download());
+  conflictCompareList.prepend(exportButton);
+ }
+}
+async function readLiveConflict(kind,recordId,session){
+ if(!kinds.includes(kind)||!recordId)throw Error('Invalid conflict identity.');
+ const snapshot=await getDocsFromServer(list(kind,session));
+ assertSession(session);
+ if(snapshot.metadata?.fromCache!==false||snapshot.metadata?.hasPendingWrites!==false)throw Error('The cloud read is not confirmed.');
+ const remote=snapshot.docs.map(x=>x.data()).filter(row=>isMember(kind,row)&&idOf(kind,row)===recordId);
+ const local=deviceRecords(kind).filter(row=>idOf(kind,row)===recordId);
+ if(local.length>1||remote.length>1)throw Error('Multiple live originals require manual review.');
+ return {device:local[0]?withoutRecordType(local[0]):null,cloud:remote[0]?withoutRecordType(remote[0]):null};
+}
+function replaceDeviceConflictRecord(kind,recordId,value,expected){
+ const storageKey=LOCAL_KEYS[kind];
+ const raw=localStorage.getItem(storageKey);
+ if(raw===null)throw Error('Device storage missing; no changes made.');
+ const parsed=JSON.parse(raw),envelope=kind==='habits'||kind==='goals';
+ if(envelope&&(!parsed||typeof parsed!=='object'||Array.isArray(parsed)))throw Error('Invalid device envelope.');
+ const values=envelope?parsed[kind]:parsed;
+ if(!Array.isArray(values))throw Error('Invalid device notebook.');
+ const original=values.filter(row=>idOf(kind,row)===recordId);
+ if(original.length>1||!sameRecord(original[0]||null,expected||null))throw Error('Device record changed since review.');
+ const updated=original.length?values.map(row=>idOf(kind,row)===recordId?value:row):[...values,value];
+ const encoded=JSON.stringify(envelope?{...parsed,[kind]:updated}:updated);
+ localStorage.setItem(storageKey,encoded);
+ if(localStorage.getItem(storageKey)!==encoded)throw Error('Device save could not be verified.');
+}
+async function resolveReviewedConflict(kind,recordId,choice,reviewed){
+ const key=kind+':'+recordId;
+ if(!state.user||state.accountPaused||!state.conflicts.has(key)||state.blocked.has(key)||
+    state.pending.has(key)||state.writeErrors.has(key)||state.localFailure||!['device','cloud'].includes(choice))throw Error('Conflict is not ready for a safe selection.');
+ if(!window.RecallSyncConflicts.read().some(row=>row.kind===kind&&row.recordId===recordId))throw Error('Verified conflict archive is missing.');
+ const session=captureSession(),live=await readLiveConflict(kind,recordId,session);
+ if(!sameRecord(live.device,reviewed.device)||!sameRecord(live.cloud,reviewed.cloud))throw Error('The current versions have changed; review again.');
+ if(!live[choice])throw Error('The selected copy is missing.');
+ if(!archiveConflict(kind,live.device,live.cloud))throw Error('Could not confirm a permanent recovery copy.');
+ const selected=choice==='device'?{...live.device,updatedAt:new Date().toISOString()}:live.cloud;
+ // Verify the device has enough storage before changing anything on the server.
+ const storageKey=LOCAL_KEYS[kind],original=localStorage.getItem(storageKey);
+ if(original===null)throw Error('Device storage missing.');
+ localStorage.setItem(storageKey,original);
+ if(localStorage.getItem(storageKey)!==original)throw Error('Device storage readback failed.');
+ if(choice==='device'){
+  const outcome=await writeWithHistory(kind,selected,{session,expected:live.cloud,forceHistory:!!live.cloud});
+  if(outcome.result==='remote-newer')throw Error('Cloud record changed before the selection could be applied.');
+ }
+ assertSession(session);
+ // A concurrent local edit is never overwritten: verify exact original fields.
+ replaceDeviceConflictRecord(kind,recordId,selected,live.device);
+ await verifyArchivedConflictCopies();
+ if(state.conflicts.has(key))throw Error('The server and device could not be verified as matching.');
+ return {resolved:true,kind,recordId,kept:choice};
+}
+
 reviewConflictButton.addEventListener('click',async()=>{
  if(reviewConflictButton.disabled)return;
  reviewConflictButton.disabled=true;
