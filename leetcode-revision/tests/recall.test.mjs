@@ -11,6 +11,12 @@ const goalCode=scripts(goals).find(x=>x.includes('function streak(h)'));
 const ids=html=>new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]));
 const dateKey=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
 
+test('Every DSA topic has a separate private Extra notes panel without a note migration',()=>{
+ for(const token of ['ds-extra-notes','<h3>Extra notes</h3>','data-notes-read-id','EXTRA_OPEN_KEY','renderPersonalNotes(item)','guideView.innerHTML=renderTopic(item)'])assert.ok(dsRevision.includes(token),token);
+ assert.ok(dsRevision.includes("el.closest('.ds-topic').querySelector('.ds-note-count')"));
+ assert.ok(dsRevision.includes("if(item.id==='strings')return preservedStringMarkup(item,personal)"));
+});
+
 test('Every inline and standalone app script parses',()=>{
  for(const html of [index,goals,sqlGuide])for(const script of scripts(html))assert.doesNotThrow(()=>new Function(script));
  for(const s of ['data-structure-revision.js','array-interview-guide.js','string-interview-guide.js','concept-revision.js','daily-checklist.js','future-todos.js','monthly-goals.js','backup-all.js','auto-backup.js'])assert.doesNotThrow(()=>new Function(read(s)));
@@ -45,7 +51,7 @@ test('Arrays guide covers interview requirements without replacing user notes',(
  assert.ok(g.html.includes('freq = {0: 1}'));
  assert.ok(index.includes('array-interview-guide.css'));
  assert.ok(index.indexOf('array-interview-guide.js') < index.indexOf('data-structure-revision.js'));
- assert.ok(dsRevision.includes("opened.replace('</article>',preservedArrayMarkup(item,personal)"));
+ assert.ok(dsRevision.includes("if(item.id==='arrays')return preservedArrayMarkup(item,personal)"));
  assert.ok(dsRevision.includes('const personal=personalNotes(item)'));
  assert.ok(arrayStyles.includes('@media(max-width:760px)'));
  assert.ok(arrayStyles.includes('overflow-x:auto'));
@@ -56,7 +62,7 @@ test('Arrays guide covers interview requirements without replacing user notes',(
  assert.ok(dsRevision.includes("arrayIntegratedNotes"));
  assert.ok(dsRevision.includes("ARRAY_ARCHIVE_KEY"));
  assert.ok(dsRevision.includes("verified.at(-1)?.notes!==existing"));
- assert.ok(dsRevision.includes("const personalHtml=!legacyGuide&&personal"));
+ assert.ok(dsRevision.includes("function renderPersonalNotes(item)"));
  assert.ok(arrayStyles.includes('ag-section-toggle'));
 });
 
@@ -81,7 +87,7 @@ test('Strings guide supplies collapsible interview reference while preserving pr
  assert.ok(index.includes('string-interview-guide.js'));
  assert.ok(index.indexOf('string-interview-guide.js')<index.indexOf('data-structure-revision.js'));
  for(const name of ['preservedStringMarkup','stringIntegratedNotes','STRING_ARCHIVE_KEY','stringOpenSections','downloadStringBackup'])assert.ok(dsRevision.includes(name),name);
- assert.ok(dsRevision.includes('const personalHtml=!legacyGuide&&personal'));
+ assert.ok(dsRevision.includes('function renderPersonalNotes(item)'));
  assert.ok(guide.html.includes('KMP')&&guide.html.includes('casefold')&&guide.html.includes('Minimum Window Substring'));
 });
 test('DSA ends at Union Find without deleting hidden private records',()=>{

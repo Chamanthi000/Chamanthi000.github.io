@@ -29,6 +29,10 @@ DSA Revision intentionally ends at **Union Find**. Older extra notebooks are hid
 
 Open a Data Structure notebook or the SQL pattern guide and choose **Need practice** or **I remembered**. These ratings save to your browser, keep a review history, and schedule another recall check in 1, 3, 7, or 14 days depending on progress.
 
+### Extra notes for every DSA topic
+
+Each of the 11 topics, Arrays through Union Find, has a collapsible **Extra notes** notebook below its reference guide. Open it and select **Add my notes** or **Edit my notes**; changes save automatically on this device. The guide remains visible while you edit. Existing note fields, Arrays/Strings consolidated notes and original archives are reused unchanged—no migration or separate duplicate notebook. Sign in with the same account for the existing private cloud sync. Opening/collapsing notebooks only changes a device-local view preference.
+
 ## Data safety and privacy
 
 - Coding problems, SQL problems, Data Structure notes, concept ratings, goals, and habits are saved to browser localStorage first.

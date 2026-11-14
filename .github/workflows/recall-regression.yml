@@ -56,5 +56,7 @@ jobs:
         run: node leetcode-revision/tests/dsa-browser.test.cjs
       - name: Test published guide content at phone, tablet and desktop viewports
         run: node leetcode-revision/tests/dsa-real-content.test.cjs
+      - name: Test Extra notes across every DSA topic
+        run: node leetcode-revision/tests/extra-notes-browser.test.cjs
       - name: Test private recovery controls on phone, tablet and desktop
         run: node leetcode-revision/tests/recovery-browser.test.cjs

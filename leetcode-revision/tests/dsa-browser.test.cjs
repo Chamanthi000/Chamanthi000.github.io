@@ -127,6 +127,7 @@ async function run() {
   }
   await page.locator('#dsSearch').fill('');
   await page.locator('[data-nav-id="hash-maps"]').click();
+  if(!await topic('hash-maps').locator('.ds-extra-notes').evaluate(el=>el.open))await topic('hash-maps').locator('.ds-extra-notes > summary').click();
   await topic('hash-maps').locator('[data-edit-id]').click();
   const edited = privateText + '\nEdited only in fixture';
   await topic('hash-maps').locator('textarea').fill(edited);
@@ -221,7 +222,7 @@ async function run() {
   await page.setViewportSize({ width: 393, height: 852 });
   await page.locator('[data-nav-id="hash-maps"]').click();
   await topic('hash-maps').locator('[data-ag-expand-all]').click();
-  const size = await topic('hash-maps').locator('.ag').evaluate(element => ({ width: element.clientWidth, content: element.scrollWidth }));
+  const size = await topic('hash-maps').locator('.ds-core-guide .ag').evaluate(element => ({ width: element.clientWidth, content: element.scrollWidth }));
   assert.ok(size.content <= size.width + 1, `mobile guide overflows: ${JSON.stringify(size)}`);
   assert.equal(await topic('hash-maps').locator('.ag-pattern-grid').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length), 1);
   // Optional review artifact follows the Playwright skill's project convention.
@@ -242,6 +243,7 @@ async function run() {
     assert.equal(await target.locator('.dg').count(), 0);
     assert.deepEqual(await target.evaluate(() => window.RecallStructures()), seed);
     await target.locator('[data-nav-id="trees"]').click();
+    await target.locator('[data-id="trees"] .ds-extra-notes > summary').click();
     await target.locator('[data-id="trees"] [data-edit-id]').click();
     assert.equal(await target.locator('[data-id="trees"] textarea').inputValue(), privateText);
     await fallback.close();

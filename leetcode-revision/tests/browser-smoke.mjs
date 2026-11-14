@@ -172,6 +172,7 @@ try{
  await notesPage.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
  await notesPage.locator('#dsToggle').click();
  await notesPage.locator('.ds-topic[data-id="arrays"] > summary').click();
+ if(!await notesPage.locator('#ds-extra-notes-arrays').evaluate(el=>el.open))await notesPage.locator('#ds-extra-notes-arrays > summary').click();
  if(!await notesPage.locator('[data-ag-section="ag-private"]').evaluate(el=>el.open)){
   await notesPage.locator('[data-ag-section="ag-private"] > summary').click();
  }
@@ -208,6 +209,7 @@ try{
  await notesPage.reload({waitUntil:'domcontentloaded'});
  await notesPage.locator('#dsToggle').click();
  await notesPage.locator('.ds-topic[data-id="strings"] > summary').click();
+ if(!await notesPage.locator('#ds-extra-notes-strings').evaluate(el=>el.open))await notesPage.locator('#ds-extra-notes-strings > summary').click();
  assert.ok((await notesPage.locator('.sg-private-notes').textContent()).includes('My original special Strings example'));
  assert.ok((await notesPage.locator('.sg-private-notes').textContent()).includes('Unicode note'));
  await notesPage.locator('[data-sg-consolidate]').click();
@@ -221,6 +223,7 @@ try{
  await notesPage.reload({waitUntil:'domcontentloaded'});
  await notesPage.locator('#dsToggle').click();
  await notesPage.locator('.ds-topic[data-id="strings"] > summary').click();
+ if(!await notesPage.locator('#ds-extra-notes-strings').evaluate(el=>el.open))await notesPage.locator('#ds-extra-notes-strings > summary').click();
  assert.ok((await notesPage.locator('.sg-private-notes').textContent()).includes('My original special Strings example'));
  await notesPage.locator('[data-sg-restore]').click();
  const restoredString=await notesPage.evaluate(()=>JSON.parse(localStorage.getItem('recall-structures-v1')).find(x=>x.id==='strings'));

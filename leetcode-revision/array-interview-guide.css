@@ -222,3 +222,17 @@ body.rev-index #dataStructureRevision .dg .ag-sources{overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){#dataStructureRevision *,#dataStructureRevision *::before,#dataStructureRevision *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 body.rev-index #dataStructureRevision .dg .ag-pattern{align-self:start}
+
+/* Private notebook, separate from the eight public reference chapters. */
+.ds-extra-notes.ag{margin-top:18px;border:1px solid #d9e6d8;border-radius:14px;overflow:hidden;background:#fbfdfa}
+.ds-extra-notes > summary{list-style:none;cursor:pointer}
+.ds-extra-notes > summary::-webkit-details-marker{display:none}
+.ds-extra-notes[open] > summary .ag-section-chevron{transform:rotate(180deg)}
+.ds-extra-notes .ds-note-input{box-sizing:border-box;max-width:100%}
+.ds-extra-notes .ds-extra-readview{min-width:0}
+.ds-extra-notes .ds-personal-notes,.ds-extra-notes .ag-raw-archive pre{overflow-wrap:anywhere;white-space:pre-wrap}
+.ds-extra-notes [hidden]{display:none!important}
+
+.ds-extra-notes > .ag-section-content{padding:clamp(12px,2.5vw,23px);min-width:0}
+.ds-extra-notes > summary .ag-section-head{flex:1;max-width:none;margin:0}
+.ds-extra-notes > summary .ag-section-chevron{flex:none}
