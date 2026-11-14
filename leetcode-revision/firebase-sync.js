@@ -355,7 +355,7 @@ const reviewConflictButton=document.createElement('button');
 reviewConflictButton.id='reviewRecallConflicts';
 reviewConflictButton.type='button';
 reviewConflictButton.textContent='Review remaining conflict and compare versions';
-reviewConflictButton.style.cssText='min-height:42px;padding:10px 13px;border:1px solid #bed2c2;border-radius:9px;background:#fff;color:#28573c;font:700 13px inherit;cursor:pointer;';
+reviewConflictButton.style.cssText='display:block;max-width:100%;min-height:42px;padding:10px 13px;border:1px solid #bed2c2;border-radius:9px;background:#fff;color:#28573c;font-size:13px;font-weight:700;cursor:pointer;white-space:normal;text-align:left;';
 const reviewConflictMessage=document.createElement('span');
 reviewConflictMessage.id='reviewRecallConflictsStatus';
 reviewConflictMessage.setAttribute('role','status');
@@ -364,7 +364,9 @@ const conflictCompareList=document.createElement('div');
 conflictCompareList.id='recallConflictCompareList';
 conflictCompareList.style.cssText='display:grid;gap:12px;margin-top:10px;';
 conflictReviewBox.append(reviewConflictButton,reviewConflictMessage,conflictCompareList);
-if(status?.parentElement)status.insertAdjacentElement('afterend',conflictReviewBox);
+const reviewTile=status?.closest('.tile');
+if(reviewTile)reviewTile.appendChild(conflictReviewBox);
+else if(status?.parentElement)status.insertAdjacentElement('afterend',conflictReviewBox);
 function updateConflictReviewBox(){
  if(!state.user||state.accountPaused){conflictReviewBox.hidden=true;return}
  const count=state.conflicts.size+state.blocked.size;
