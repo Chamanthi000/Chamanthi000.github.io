@@ -52,7 +52,7 @@ const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRed
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:''};
+const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:''};
 const kinds=['coding','sql','goals','habits','structures','concepts'];
 const page=location.pathname.endsWith('goals.html')?['goals','habits']:location.pathname.endsWith('sql-pattern-guide.html')?['concepts']:['coding','sql','structures','concepts'];
 const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:s}}))};
@@ -354,19 +354,22 @@ conflictReviewBox.style.cssText='margin:8px 0 14px;padding:12px;border:1px solid
 const reviewConflictButton=document.createElement('button');
 reviewConflictButton.id='reviewRecallConflicts';
 reviewConflictButton.type='button';
-reviewConflictButton.textContent='Check and resolve old conflict warnings';
+reviewConflictButton.textContent='Review remaining conflict and compare versions';
 reviewConflictButton.style.cssText='min-height:42px;padding:10px 13px;border:1px solid #bed2c2;border-radius:9px;background:#fff;color:#28573c;font:700 13px inherit;cursor:pointer;';
 const reviewConflictMessage=document.createElement('span');
 reviewConflictMessage.id='reviewRecallConflictsStatus';
 reviewConflictMessage.setAttribute('role','status');
 reviewConflictMessage.style.cssText='display:block;margin:6px 0 0;font-size:12px;';
-conflictReviewBox.append(reviewConflictButton,reviewConflictMessage);
+const conflictCompareList=document.createElement('div');
+conflictCompareList.id='recallConflictCompareList';
+conflictCompareList.style.cssText='display:grid;gap:12px;margin-top:10px;';
+conflictReviewBox.append(reviewConflictButton,reviewConflictMessage,conflictCompareList);
 if(status?.parentElement)status.insertAdjacentElement('afterend',conflictReviewBox);
 function updateConflictReviewBox(){
  if(!state.user||state.accountPaused){conflictReviewBox.hidden=true;return}
  const count=state.conflicts.size+state.blocked.size;
  conflictReviewBox.hidden=count===0;
- if(count&&!reviewConflictButton.disabled)reviewConflictMessage.textContent=count+' current/unchecked record group(s). Older recovery copies are retained on this device.';
+ if(count&&!reviewConflictButton.disabled&&!state.conflictReviewHasResult)reviewConflictMessage.textContent=count+' current/unchecked record group(s). Older recovery copies are retained on this device.';
 }
 function contentEquivalent(a,b){
  if(!a||!b)return a===b;
@@ -390,7 +393,7 @@ async function verifyArchivedConflictCopies(){
  }
  assertSession(session);
  const latest=window.RecallSyncConflicts.read(),scanned=new Set(archives.map(row=>row.id));
- const unresolved=new Set();let resolved=0;
+ const unresolved=new Set(),details=new Map();let resolved=0;
  for(const row of latest){
   const key=row.kind+':'+row.recordId,check=checks.get(row.kind);
   if(!scanned.has(row.id)||!check||state.pending.has(key)||state.blocked.has(key)||state.writeErrors.has(key)){unresolved.add(key);continue}
@@ -399,9 +402,16 @@ async function verifyArchivedConflictCopies(){
   // Unique matching live copies (or acknowledged absence on both sides) can
   // prove a historical conflict no longer needs a warning. No records are edited.
   if((device.length===1&&remote.length===1&&contentEquivalent(device[0],remote[0]))||(device.length===0&&remote.length===0))resolved++;
-  else unresolved.add(key);
+  else {
+   unresolved.add(key);
+   details.set(key,{kind:row.kind,recordId:row.recordId,device:device.length===1?withoutRecordType(device[0]):null,
+    cloud:remote.length===1?withoutRecordType(remote[0]):null,
+    reviewable:device.length<=1&&remote.length<=1&&(device.length+remote.length)>0,
+    issue:device.length>1||remote.length>1?'Multiple live copies require manual recovery':device.length===0?'Missing device record':remote.length===0?'Missing cloud record':'Different content'});
+  }
  }
  assertSession(session);
+ state.conflictDetails=[...details.values()];
  state.conflicts.clear();for(const key of unresolved)state.conflicts.add(key);
  syncStatus();
  return {resolved,unresolved:unresolved.size,total:latest.length};
@@ -412,10 +422,12 @@ reviewConflictButton.addEventListener('click',async()=>{
  reviewConflictMessage.textContent='Checking current device and server copies without changing any notes…';
  try{
   const result=await verifyArchivedConflictCopies();
+  state.conflictReviewHasResult=true;
   reviewConflictMessage.textContent=result.unresolved
-   ?result.unresolved+' record group(s) still differ or could not be confirmed. Your original versions remain in Download conflict copies; no data was removed.'
-   :'✓ All archived conflicts verified as historical. The warning is cleared; recovery copies are still saved.';
- }catch(e){reviewConflictMessage.textContent='Verification could not finish. No versions were changed; check network and sign-in.'}
+   ?result.unresolved+' current record group(s) need a decision. Compare both live versions below; older recovery copies remain saved.'
+   :'✓ No current differences found. Original recovery copies remain available.';
+  renderConflictComparisons();
+ }catch(e){state.conflictReviewHasResult=true;reviewConflictMessage.textContent='Verification could not finish. No versions were changed; check network and sign-in.';conflictCompareList.replaceChildren()}
  finally{reviewConflictButton.disabled=false;updateConflictReviewBox()}
 });
 
@@ -538,7 +550,7 @@ function maybeAutoVerifyArchivedConflicts(){
 }
 async function setup(user){
 for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);
-state.epoch++;state.conflictReviewEpoch=-1;state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
+state.epoch++;state.conflictReviewEpoch=-1;state.conflictReviewHasResult=false;state.conflictDetails=[];conflictCompareList.replaceChildren();state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
 state.snapshots=Object.fromEntries(kinds.map(k=>[k,[]]));state.user=user;state.ready=!!user;displayAccount(user);
 if(!user){statusText('Cloud signed out · Device storage is separate');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 // Device records are shared by the app. Never silently migrate one account's notes to another.
