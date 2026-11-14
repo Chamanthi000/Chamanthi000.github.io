@@ -396,7 +396,10 @@ async function verifyArchivedConflictCopies(){
  const unresolved=new Set(),details=new Map();let resolved=0;
  for(const row of latest){
   const key=row.kind+':'+row.recordId,check=checks.get(row.kind);
-  if(!scanned.has(row.id)||!check||state.pending.has(key)||state.blocked.has(key)||state.writeErrors.has(key)){unresolved.add(key);continue}
+  if(!scanned.has(row.id)||!check||state.pending.has(key)||state.blocked.has(key)||state.writeErrors.has(key)){
+   unresolved.add(key);details.set(key,{kind:row.kind,recordId:row.recordId,device:null,cloud:null,reviewable:false,
+    issue:'Cloud write still pending or recovery confirmation unavailable'});continue
+  }
   const device=check.local.filter(x=>idOf(row.kind,x)===row.recordId);
   const remote=check.remote.filter(x=>idOf(row.kind,x)===row.recordId);
   // Unique matching live copies (or acknowledged absence on both sides) can
@@ -459,12 +462,11 @@ function renderConflictComparisons(){
    button.style.cssText='min-height:40px;border:1px solid #b4cdbb;border-radius:8px;background:#e9f3ea;color:#275c42;font-size:12px;font-weight:700;padding:8px 12px;cursor:pointer;';
    button.addEventListener('click',async()=>{
     if(button.disabled)return;
-    const prompt=choice==='device'?'Keep the DEVICE record and save it to Firebase, replacing the current cloud copy?':'Keep the CLOUD record and replace this device copy?';
-    if(!confirm(prompt+' Both original versions are retained in conflict history. You can export them before proceeding.'))return;
     button.disabled=true;
     reviewConflictMessage.textContent='Checking both versions and preserving backups before resolving…';
     try{
-     await resolveReviewedConflict(record.kind,record.recordId,choice,record);
+     const outcome=await resolveReviewedConflict(record.kind,record.recordId,choice,record);
+     if(outcome.cancelled){button.disabled=false;reviewConflictMessage.textContent='No change made. Both copies are still available for comparison.';return}
      reviewConflictMessage.textContent='✓ Conflict selection saved and checked. Refreshing the website…';
      location.reload();
     }catch(e){
@@ -520,6 +522,8 @@ async function resolveReviewedConflict(kind,recordId,choice,reviewed){
  const session=captureSession(),live=await readLiveConflict(kind,recordId,session);
  if(!sameRecord(live.device,reviewed.device)||!sameRecord(live.cloud,reviewed.cloud))throw Error('The current versions have changed; review again.');
  if(!live[choice])throw Error('The selected copy is missing.');
+ const prompt=choice==='device'?'Use the DEVICE version to replace the cloud version?':'Use the CLOUD version to replace the device version?';
+ if(!confirm(prompt+' Both complete originals remain in conflict backups; verify that you have exported the backup if needed.'))return {cancelled:true};
  if(!archiveConflict(kind,live.device,live.cloud))throw Error('Could not confirm a permanent recovery copy.');
  const selected=choice==='device'?{...live.device,updatedAt:new Date().toISOString()}:live.cloud;
  // Verify the device has enough storage before changing anything on the server.
@@ -574,6 +578,12 @@ function archiveConflict(kind,device,cloud){
 }
 window.RecallSyncConflicts={
  verify(){return verifyArchivedConflictCopies()},
+ async inspect(){await verifyArchivedConflictCopies();return state.conflictDetails.map(row=>({...row}))},
+ resolve(kind,recordId,choice){
+  const row=state.conflictDetails.find(record=>record.kind===kind&&record.recordId===recordId);
+  if(!row||!row.reviewable)throw Error('Review the current device and cloud versions before resolving this conflict.');
+  return resolveReviewedConflict(kind,recordId,choice,row);
+ },
  read(){
   try{const data=JSON.parse(localStorage.getItem(CONFLICT_KEY)||'[]');if(!Array.isArray(data))throw Error('Invalid conflict storage');return data}
   catch(e){statusText('⚠ Conflict storage unavailable · Export device records before leaving');throw e}
