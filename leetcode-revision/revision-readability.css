@@ -1944,3 +1944,13 @@ body.rev-index #dataStructureRevision .ds-note-input{
   body.rev-index #dataStructureRevision .ds-editor{padding:0 10px 12px!important}
   body.rev-index #dataStructureRevision .ds-note-input{min-height:300px!important;font-size:14px!important;line-height:1.75!important}
 }
+
+/* Custom revision topics: override the legacy headers-only rule that hid all
+   .ds-add-row controls. Only explicitly requested create/rename rows return. */
+body.rev-index #dataStructureRevision .ds-add-form .ds-add-row,
+body.rev-index #dataStructureRevision .ds-title-form .ds-add-row{
+  display:flex!important;
+  flex-wrap:wrap;
+  align-items:stretch;
+  gap:9px;
+}
