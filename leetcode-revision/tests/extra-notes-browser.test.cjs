@@ -84,6 +84,39 @@ function serve(route){
    await page.evaluate(record=>window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind:'structures',items:[record]}})),remote);
    assert.equal(await page.locator('[data-id="trees"] .dg-private-text').textContent(),'Remote extra note');
    await page.reload();assert.equal(await page.evaluate(()=>window.RecallStructures().find(x=>x.id==='trees').notes),'Remote extra note');
+
+   // A custom notebook is editable, reload-safe and syncs without changing its ID.
+   await page.locator('#dsToggle').click();
+   await page.locator('#dsNewTopicTitle').fill('Binary Search Patterns');
+   await page.locator('#dsAddTopicButton').click();
+   const customId=await page.evaluate(()=>window.RecallStructures().find(x=>x.customTopic===true)?.id);
+   assert.match(customId,/^custom-dsa-/);
+   let custom=page.locator('.ds-topic[data-id="'+customId+'"]');
+   assert.equal(await custom.locator('textarea').isVisible(),true,'new topic starts in edit mode');
+   const customNotes='  Custom <script>alert(1)</script> & "quotes"\n\n    Python: left < right  ';
+   await custom.locator('textarea').fill(customNotes);
+   await custom.locator('[data-edit-id]').click();
+   assert.equal(await page.evaluate(id=>window.RecallStructures().find(x=>x.id===id).notes,customId),customNotes);
+   assert.equal(await custom.locator('script').count(),0,'notes are escaped');
+   await custom.locator('[data-ds-rename-topic]').click();
+   await custom.locator('[data-ds-title-form] input').fill('Two Pointers & Binary Search');
+   await custom.locator('[data-ds-title-form] button[type="submit"]').click();
+   custom=page.locator('.ds-topic[data-id="'+customId+'"]');
+   assert.equal(await custom.locator('.ds-topic-name').textContent(),'Two Pointers & Binary Search');
+   await page.reload();await page.locator('#dsToggle').click();
+   custom=page.locator('.ds-topic[data-id="'+customId+'"]');
+   assert.equal(await custom.locator('textarea').inputValue(),customNotes,'saved after reload');
+   assert.equal(await custom.locator('.ds-topic-name').textContent(),'Two Pointers & Binary Search');
+   await page.locator('#dsNewTopicTitle').fill('Two Pointers & Binary Search');
+   await page.locator('#dsAddTopicButton').click();
+   assert.match(await page.locator('#dsTopicFeedback').textContent(),/already exists/);
+   assert.equal(await page.evaluate(()=>window.RecallStructures().filter(x=>x.customTopic===true).length),1);
+   const updatedPayload=await page.evaluate(()=>window.RecallStructures());
+   await other.evaluate(items=>window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind:'structures',items}})),updatedPayload);
+   const cloudCopy=other.locator('.ds-topic[data-id="'+customId+'"]');
+   assert.equal(await cloudCopy.locator('.ds-topic-name').textContent(),'Two Pointers & Binary Search');
+   assert.equal(await cloudCopy.locator('textarea').inputValue(),customNotes,'editable on a second device');
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'no custom-topic overflow');
    assert.deepEqual(errors,[]);await second.close();await context.close();
   }
   for(const deny of [false,true]){
@@ -98,6 +131,6 @@ function serve(route){
    else{await page.locator('[data-id="queues"] textarea').fill('');await page.locator('[data-id="queues"] [data-edit-id]').click();assert.match(await page.locator('#dsSummary').textContent(),/0 with personal notes/);}
    assert.deepEqual(errors,[]);await context.close();
   }
-  console.log('PASS: Extra notes on all 11 topics; desktop/mobile keyboard editing, exact text and archive preservation, reload/scoped preferences, search, hidden tombstones, two-device synthetic cloud delivery, no page errors.');
+  console.log('PASS: Custom DSA add/rename/save/reload/sync, and Extra notes on all 11 topics; desktop/mobile keyboard editing, exact text and archive preservation, reload/scoped preferences, search, hidden tombstones, two-device synthetic cloud delivery, no page errors.');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1});
