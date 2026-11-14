@@ -237,17 +237,29 @@ async function safeDocumentId(kind,value,session){
  assertSession(session);
  return checkedDocumentId('recall-key-v1-'+kind+'-'+Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join(''));
 }
-async function resolveDocumentId(kind,value,owner,session,forceScan=false){
+async function resolveDocumentId(kind,value,owner,session,forceScan=false,excludedIds=new Set()){
  const legacy=cloudDocId(kind,value);
  if(validDocumentId(legacy)&&!forceScan)return legacy;
- // Only an acknowledged scan of this owner's same collection proves absence.
+ // Use a confirmed, owner-scoped server scan before remapping a legacy ID.
+ // An unrelated note may already occupy both the original ID and the first
+ // deterministic fallback. Never overwrite that note or guess from cache.
  const snapshot=await getDocsFromServer(owner);
  assertSession(session);
  if(snapshot.metadata?.fromCache!==false||snapshot.metadata?.hasPendingWrites!==false)throw Error('Server record lookup was not acknowledged; save stopped.');
  const matches=snapshot.docs.filter(document=>{const row=document.data();return isMember(kind,row)&&idOf(kind,row)===idOf(kind,value)});
  if(matches.length>1)throw Error('Multiple cloud documents match this record; save stopped.');
- if(matches.length)return checkedDocumentId(matches[0].id);
- return safeDocumentId(kind,value,session);
+ if(matches.length){
+  const match=checkedDocumentId(matches[0].id);
+  if(excludedIds.has(match))throw Error('Cloud identity changed during verification; save stopped.');
+  return match;
+ }
+ const occupied=new Set(snapshot.docs.map(document=>document.id));
+ const baseId=await safeDocumentId(kind,value,session);
+ for(let attempt=0;attempt<12;attempt++){
+  const candidate=checkedDocumentId(attempt===0?baseId:baseId+'-'+attempt);
+  if(!occupied.has(candidate)&&!excludedIds.has(candidate))return candidate;
+ }
+ throw Error('No verified safe document path is available; save stopped.');
 }
 async function writeWithHistory(kind,value,options={}){
  const session=options.session||(state.user?captureSession():null);
@@ -256,7 +268,7 @@ async function writeWithHistory(kind,value,options={}){
  try{
  const owner=list(kind,session);
  let physicalId=await resolveDocumentId(kind,value,owner,session);
- let collisionChecked=false;
+ const collidingIds=new Set();
  for(;;){
  assertSession(session);
  const ref=doc(owner,checkedDocumentId(physicalId));
@@ -310,13 +322,16 @@ async function writeWithHistory(kind,value,options={}){
   operation='transaction-commit';
   return {result:'saved',archived};
  });}catch(error){
-  // If a normal ID is occupied by a different cloud record, never overwrite it.
-  // A confirmed server scan finds the original logical record or a new safe ID.
-  const legacy=cloudDocId(kind,value);
-  if(!collisionChecked&&physicalId===legacy&&validDocumentId(legacy)&&error?.message==='Cloud document identity mismatch; save stopped.'){
-   collisionChecked=true;
+  // Firestore document IDs are shared across coding, structures and concepts.
+  // A wrong-kind occupant can sit at the original ID *or* at an older hashed
+  // fallback. Recheck the server for every collision, with a bounded number
+  // of candidate IDs, before retrying an identity-guarded transaction.
+  if(error?.message==='Cloud document identity mismatch; save stopped.'&&collidingIds.size<12){
+   collidingIds.add(physicalId);
    operation='document-reference';
-   physicalId=await resolveDocumentId(kind,value,owner,session,true);
+   const nextId=await resolveDocumentId(kind,value,owner,session,true,collidingIds);
+   if(collidingIds.has(nextId))throw error;
+   physicalId=nextId;
    continue;
   }
   throw error;
