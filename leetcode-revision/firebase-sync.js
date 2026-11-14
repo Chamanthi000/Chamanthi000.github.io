@@ -411,11 +411,12 @@ async function verifyArchivedConflictCopies(){
   else {
    unresolved.add(key);
    details.set(key,{kind:row.kind,recordId:row.recordId,device:device.length===1?withoutRecordType(device[0]):null,
+    deviceCopies:device.length>1?device.map(withoutRecordType):[],
     cloud:remote.length===1?withoutRecordType(remote[0]):null,
     cloudCopies:remote.length>1?remoteDocs.map(x=>({physicalId:x.physicalId,value:withoutRecordType(x.value)})).sort((a,b)=>a.physicalId.localeCompare(b.physicalId)):[],
-    duplicateCloud:remote.length>1&&device.length===1,
-    reviewable:device.length<=1&&(remote.length<=1||device.length===1)&&(device.length+remote.length)>0,
-    issue:device.length>1?'Multiple device copies require manual recovery':remote.length>1?'Multiple cloud copies of the same topic; save the device version and archive every cloud original':device.length===0?'Missing device record':remote.length===0?'Missing cloud record':'Different content'});
+    duplicateDevice:device.length>1,duplicateCloud:remote.length>1,
+    reviewable:(device.length>=1&&device.length<=20&&remote.length<=100)||(device.length===0&&remote.length===1),
+    issue:device.length>1?'Multiple versions on this device; choose which one to keep and archive every original':remote.length>1?'Multiple cloud copies of the same topic; save the device version and archive every cloud original':device.length===0?'Missing device record':remote.length===0?'Missing cloud record':'Different content'});
   }
  }
  assertSession(session);
@@ -448,13 +449,19 @@ function renderConflictComparisons(){
    conflictCompareList.append(card);continue;
   }
   const different=compareFieldNames(record.device,record.cloud);
-  if(record.duplicateCloud)card.append(make('p',record.cloudCopies.length+' cloud copies found. Choosing the device version will archive every cloud copy before leaving one current topic.','font-size:12px;color:#31553f;margin:5px 0;'));
+  if(record.duplicateCloud||record.duplicateDevice)card.append(make('p',
+   (record.duplicateDevice?record.deviceCopies.length+' device copies. ':'1 device copy. ')+
+   (record.duplicateCloud?record.cloudCopies.length+' cloud copies. ':record.cloud?'1 cloud copy. ':'No cloud copy. ')+
+   'Choose the device copy to keep. All other originals will be saved as recovery history.',
+   'font-size:12px;color:#31553f;margin:5px 0;'));
   else card.append(make('p','Different fields: '+(different.length?different.join(', '):'record presence'),'font-size:12px;overflow-wrap:anywhere;'));
   const detail=make('details','');
   detail.style.cssText='margin:8px 0;';
   const summary=make('summary','Compare full current versions','font-size:13px;cursor:pointer;font-weight:700;padding:6px 0;');
   detail.append(summary);
-  const versions=record.duplicateCloud?[['On this device',record.device],...record.cloudCopies.map((copy,i)=>['Cloud copy '+(i+1)+' ('+copy.physicalId+')',copy.value])]:[['On this device',record.device],['In Firebase cloud',record.cloud]];
+  const deviceVersions=record.duplicateDevice?record.deviceCopies.map((copy,i)=>['Device copy '+(i+1),copy]):[['On this device',record.device]];
+  const cloudVersions=record.duplicateCloud?record.cloudCopies.map((copy,i)=>['Cloud copy '+(i+1)+' ('+copy.physicalId+')',copy.value]):[['In Firebase cloud',record.cloud]];
+  const versions=[...deviceVersions,...cloudVersions];
   for(const [label,value] of versions){
    const heading=make('strong',label,'font-size:12px;display:block;margin-top:8px;');
    const full=make('pre',value===null?'No current record':JSON.stringify(value,null,2),'font:12px/1.5 ui-monospace,monospace;overflow:auto;max-height:250px;background:#f7faf7;border:1px solid #e0eae1;padding:10px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;');
@@ -463,7 +470,7 @@ function renderConflictComparisons(){
   card.append(detail);
   const actions=make('div','');
   actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;';
-  const addChoice=(choice,label)=>{
+  const addChoice=(choice,label,deviceIndex=null)=>{
    const button=make('button',label);
    button.type='button';
    button.style.cssText='min-height:40px;border:1px solid #b4cdbb;border-radius:8px;background:#e9f3ea;color:#275c42;font-size:12px;font-weight:700;padding:8px 12px;cursor:pointer;';
@@ -472,7 +479,7 @@ function renderConflictComparisons(){
     button.disabled=true;
     reviewConflictMessage.textContent='Checking both versions and preserving backups before resolving…';
     try{
-     const outcome=await resolveReviewedConflict(record.kind,record.recordId,choice,record);
+     const outcome=await resolveReviewedConflict(record.kind,record.recordId,choice,record,deviceIndex);
      if(outcome.cancelled){button.disabled=false;reviewConflictMessage.textContent='No change made. Both copies are still available for comparison.';return}
      reviewConflictMessage.textContent='✓ Conflict selection saved and checked. Refreshing the website…';
      location.reload();
@@ -483,8 +490,9 @@ function renderConflictComparisons(){
    });
    actions.append(button);
   };
-  if(record.device)addChoice('device',record.duplicateCloud?'Use device version · archive '+record.cloudCopies.length+' duplicates':record.cloud?'Use device version':'Save device copy to cloud');
-  if(record.cloud&&!record.duplicateCloud)addChoice('cloud',record.device?'Use cloud version':'Restore cloud copy to device');
+  if(record.duplicateDevice)record.deviceCopies.forEach((_,i)=>addChoice('device','Use device copy '+(i+1)+' · preserve other versions',i));
+  else if(record.device)addChoice('device',record.duplicateCloud?'Use device version · archive '+record.cloudCopies.length+' duplicates':record.cloud?'Use device version':'Save device copy to cloud');
+  if(record.cloud&&!record.duplicateCloud&&!record.duplicateDevice)addChoice('cloud',record.device?'Use cloud version':'Restore cloud copy to device');
   card.append(actions);
   conflictCompareList.append(card);
  }
@@ -504,9 +512,8 @@ async function readLiveConflict(kind,recordId,session){
  const remoteDocs=snapshot.docs.filter(x=>isMember(kind,x.data())&&idOf(kind,x.data())===recordId)
   .map(x=>({physicalId:x.id,value:x.data()})).sort((a,b)=>a.physicalId.localeCompare(b.physicalId));
  const local=deviceRecords(kind).filter(row=>idOf(kind,row)===recordId);
- if(local.length>1)throw Error('Multiple live device originals require manual review.');
- return {device:local[0]?withoutRecordType(local[0]):null,
-  cloud:remoteDocs.length===1?withoutRecordType(remoteDocs[0].value):null,cloudCopies:remoteDocs.length>1?remoteDocs:[]};
+ return {device:local.length===1?withoutRecordType(local[0]):null,deviceCopies:local.map(withoutRecordType),
+  cloud:remoteDocs.length===1?withoutRecordType(remoteDocs[0].value):null,cloudCopies:remoteDocs};
 }
 function replaceDeviceConflictRecord(kind,recordId,value,expected){
  const storageKey=LOCAL_KEYS[kind];
