@@ -79,11 +79,38 @@ for(const occupant of [record('different-logical-id'),{...record('a/b'),recordTy
  assert.deepEqual(results,[]);unchanged(f,b,before,local);
 });
 
-test('ordinary valid path collision also stops rather than treating another kind as a conflict',async()=>{
+test('valid ID collision triggers verified scan and writes to a safe separate document',async()=>{
  const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('42');
- f.store.set(path('42'),{...local,recordType:'structure'});const before=structuredClone([...f.store]);
- f.controls.read=()=>{throw Error('ordinary paths must not scan')};f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,before,local);assert.deepEqual(f.cloud.writeErrors,writeFailure('target-read'));
+ const occupied={...local,recordType:'structure'};f.store.set(path('42'),occupied);
+ const scans=[];f.controls.read=owner=>scans.push(owner);
+ f.local('coding',[local]);await b.runTimers(180);
+ assert.deepEqual(scans,[owner()]);
+ assert.deepEqual(f.store.get(path('42')),occupied);
+ assert.deepEqual(f.store.get(path(mapped('42'))),local);
+ assert.deepEqual(f.writes.map(x=>x.key),[path(mapped('42'))]);
+ assert.deepEqual(b.rows('coding'),[local]);assert.deepEqual(b.rows('conflicts'),copies);
+ assert.deepEqual(f.cloud.writeErrors,[]);assert.equal(f.cloud.pendingCount,0);
+});
+
+test('occupied normal ID reuses uniquely matching legacy document, preserving other kind',async()=>{
+ const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();
+ const local=record('42'),old=record('42','2026-01-01'),other={...local,recordType:'structure'};
+ f.store.set(path('42'),other);f.store.set(path('legacy-other'),old);
+ f.local('coding',[local]);await b.runTimers(180);
+ assert.deepEqual(f.store.get(path('42')),other);
+ assert.deepEqual(f.store.get(path('legacy-other')),local);
+ assert.equal(f.store.has(path(mapped('42'))),false);
+ assert.deepEqual(f.store.get(path(history('42'))).versions[0].value,old);
+ assert.deepEqual(f.cloud.writeErrors,[]);
+});
+
+test('unacknowledged scan after valid ID collision stops without overwriting either record',async()=>{
+ const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('42');
+ const occupied={...local,recordType:'structure'};f.store.set(path('42'),occupied);
+ const before=structuredClone([...f.store]);f.controls.readMetadata={fromCache:true,hasPendingWrites:false};
+ f.local('coding',[local]);await b.runTimers(180);
+ unchanged(f,b,before,local);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown',stage:'document-reference',reason:'server-scan-unconfirmed'}]);
 });
 
 for(const change of [{originKind:'sql'},{originId:'unrelated'},{recordType:'structure'},{originKind:undefined,originId:undefined}])test('existing history origin must match before any target/history write: '+JSON.stringify(change),async()=>{
