@@ -882,3 +882,24 @@ test('duplicate device selection cannot overwrite an alternative changed by anot
  assert.deepEqual(f.store.get('users/account-A/coding/structure-arrays'),cloud);
  assert.equal(b.rows('structures')[1].notes,'new unsynced content');
 });
+
+
+test('interim Firestore snapshot cannot replace device alternatives during duplicate reconciliation',async()=>{
+ const first=item('arrays','device first'),second=item('arrays','device chosen','2026-02-01');
+ const cloudA={...item('arrays','cloud old'),recordType:'structure'},cloudB={...item('arrays','cloud duplicate'),recordType:'structure'};
+ const b=browser({structures:[first,second],conflicts:[{id:'race',kind:'structures',recordId:'arrays',device:first,cloud:cloudA}]}),f=await firebase(b);
+ f.store.set('users/account-A/coding/structure-arrays',cloudA);
+ f.store.set('users/account-A/coding/legacy-arrays',cloudB);
+ await f.auth();await b.window.RecallSyncConflicts.inspect();
+ let checks=0;
+ f.controls.afterCommit=async()=>{
+  checks++;f.emit('coding');
+  assert.deepEqual(b.rows('structures'),[first,second],'intermediate cloud snapshot must not discard locally stored choices');
+ };
+ const outcome=await b.window.RecallSyncConflicts.resolve('structures','arrays','device',1);
+ assert.equal(outcome.resolved,true);assert.equal(checks,1);
+ assert.equal(b.rows('structures').length,1);
+ assert.equal(b.rows('structures')[0].notes,'device chosen');
+ assert.equal((await f.cloud.readAll({serverOnly:true})).structures.filter(x=>x.id==='arrays').length,1);
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
+});
