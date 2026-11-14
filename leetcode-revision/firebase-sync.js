@@ -523,6 +523,52 @@ function replaceDeviceConflictRecord(kind,recordId,value,expected){
  localStorage.setItem(storageKey,encoded);
  if(localStorage.getItem(storageKey)!==encoded)throw Error('Device save could not be verified.');
 }
+// A confirmed duplicate-ID scan may find several physical Firestore documents for
+// one logical DSA topic. Do not arbitrarily choose an original or delete it.
+// Atomically turn each original into a private history record at its SAME path,
+// then create a single new active record using the device's exact note content.
+async function resolveDuplicateCloudCopies(kind,recordId,selected,live,session){
+ assertSession(session);
+ const originals=live.cloudCopies;
+ if(!live.device||originals.length<2||originals.length>100)throw Error('Cannot safely resolve duplicate cloud originals.');
+ if(idOf(kind,selected)!==recordId)throw Error('Device record identity changed.');
+ const owner=list(kind,session);
+ const baseId=await safeDocumentId(kind,selected,session);
+ const canonicalId=checkedDocumentId('recall-choice-v1-'+baseId.slice('recall-key-v1-'.length));
+ const originalIds=new Set(),archiveDate=new Date().toISOString(),prepared=[];
+ for(const original of originals){
+  const physicalId=checkedDocumentId(original.physicalId);
+  if(originalIds.has(physicalId)||physicalId===canonicalId)throw Error('Cloud physical identities are ambiguous.');
+  originalIds.add(physicalId);
+  if(!isMember(kind,original.value)||idOf(kind,original.value)!==recordId)throw Error('Cloud record identity changed.');
+  // The full original, including all custom and typed fields, remains recoverable
+  // in cloud history at its prior physical ID. No delete or content truncation.
+  const archive={recordType:'syncBackup',originKind:kind,originId:recordId,
+   originPhysicalId:physicalId,updatedAt:archiveDate,reason:'duplicate-record-recovery',
+   versions:[{archivedAt:archiveDate,value:original.value}]};
+  if(new TextEncoder().encode(JSON.stringify(archive)).length>700000)throw Error('Cloud record is too large to safely archive; export and review first.');
+  prepared.push({physicalId,original:original.value,archive});
+ }
+ // Also retain device/cloud pairs locally before attempting any Firestore writes.
+ for(const item of prepared)if(!archiveConflict(kind,live.device,withoutRecordType(item.original)))throw Error('One or more recovery copies could not be saved on this device.');
+ const canonicalRef=doc(owner,canonicalId),backupRefs=prepared.map(x=>doc(owner,x.physicalId));
+ await runTransaction(db,async tx=>{
+  assertSession(session);
+  // Read every original and the destination before issuing even one write.
+  const [destination,...copies]=await Promise.all([tx.get(canonicalRef),...backupRefs.map(ref=>tx.get(ref))]);
+  assertSession(session);
+  if(destination.exists())throw Error('Recovery destination is already occupied.');
+  for(let i=0;i<copies.length;i++){
+   if(!copies[i].exists()||!sameRecord(copies[i].data(),prepared[i].original)){
+    throw Error('A cloud original changed during recovery; no records were written.');
+   }
+  }
+  for(let i=0;i<prepared.length;i++)tx.set(backupRefs[i],prepared[i].archive);
+  tx.set(canonicalRef,prepare(kind,selected));
+ });
+ assertSession(session);
+}
+
 async function resolveReviewedConflict(kind,recordId,choice,reviewed){
  const key=kind+':'+recordId;
  if(!state.user||state.accountPaused||!state.conflicts.has(key)||state.blocked.has(key)||
