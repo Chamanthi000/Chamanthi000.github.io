@@ -77,6 +77,10 @@ const root=path.resolve(__dirname,'..');
    assert.equal(progress.history[0].codeBlind,'no');
    assert.equal(progress.focus,'blind-coding');
    assert.equal(progress.nextReview,await page.evaluate(()=>window.RecallRevisionPlan.plusDays(window.RecallRevisionPlan.dayKey(),1)));
+   assert.equal(await page.locator('#dailyTasks [data-day-action="check"][data-task="rp-arrays"]').isChecked(),true,'daily task can be checked only after real assessment');
+   const tomorrowPreview=await page.locator('#rpTomorrowItems').textContent();
+   assert.ok(tomorrowPreview.includes('Arrays'));
+   assert.ok(tomorrowPreview.includes('Focus next: write the code without opening the solution.'), 'tomorrow targets the actual missed coding skill');
    assert.equal(await page.locator('#rpTodayItems .rpItem').count(),0);
    // Register a just-learned new topic even if it has no notes yet.
    await page.locator('#rpStudyInput').fill('Heap sort');
