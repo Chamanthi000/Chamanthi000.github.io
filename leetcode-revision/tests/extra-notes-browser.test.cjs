@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require(process.env.DSA_PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'..'),key='recall-structures-v1',openKey='recall-dsa-extra-notes-open-v1';
-const topics=['arrays','strings','hash-maps','linked-lists','stacks','queues','trees','heaps','graphs','tries','union-find'];
+const topics=['arrays','strings','hash-maps','linked-lists','stacks','queues','trees','heaps','graphs','tries','union-find','sorting'];
 const original='  Private <img src=x onerror=alert(1)> & "quotes"\n\n    indent and trailing spaces  ';
 const seed=topics.map(id=>({id,title:id,notes:original,updatedAt:'2026-01-01',metadata:{preserve:id}}));
 seed[0]={...seed[0],notes:'',arrayMergeVersion:1,arrayIntegratedNotes:original,arrayLegacyBackup:'Original Arrays archive'};
@@ -24,7 +24,7 @@ function serve(route){
    const page=await context.newPage();page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
    await page.addInitScript(({seed,key})=>{if(!localStorage.getItem('seeded')){localStorage.setItem(key,JSON.stringify(seed));localStorage.setItem('seeded','yes')}window.sent=[];window.addEventListener('recall-cloud-local',e=>window.sent.push(e.detail));},{seed,key});
    await page.goto('http://extra-notes.test/#coding');await page.locator('#dsToggle').click();
-   assert.equal(await page.locator('.ds-extra-notes').count(),11);
+   assert.equal(await page.locator('.ds-extra-notes').count(),12);
    assert.deepEqual(await page.evaluate(()=>window.RecallStructures()),seed,'opening UI must not rewrite records');
    for(const id of topics){
     await page.locator('[data-nav-id="'+id+'"]').click();
@@ -123,7 +123,7 @@ function serve(route){
    const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});await context.route('**/*',serve);
    if(deny)await context.addInitScript(()=>{Storage.prototype.setItem=function(){throw Error('fixture storage denied')}});
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('http://extra-notes.test/#coding');await page.locator('#dsToggle').click();
-   assert.equal(await page.locator('.ds-extra-notes').count(),11,'blank notebooks still have Extra notes');
+   assert.equal(await page.locator('.ds-extra-notes').count(),12,'blank notebooks still have Extra notes');
    await page.locator('[data-nav-id="queues"]').click();await page.locator('#ds-extra-notes-queues > summary').click();await page.locator('[data-id="queues"] [data-edit-id]').click();
    assert.equal(await page.locator('[data-id="queues"] textarea').inputValue(),'');await page.locator('[data-id="queues"] textarea').fill('First extra note');
    assert.equal(await page.evaluate(()=>window.RecallStructures().find(x=>x.id==='queues').notes),'First extra note');
@@ -131,6 +131,6 @@ function serve(route){
    else{await page.locator('[data-id="queues"] textarea').fill('');await page.locator('[data-id="queues"] [data-edit-id]').click();assert.match(await page.locator('#dsSummary').textContent(),/0 with personal notes/);}
    assert.deepEqual(errors,[]);await context.close();
   }
-  console.log('PASS: Custom DSA add/rename/save/reload/sync, and Extra notes on all 11 topics; desktop/mobile keyboard editing, exact text and archive preservation, reload/scoped preferences, search, hidden tombstones, two-device synthetic cloud delivery, no page errors.');
+  console.log('PASS: Custom DSA add/rename/save/reload/sync, and Extra notes on all 12 topics; desktop/mobile keyboard editing, exact text and archive preservation, reload/scoped preferences, search, hidden tombstones, two-device synthetic cloud delivery, no page errors.');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1});
