@@ -75,11 +75,37 @@ function verifyDevice(kind,items){
  if(deviceHas(kind,items))state.localFailures.delete(kind);else state.localFailures.add(kind);
  state.localFailure=state.localFailures.size>0;
 }
+const DEVICE_BACKUPS_KEY='recall-device-backup-records-v1';
+function separateCodingBackups(rows){
+ const misplaced=rows.filter(item=>item?.recordType==='syncBackup');
+ if(!misplaced.length)return rows;
+ try{
+  const raw=localStorage.getItem(DEVICE_BACKUPS_KEY),saved=raw===null?[]:JSON.parse(raw);
+  if(!Array.isArray(saved))throw Error('Invalid device backup archive');
+  const archive=[...saved];
+  for(const item of misplaced)if(!archive.some(old=>JSON.stringify(old)===JSON.stringify(item)))archive.push(item);
+  const encoded=JSON.stringify(archive);
+  localStorage.setItem(DEVICE_BACKUPS_KEY,encoded);
+  if(localStorage.getItem(DEVICE_BACKUPS_KEY)!==encoded)throw Error('Device backup archive readback failed');
+  const kept=rows.filter(item=>item?.recordType!=='syncBackup'),notes=JSON.stringify(kept);
+  localStorage.setItem(LOCAL_KEYS.coding,notes);
+  if(localStorage.getItem(LOCAL_KEYS.coding)!==notes)throw Error('Coding notebook readback failed');
+  for(const item of misplaced){
+   const key='coding:'+idOf('coding',item);clearTimeout(state.timers.get(key));
+   state.timers.delete(key);state.pending.delete(key);state.writeErrors.delete(key);state.retries.delete(key);
+  }
+  return kept;
+ }catch{
+  state.localFailures.add('coding');state.localFailure=true;
+  statusText('⚠ Recovery copy could not be separated · Device notes retained; export a backup');
+  throw Error('Device recovery copy could not be safely separated.');
+ }
+}
 function send(kind){
  // Disk may contain another tab's edit that the app's in-memory accessor has not seen.
  // Never dispatch a replacement until every different persisted copy is retained or archived.
  let stored;
- try{stored=deviceRecords(kind)}catch{
+ try{stored=deviceRecords(kind);if(kind==='coding')stored=separateCodingBackups(stored)}catch{
   state.localFailures.add(kind);state.localFailure=true;
   statusText('⚠ Device storage unreadable · Cloud records were not applied; export before leaving');return;
  }
@@ -123,7 +149,7 @@ function syncStatus(){
  if(state.blocked.size||state.conflicts.size){report('⚠ Conflicts · Device copies retained; review or export conflict copies');return}
  if(typeof navigator!=='undefined'&&navigator.onLine===false){report('Offline · Cloud changes waiting for reconnection');return}
  if(write){statusText('⚠ '+write+' · Device copy retained');return}
- if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending · Sync check v17: '+[...state.writeErrors.values()].filter(isUnclassifiedReferenceRetry).map(e=>[e.kind,e.referenceStep||'reference',e.errorType||'unclassified',e.sourceLine?'line '+e.sourceLine:''].filter(Boolean).join(' / ')).join('; '):'✓ Saved on device · Waiting for cloud acknowledgement');return}
+ if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending · Sync check v18: '+[...state.writeErrors.values()].filter(isUnclassifiedReferenceRetry).map(e=>[e.kind,e.referenceStep||'reference',e.errorType||'unclassified',e.sourceLine?'line '+e.sourceLine:''].filter(Boolean).join(' / ')).join('; '):'✓ Saved on device · Waiting for cloud acknowledgement');return}
  if(page.every(k=>state.confirmed.has(k)))statusText('✓ Cloud confirmed · Server acknowledged current notebooks');
  else statusText('Waiting · Cached data or remaining notebooks need server acknowledgement');
 }
@@ -922,6 +948,7 @@ for(const kind of page){
   state.initial.add(kind);
   const output=new Map(remote.map(x=>[idOf(kind,x),x]));
   for(const item of existing){
+   if(kind==='coding'&&item?.recordType==='syncBackup')continue;
    const id=idOf(kind,item),key=kind+':'+id,cloud=output.get(id);
    const localStamp=String(item.updatedAt||item.createdAt||''),cloudStamp=String(cloud?.updatedAt||cloud?.createdAt||'');
    if(!cloud||localStamp>cloudStamp){
