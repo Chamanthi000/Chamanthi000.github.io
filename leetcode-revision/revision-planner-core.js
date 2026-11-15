@@ -41,8 +41,15 @@ function collectTopics(noteRows,progressRows,today=dayKey()){
   if(!previous||String(item.updatedAt||'')>String(previous.updatedAt||''))notes.set(id,item);
  }
  const all=new Map();
+ const titleCounts=new Map();
+ for(const item of notes.values()){const title=titleKey(item.title);titleCounts.set(title,(titleCounts.get(title)||0)+1);}
+ const manualByTitle=new Map([...states.values()].filter(row=>String(row.topicId||'').startsWith('manual:')).map(row=>[titleKey(row.title),row]));
  for(const item of notes.values()){
-  const id=String(item.id),progress=states.get(id);
+  const directId=String(item.id),key=titleKey(item.title);
+  // A manually tracked subject and newly created private notebook with the same
+  // unambiguous title are one study topic. Retain the manual review schedule.
+  const manual=states.has(directId)||titleCounts.get(key)!==1?null:manualByTitle.get(key);
+  const id=manual?String(manual.topicId):directId,progress=states.get(id);
   const initial=dateFromRecord(item,today),started=validDay(progress?.startedOn)?progress.startedOn:initial;
   const next=validDay(progress?.nextReview)?progress.nextReview:plusDays(started,INTERVALS[0]);
   all.set(id,{id,title:item.title,startedOn:started,nextReview:next,stage:Math.max(0,Math.min(5,Number(progress?.stage)||0)),
