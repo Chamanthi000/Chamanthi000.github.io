@@ -1,0 +1,38 @@
+/* Compact review-first UI: designed to fit iPhone, iPad and desktop. */
+.revisionPlanner{padding:18px 20px;margin:0 0 19px;border:1px solid #dae9dc;background:#f8fbf7;border-radius:17px;color:#294936;min-width:0}
+.rpHeader{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.rpHeader .eyebrow{font-size:10px;font-weight:800;letter-spacing:.13em;color:#57836a;text-transform:uppercase;margin-bottom:4px}
+.rpHeader h2{font-size:21px;line-height:1.24;margin:0 0 4px;letter-spacing:-.035em;color:#274a37}
+.rpHeader p{font-size:12px;line-height:1.55;margin:0;color:#647e6c;max-width:640px}
+.rpCount{padding:7px 11px;background:#edf5eb;border:1px solid #d5e5d3;border-radius:99px;color:#416b50;font-size:11px;font-weight:650;max-width:100%}
+.rpGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rpDay{border-radius:13px;background:#fff;border:1px solid #dde8dc;padding:13px;min-width:0}
+.rpDayTop{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px}
+.rpDayTop h3{font-size:14px;color:#294b37;margin:0}
+.rpDayTop time{font-size:11px;color:#728878}
+.rpItem{background:#f7faf6;border:1px solid #e5eee3;padding:11px;border-radius:10px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:7px 0;min-width:0}
+.rpInfo{min-width:0;flex:1 1 120px}
+.rpInfo strong{font-size:13px;color:#294d36;display:block;overflow-wrap:anywhere}
+.rpInfo small{font-size:11px;color:#718976;line-height:1.45;display:block;margin-top:3px}
+.rpItemActions{display:flex;gap:6px;flex-wrap:wrap}
+.rpItem button{font:700 11px -apple-system,BlinkMacSystemFont,"DM Sans",sans-serif;border:1px solid #397b54;background:#2d6847;color:white;border-radius:8px;min-height:39px;padding:8px 9px}
+.rpItem button.rpSecondary{color:#315c43;background:white;border-color:#bdd8c2}
+.rpItem button:focus-visible,.rpStudyForm button:focus-visible,.rpFooter button:focus-visible,.rpStudyForm input:focus-visible{outline:3px solid #a2c9ac;outline-offset:2px}
+.rpEmpty{font-size:12px!important;color:#778d7d!important;margin:10px 0!important}
+.rpUpcoming{margin:12px 0 0;border-top:1px solid #dce8dc;padding-top:11px}
+.rpUpcomingHeader{font-size:11px;color:#4f7659;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px}
+#rpUpcoming{display:flex;gap:7px;flex-wrap:wrap}
+.rpFuture{background:#edf4ec;border:1px solid #dbe6d8;padding:7px 9px;border-radius:8px;font-size:11px;color:#375d46;overflow-wrap:anywhere;max-width:100%}
+.rpFooter{margin-top:12px;padding-top:11px;border-top:1px solid #dce8dc;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;justify-content:space-between}
+.rpStudyForm{flex:2 1 280px;min-width:0;margin:0}
+.rpStudyForm label{display:block;font-size:12px;font-weight:750;margin-bottom:6px;color:#3c6347}
+.rpStudyRow{display:flex;flex-wrap:wrap;gap:8px}
+.rpStudyRow input{border:1px solid #cddfce;border-radius:9px;padding:10px 11px;min-height:43px;flex:1 1 170px;min-width:0;font:inherit;font-size:13px;color:#2a4b35;background:white}
+.rpStudyForm button,.rpFooter button{border:1px solid #2c6848;background:#2d6847;color:#fff;border-radius:9px;padding:10px 12px;min-height:43px;font-size:12px;font-weight:750}
+.rpFooter button.rpChecklistButton{border-color:#bcd2c1;background:white;color:#2e5d42;max-width:100%;white-space:normal;text-align:left}
+.rpFooter button:disabled{opacity:.5;cursor:not-allowed}
+.rpFootnote{font-size:11px;color:#6c846f;line-height:1.5;margin:8px 0 0}
+.rpFootnote[data-error="true"]{color:#a83e43}
+#rpCarryover{font-size:11px;color:#66806c}
+@media(max-width:690px){.revisionPlanner{padding:14px 12px}.rpGrid{grid-template-columns:1fr}.rpHeader h2{font-size:19px}.rpItem{padding:10px}.rpItemActions{width:100%}.rpItemActions button{flex:1}.rpFooter{align-items:stretch}.rpChecklistButton{width:100%}.rpStudyForm{flex-basis:100%}}
+@media(prefers-reduced-motion:reduce){.revisionPlanner *, .revisionPlanner *::before{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
