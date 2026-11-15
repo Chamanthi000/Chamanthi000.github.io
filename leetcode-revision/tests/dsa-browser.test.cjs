@@ -14,7 +14,7 @@ try {
 }
 const root = path.resolve(__dirname, '..');
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'recall-browser-'));
-const topics = ['arrays', 'strings', 'hash-maps', 'linked-lists', 'stacks', 'queues', 'trees', 'heaps', 'graphs', 'tries', 'union-find'];
+const topics = ['arrays', 'strings', 'hash-maps', 'linked-lists', 'stacks', 'queues', 'trees', 'heaps', 'graphs', 'tries', 'union-find', 'sorting'];
 const KEY = 'recall-structures-v1';
 const OPEN = 'recall-dsa-guides-open-v1';
 const privateText = '  PRIVATE fixture <tag> & "quotes"\n\n    keep indentation and trailing spaces  ';
@@ -28,6 +28,8 @@ const seed = [
 const files = new Map([
   ['/arrays.js', path.join(root, 'array-interview-guide.js')],
   ['/strings.js', path.join(root, 'string-interview-guide.js')],
+   ['/sorting.js',path.join(root,'sorting-interview-guide.js')],
+   ['/sorting.css',path.join(root,'sorting-interview-guide.css')],
   ['/revision.js', path.join(root, 'data-structure-revision.js')],
   ['/guides.css', path.join(root, 'array-interview-guide.css')],
   ['/guides.js', path.join(temporary, 'guides.js')]
@@ -45,8 +47,8 @@ async function run() {
     if (url.pathname === '/') {
       const mode = url.searchParams.get('mode');
       const guideScript = ['missing', 'all-missing'].includes(mode) ? '' : '<script src="/guides.js' + (mode === 'empty' ? '?empty=1' : '') + '"></script>';
-      const legacyScripts = mode === 'all-missing' ? '' : '<script src="/arrays.js"></script><script src="/strings.js"></script>';
-      return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/guides.css"></head><body class="rev-index"><div id="foundationCourse"></div>' + legacyScripts + guideScript + '<script src="/revision.js"></script></body></html>' });
+      const legacyScripts = mode === 'all-missing' ? '' : '<script src="/arrays.js"></script><script src="/strings.js"></script><script src="/sorting.js"></script>';
+      return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/guides.css"><link rel="stylesheet" href="/sorting.css"></head><body class="rev-index"><div id="foundationCourse"></div>' + legacyScripts + guideScript + '<script src="/revision.js"></script></body></html>' });
     } else if (url.pathname === '/guides.js' && url.searchParams.has('empty')) {
       return route.fulfill({ contentType: 'application/javascript', body: 'window.RecallDSAGuides = Object.create(null);' });
     } else if (files.has(url.pathname)) {
@@ -78,7 +80,7 @@ async function run() {
   }, { seed, key: KEY, open: OPEN });
   await page.goto(base);
   await page.locator('#dsToggle').click();
-  assert.equal(await page.locator('.ds-topic').count(), 11);
+  assert.equal(await page.locator('.ds-topic').count(), 12);
   const canonicalIds=topics;
   assert.deepEqual(await page.locator('.ds-topic').evaluateAll(nodes=>nodes.map(node=>node.dataset.id)),canonicalIds);
   assert.equal(await page.locator('.dg > .ag-section:not(.ag-private-notes)').count(), 88);
@@ -161,18 +163,18 @@ async function run() {
   assert.equal(await topic('hash-maps').locator('#dg-hash-maps-template-0').evaluate(el=>el.open),true,'nested preferences survive refresh');
   assert.equal(await topic('hash-maps').locator('#dg-hash-maps-template-0 .dg-recall').evaluate(el=>el.open),true,'reveal preference survives refresh');
 
-  // The fixed DSA list ends at Union Find; hidden records stay intact.
+  // Sorting is the final built-in DSA section; hidden records stay intact.
   assert.equal(await page.locator('[data-nav-id="custom-existing"]').count(), 0);
   assert.equal(await page.locator('[data-id="custom-existing"]').count(), 0);
   assert.equal(await page.locator('#dsAdd, #dsNewTitle, [data-remove]').count(), 0);
-  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'), 'union-find');
-  assert.equal(await page.locator('[data-nav-id]').last().getAttribute('data-nav-id'), 'union-find');
+  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'), 'sorting');
+  assert.equal(await page.locator('[data-nav-id]').last().getAttribute('data-nav-id'), 'sorting');
   assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item => item.id === 'custom-existing')), seed.find(item => item.id === 'custom-existing'));
   await page.locator('#dsSearch').fill('Existing notebook');
   assert.equal(await page.locator('.ds-topic').count(), 0);
   await page.locator('#dsSearch').fill('');
-  assert.equal(await page.locator('.ds-topic').count(), 11);
-  assert.match(await page.locator('#dsSummary').textContent(), /^11 revision topics/);
+  assert.equal(await page.locator('.ds-topic').count(), 12);
+  assert.match(await page.locator('#dsSummary').textContent(), /^12 revision topics/);
 
   // Cloud merge remains event-based and preserves unrelated private fields.
   const remote = { id: 'trees', title: 'trees', notes: 'Cloud fixture only', updatedAt: '2099-01-01', customMetadata: 'preserved' };
@@ -192,13 +194,13 @@ async function run() {
   assert.equal(await page.locator('.ds-topic').count(),0);
   await page.locator('#dsSearch').fill('');
 
-  assert.equal(await page.locator('.ds-topic').count(),11);
-  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'),'union-find');
+  assert.equal(await page.locator('.ds-topic').count(),12);
+  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'),'sorting');
   assert.equal(await page.locator('[data-nav-id="legacy-dynamic-programming"]').count(),0);
   assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item=>item.id==='legacy-dynamic-programming')),cloudExtra);
   await page.reload();
   await page.locator('#dsToggle').click();
-  assert.equal(await page.locator('.ds-topic').count(),11);
+  assert.equal(await page.locator('.ds-topic').count(),12);
   assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item=>item.id==='legacy-dynamic-programming')),cloudExtra);
   const sharedRecords = await page.evaluate(()=>window.RecallStructures());
   const secondDevice = await newContext({viewport:{width:820,height:1180}});
@@ -207,16 +209,16 @@ async function run() {
   await secondPage.goto(base);
   await secondPage.locator('#dsToggle').click();
   await secondPage.evaluate(items=>window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind:'structures',items}})), sharedRecords);
-  assert.equal(await secondPage.locator('.ds-topic').count(),11);
-  assert.equal(await secondPage.locator('[data-nav-id]').last().getAttribute('data-nav-id'),'union-find');
+  assert.equal(await secondPage.locator('.ds-topic').count(),12);
+  assert.equal(await secondPage.locator('[data-nav-id]').last().getAttribute('data-nav-id'),'sorting');
   assert.deepEqual(await secondPage.evaluate(()=>window.RecallStructures().find(item=>item.id==='legacy-dynamic-programming')),cloudExtra);
   assert.deepEqual(await secondPage.evaluate(()=>window.RecallStructures().find(item=>item.id==='custom-existing')),updatedHidden);
   assert.deepEqual(await secondPage.locator('.ds-topic').evaluateAll(nodes=>nodes.map(node=>node.dataset.id)),canonicalIds);
   await secondPage.reload();
   await secondPage.locator('#dsToggle').click();
-  assert.equal(await secondPage.locator('.ds-topic').count(),11);
-  assert.equal(await secondPage.locator('.ds-topic').last().getAttribute('data-id'),'union-find');
-  assert.match(await secondPage.locator('#dsSummary').textContent(), /^11 revision topics/);
+  assert.equal(await secondPage.locator('.ds-topic').count(),12);
+  assert.equal(await secondPage.locator('.ds-topic').last().getAttribute('data-id'),'sorting');
+  assert.match(await secondPage.locator('#dsSummary').textContent(), /^12 revision topics/);
   await secondDevice.close();
 
   await page.setViewportSize({ width: 393, height: 852 });
@@ -263,7 +265,7 @@ async function run() {
   assert.equal(await deniedPage.locator('[data-id="trees"] .ag-section[open]').count(), 8);
   await denied.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: browser notes/editing, scoped state and reload, search all 11 guides, keyboard/copy, canonical-only UI and hidden records/sync/second-device retention, cloud merge, mobile, empty/missing/all-missing guides, denied storage.');
+  console.log('PASS: browser notes/editing, scoped state and reload, search all 12 guides, keyboard/copy, canonical-only UI and hidden records/sync/second-device retention, cloud merge, mobile, empty/missing/all-missing guides, denied storage.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   if (browser) await browser.close();
