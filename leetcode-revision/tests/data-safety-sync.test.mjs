@@ -937,3 +937,53 @@ test('reference-stage failures with a specific cause still show an actionable wa
  assert.match(b.elements.firebaseStatus.textContent,/client-type-error/);
  assert.deepEqual(b.rows('coding'),[record]);
 });
+
+
+test('only empty deleted legacy Sorting stub is removed after server confirmation; new Sorting notes remain',async()=>{
+ const current={id:'sorting-algorithms',title:'Sorting Algorithms',notes:'Current private sorting notes',studiedOn:'2026-11-14',updatedAt:'2026-11-14T12:00:00Z'};
+ const obsolete={id:'sorting',title:'Sorting',notes:'',deleted:true,recordType:'structure',updatedAt:'2026-11-11T00:00:00Z'};
+ const b=browser({structures:[current]}),f=await firebase(b);
+ f.store.set(path('structure-sorting'),obsolete);
+ f.store.set(path('structure-sorting-algorithms'),{...current,recordType:'structure'});
+ await f.auth();f.emit('structures');
+ await flush();
+ assert.equal(f.store.has(path('structure-sorting')),false,'empty deleted old cloud document gets deleted');
+ assert.deepEqual(f.store.get(path('structure-sorting-algorithms')),{...current,recordType:'structure'},'new topic untouched');
+ assert.deepEqual(b.rows('structures'),[current],'obsolete item never returns to device');
+ assert.deepEqual(f.writes.filter(x=>x.deleted).map(x=>x.key),[path('structure-sorting')]);
+ assert.equal(f.cloud.pendingCount,0);
+});
+
+test('nonempty deleted legacy Sorting record must not be deleted or silently discarded',async()=>{
+ const old={id:'sorting',title:'Sorting',notes:'Private original comparison notes',deleted:true,recordType:'structure',updatedAt:'2026-11-11T00:00:00Z'};
+ const current={id:'sorting-algorithms',title:'Sorting Algorithms',notes:'Current new notes',studiedOn:'2026-11-14'};
+ const b=browser({structures:[current]}),f=await firebase(b);
+ f.store.set(path('structure-sorting'),old);
+ f.store.set(path('structure-sorting-algorithms'),{...current,recordType:'structure'});
+ await f.auth();f.emit('structures');await flush();
+ assert.deepEqual(f.store.get(path('structure-sorting')),old);
+ assert.deepEqual(f.writes.filter(x=>x.deleted),[]);
+ assert.ok(b.rows('structures').some(x=>x.id==='sorting'&&x.notes===old.notes),'recovery text stays accessible in storage');
+});
+
+test('obsoleted Sorting stub is not removed from cache-only cloud data',async()=>{
+ const b=browser(),f=await firebase(b);
+ const old={id:'sorting',title:'Sorting',notes:'',deleted:true,recordType:'structure'};
+ f.store.set(path('structure-sorting'),old);
+ await f.auth();f.emit('structures',{fromCache:true,hasPendingWrites:false});await flush();
+ assert.deepEqual(f.store.get(path('structure-sorting')),old,'no deletion without confirmed server state');
+ assert.deepEqual(f.writes.filter(x=>x.deleted),[]);
+ f.emit('structures',{fromCache:false,hasPendingWrites:false});await flush();
+ assert.equal(f.store.has(path('structure-sorting')),false,'server confirmation permits delete');
+});
+
+test('transaction recheck protects Sorting record populated by another tab before obsolete cleanup',async()=>{
+ const b=browser(),f=await firebase(b);
+ const old={id:'sorting',title:'Sorting',notes:'',deleted:true,recordType:'structure'};
+ const edited={...old,notes:'Notes restored in another tab'};
+ f.store.set(path('structure-sorting'),old);
+ f.controls.beforeGet=key=>{if(key===path('structure-sorting'))f.store.set(key,edited)};
+ await f.auth();f.emit('structures');await flush();
+ assert.deepEqual(f.store.get(path('structure-sorting')),edited);
+ assert.deepEqual(f.writes.filter(x=>x.deleted),[]);
+});
