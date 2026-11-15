@@ -54,7 +54,7 @@ for(const [reason,message,guidance] of [
  const diagnostic=f.cloud.writeErrors[0];assert.ok(Object.isFrozen(diagnostic));
  assert.throws(()=>{diagnostic.stage='record-write'},TypeError);assert.throws(()=>{diagnostic.reason='unsupported-value'},TypeError);
  const warning=b.elements.firebaseStatus.textContent;
- assert.match(warning,/Conflicts.*Cloud save failed · Retrying automatically/);assert.match(warning,guidance);
+ assert.match(warning,/Cloud save failed · Retrying automatically/);assert.match(warning,guidance);
  assert.ok(warning.includes('stage: target-read'));assert.ok(warning.includes('reason: '+reason));
  noSecrets([statuses(b),f.cloud.writeErrors]);
  assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[record]);assert.deepEqual(b.rows('conflicts'),[retained]);assert.equal(f.writes.length,0);
@@ -465,7 +465,7 @@ test('history export discards results from an account that changed while reading
 
 test('existing conflict copies survive reload and stay visible in sync status',async()=>{
  const b=browser({conflicts:[{id:'retained',kind:'coding',recordId:'a',device:item('a','device'),cloud:item('a','cloud')}]}),f=await firebase(b);await f.auth();
- f.emit('coding');f.emit('sql');assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);assert.equal(b.rows('conflicts').length,1);
+ f.emit('coding');f.emit('sql');assert.match(b.elements.firebaseStatus.textContent,/Checking saved copies/);assert.equal(b.rows('conflicts').length,1);
 });
 
 test('account marker storage failures report storage failure and never unlock sync on repeated auth callback',async()=>{
@@ -544,7 +544,7 @@ test('archived copies stop showing as active conflicts once live server and devi
  const archived={id:'historic-a',kind:'coding',recordId:'a',device:older,cloud:current,savedAt:'2026-02-01'};
  const b=browser({coding:[current],conflicts:[archived]}),f=await firebase(b);
  f.store.set(path('a'),current);await f.auth();
- assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+ assert.match(b.elements.firebaseStatus.textContent,/Checking saved copies/);
  const outcome=await b.window.RecallSyncConflicts.verify();
  assert.deepEqual(outcome,{resolved:1,unresolved:0,total:1});
  assert.deepEqual(b.rows('conflicts'),[archived],'historical originals never deleted or edited');
@@ -581,7 +581,7 @@ test('unverified cloud lookup cannot dismiss archived conflicts or modify either
  f.store.set(path('a'),archive.cloud);await f.auth();
  f.controls.read=()=>{throw Error('synthetic read rejected')};
  await assert.rejects(b.window.RecallSyncConflicts.verify(),/synthetic read rejected/);
- assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+ assert.match(b.elements.firebaseStatus.textContent,/Checking saved copies/);
  assert.deepEqual(b.rows('conflicts'),[archive]);assert.deepEqual(b.rows('coding'),[archive.device]);
  assert.deepEqual(f.store.get(path('a')),archive.cloud);assert.equal(f.writes.length,0);
 });
@@ -604,7 +604,7 @@ test('automatic conflict verification waits for pending cloud saves then clears 
  f.local('coding',[current,draft]);
  assert.ok(f.cloud.pendingCount>0);
  f.emit('coding');f.emit('sql');await flush();
- assert.match(b.elements.firebaseStatus.textContent,/Conflicts/,'pending save should not count as resolved prematurely');
+ assert.match(b.elements.firebaseStatus.textContent,/Waiting for cloud acknowledgement/,'pending save should not count as resolved prematurely');
  await b.runTimers(180);await flush();
  assert.equal(f.cloud.pendingCount,0);
  assert.deepEqual(f.store.get(path('b')),draft);
@@ -1017,7 +1017,7 @@ for(const [ErrorClass,reason] of [[ReferenceError,'client-reference-error'],[URI
  assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.store.get(path('a')),record);
 });
 
-for(const recordType of ['structure','conceptReview','syncBackup'])test('misfiled Coding '+recordType+' cannot create an endless series of cloud copies',async()=>{
+for(const recordType of ['structure','conceptReview'])test('misfiled Coding '+recordType+' cannot create an endless series of cloud copies',async()=>{
  const record={...item('misfiled'),recordType};
  const b=browser({coding:[record]}),f=await firebase(b);await f.auth();
  for(let cycle=0;cycle<4;cycle++){f.emit('coding');await b.runTimers(180);}
@@ -1025,4 +1025,22 @@ for(const recordType of ['structure','conceptReview','syncBackup'])test('misfile
  assert.equal(f.cloud.pendingCount,1);
  assert.equal(f.cloud.writeErrors[0].reason,'notebook-type-mismatch');
  assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+});
+
+test('startup conflict history stays neutral until the server confirms agreement',async()=>{
+ const current=item('a','current');
+ const b=browser({coding:[current],conflicts:[{id:'old',kind:'coding',recordId:'a',device:item('a','old'),cloud:current}]});
+ const f=await firebase(b);f.store.set(path('a'),current);await f.auth();
+ f.emit('coding');f.emit('sql');await flush();
+ assert.ok(statuses(b).some(x=>x.includes('Checking saved copies')));
+ assert.ok(statuses(b).every(x=>!x.includes('⚠ Conflicts')));
+ assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+ assert.equal(b.rows('conflicts').length,1);
+});
+test('recovery records are retained in the separate archive after active Coding cleanup',async()=>{
+ const backup={...item('archive'),recordType:'syncBackup',versions:[{value:item('original')}]};
+ const b=browser({coding:[item('a'),backup]}),f=await firebase(b);await f.auth();f.emit('coding');await b.runTimers(180);
+ assert.deepEqual(JSON.parse(b.storage.getItem('recall-device-backup-records-v1')),[backup]);
+ assert.equal(b.rows('coding').some(x=>x.recordType==='syncBackup'),false);
+ assert.equal(f.cloud.writeErrors.length,0);
 });
