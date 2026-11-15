@@ -142,6 +142,13 @@ function recordResponse(id,complete){
  if(templateMode)return;
  const tasks=getTasks(),t=tasks.find(x=>x.id===id);
  if(!t)return;
+ // Checking a revision reminder must never mean “I can code it from memory”.
+ // Open the topic's actual assessment instead of silently recording mastery.
+ if(complete&&t.reviewTopicId&&selected===isoDate()&&window.RecallRevisionPlanner?.openReviewFromChecklist){
+  render();
+  window.RecallRevisionPlanner.openReviewFromChecklist(t.reviewTopicId,selected);
+  return;
+ }
  const h=linkOf(t,tasks);
  t.done=complete;t.response=complete?'yes':'no';
  const saved=writeTasks(tasks,(habits,now)=>{
@@ -152,7 +159,7 @@ function recordResponse(id,complete){
   if(complete)dates.add(selected);else dates.delete(selected);
   linked.dates=[...dates].sort();linked.updatedAt=now;
  });
- if(saved&&complete&&t.reviewTopicId)window.RecallRevisionPlanner?.markFromChecklist(t.reviewTopicId,selected);
+
 }
 $('dailyTasks').addEventListener('change',e=>{
  const tick=e.target.closest('[data-day-action="check"]');
@@ -194,6 +201,22 @@ $('dailyAddForm').addEventListener('submit',e=>{
 // Add suggestions to a specific dated checklist without changing its template
 // or replacing any hand-edited tasks. This is opt-in from the review planner.
 window.RecallDailyChecklist={
+ markRevisionAssessed(topicId,date){
+  if(date!==isoDate())return false;
+  const id=PREFIX+date,previous=findRecord(id);
+  if(!previous||!Array.isArray(previous.tasks))return false;
+  const tasks=copy(previous.tasks);
+  const item=tasks.find(t=>t.reviewTopicId===topicId);
+  if(!item)return false;
+  item.done=true;item.response='yes';
+  const now=new Date().toISOString(),record={...previous,tasks,updatedAt:now};
+  const saved=api.saveHabits(habits=>{
+   const index=habits.findIndex(x=>x.id===id);
+   if(index>=0)habits[index]=record;
+  })!==false;
+  if(saved&&selected===date&&!templateMode)render();
+  return saved;
+ },
  addSuggested(date,suggestions){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Array.isArray(suggestions))return {saved:false,added:0};
   const existing=findRecord(PREFIX+date),tasks=existing&&Array.isArray(existing.tasks)?copy(existing.tasks):template();
