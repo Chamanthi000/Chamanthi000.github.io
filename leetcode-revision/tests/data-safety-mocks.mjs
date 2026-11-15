@@ -53,10 +53,10 @@ export async function firebase(b){
   getDocsFromServer:async path=>{if(controls.read)await controls.read(path);return snapshot(path,controls.readMetadata)},
   async runTransaction(_db,fn){
    if(controls.fail)throw Error('synthetic unavailable');
-   const staged=new Map(),tx={async get(key){if(controls.beforeGet)await controls.beforeGet(key);const value=structuredClone(store.get(key));return {exists:()=>value!==undefined,data:()=>value}},set(key,value){staged.set(key,structuredClone(value))}};
+   const removed=Symbol('deleted'),staged=new Map(),tx={async get(key){if(controls.beforeGet)await controls.beforeGet(key);const value=structuredClone(store.get(key));return {exists:()=>value!==undefined,data:()=>value}},set(key,value){staged.set(key,structuredClone(value))},delete(key){staged.set(key,removed)}};
    if(controls.replay){controls.replay=false;await fn(tx);staged.clear()}
    const result=await fn(tx);if(controls.beforeCommit)await controls.beforeCommit();
-   for(const [key,value] of staged){store.set(key,value);writes.push({key,value})}transactions.push([...staged.keys()]);if(controls.afterCommit)await controls.afterCommit();return result;
+   for(const [key,value] of staged){if(value===removed){store.delete(key);writes.push({key,value:null,deleted:true})}else{store.set(key,value);writes.push({key,value})}}transactions.push([...staged.keys()]);if(controls.afterCommit)await controls.afterCommit();return result;
   }
  };
  const snapshot=(path,metadata={fromCache:false,hasPendingWrites:false})=>({docs:[...store].filter(([key])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')).map(([key,value])=>({id:key.slice(path.length+1),data:()=>structuredClone(value)})),metadata});
