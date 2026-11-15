@@ -52,7 +52,7 @@ const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRed
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),resolvingKinds:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:''};
+const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),resolvingKinds:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:'',obsoleteCleanup:new Set()};
 const kinds=['coding','sql','goals','habits','structures','concepts'];
 const page=location.pathname.endsWith('journal.html')?['habits']:location.pathname.endsWith('goals.html')?['goals','habits']:location.pathname.endsWith('sql-pattern-guide.html')?['concepts']:['coding','sql','structures','concepts'];
 const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:s}}))};
@@ -66,7 +66,7 @@ function deviceRecords(kind){
  const raw=localStorage.getItem(LOCAL_KEYS[kind]),parsed=raw===null?null:JSON.parse(raw);
  const rows=kind==='goals'||kind==='habits'?parsed?.[kind]:parsed;
  if(raw!==null&&!Array.isArray(rows))throw Error('Invalid device storage');
- return rows||[];
+ return kind==='structures'?(rows||[]).filter(x=>!isEmptyDeletedLegacySorting(x)):(rows||[]);
 }
 function deviceHas(kind,items){
  try{const rows=deviceRecords(kind);return items.every(item=>rows.some(x=>idOf(kind,x)===idOf(kind,item)&&sameRecord(x,item)))}catch{return false}
@@ -223,6 +223,28 @@ function assertSession(session){
 }
 // Keep identity/path helpers in the standalone HISTORY_PREFIX test slice.
 function isMember(kind,item){return kind==='structures'?item.recordType==='structure':kind==='concepts'?item.recordType==='conceptReview':kind==='coding'?item.recordType!=='structure'&&item.recordType!=='conceptReview'&&item.recordType!=='syncBackup':item.recordType!=='syncBackup'}
+function isEmptyDeletedLegacySorting(item){
+ // Only this precise empty, deleted pre-guide stub is obsolete. Never infer
+ // that a document with notes, review fields or unknown properties is trash.
+ if(!item||item.id!=='sorting'||item.deleted!==true)return false;
+ if(item.recordType!=null&&item.recordType!=='structure')return false;
+ if(!['sorting','sorting techniques','sorting algorithms'].includes(String(item.title||'').trim().toLowerCase()))return false;
+ if(typeof item.notes==='string'&&item.notes.trim())return false;
+ const allowed=new Set(['id','title','notes','deleted','createdAt','updatedAt','recordType','customTopic']);
+ return Object.keys(item).every(k=>allowed.has(k))&&item.customTopic!==true;
+}
+async function cleanupObsoleteSorting(session,documentId){
+ const path=doc(list('structures',session),checkedDocumentId(documentId));
+ await runTransaction(db,async tx=>{
+  assertSession(session);
+  const current=await tx.get(path);
+  assertSession(session);
+  if(!current.exists()||!isEmptyDeletedLegacySorting(current.data()))return;
+  // Transaction rechecks the CURRENT cloud record so concurrent edits survive.
+  tx.delete(path);
+ });
+}
+
 function wellFormedId(id){return ![...id].some(c=>c.codePointAt(0)>=0xd800&&c.codePointAt(0)<=0xdfff)}
 function validDocumentId(id){return typeof id==='string'&&id.length>0&&!id.includes('/')&&id!=='.'&&id!=='..'&&!/^__.*__$/s.test(id)&&wellFormedId(id)&&new TextEncoder().encode(id).length<=1500}
 function checkedDocumentId(id){
@@ -739,6 +761,7 @@ function putLocal(kind,items){
  verifyDevice(kind,items);
  const cloudIds=new Map((state.snapshots[kind]||[]).map(item=>[idOf(kind,item),item]));
  for(const item of items){
+  if(kind==='structures'&&isEmptyDeletedLegacySorting(item))continue;
   const id=idOf(kind,item);if(!id)continue;
   const old=cloudIds.get(id);
   const localStamp=String(item.updatedAt||item.createdAt||''),remoteStamp=String(old?.updatedAt||old?.createdAt||'');
@@ -810,7 +833,7 @@ function maybeAutoVerifyArchivedConflicts(){
 }
 async function setup(user){
 for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);
-state.epoch++;state.resolvingKinds.clear();state.conflictReviewEpoch=-1;state.conflictReviewHasResult=false;state.conflictDetails=[];conflictCompareList.replaceChildren();state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
+state.epoch++;state.obsoleteCleanup.clear();state.resolvingKinds.clear();state.conflictReviewEpoch=-1;state.conflictReviewHasResult=false;state.conflictDetails=[];conflictCompareList.replaceChildren();state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
 state.snapshots=Object.fromEntries(kinds.map(k=>[k,[]]));state.user=user;state.ready=!!user;displayAccount(user);
 if(!user){statusText('Cloud signed out · Device storage is separate');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 // Device records are shared by the app. Never silently migrate one account's notes to another.
@@ -834,14 +857,27 @@ for(const kind of page){
   // snapshot before its Promise resolves. Do not let that snapshot overwrite
   // device alternatives while they are being archived and consolidated.
   if(state.resolvingKinds.has(kind))return;
-  const remote=snapshot.docs.map(x=>x.data()).filter(x=>isMember(kind,x));
+  const acknowledged=!snapshot.metadata?.fromCache&&!snapshot.metadata?.hasPendingWrites;
+  if(acknowledged&&kind==='structures'){
+   // Delete only an empty, already-deleted legacy record from the authenticated
+   // owner's cloud collection. Recheck in a transaction before any deletion.
+   for(const old of snapshot.docs){
+    if(!isEmptyDeletedLegacySorting(old.data()))continue;
+    const key=session.uid+':'+old.id;
+    if(state.obsoleteCleanup.has(key)||state.pending.has('structures:sorting'))continue;
+    state.obsoleteCleanup.add(key);
+    Promise.resolve().then(()=>cleanupObsoleteSorting(session,old.id)).catch(()=>{
+     state.obsoleteCleanup.delete(key);
+    });
+   }
+  }
+  const remote=snapshot.docs.map(x=>x.data()).filter(x=>isMember(kind,x)&&!isEmptyDeletedLegacySorting(x));
   // Do not collapse two server originals into one apparent record or replace
   // the device copy while a legacy physical-path ambiguity needs review.
   if(hasAmbiguousUnsafeRecords(kind,remote)){
    state.confirmed.delete(kind);state.subscriptionErrors.set(kind,AMBIGUOUS_PATH_MESSAGE);syncStatus();return;
   }
   if(state.subscriptionErrors.get(kind)===AMBIGUOUS_PATH_MESSAGE)state.subscriptionErrors.delete(kind);
-  const acknowledged=!snapshot.metadata?.fromCache&&!snapshot.metadata?.hasPendingWrites;
   if(acknowledged)state.confirmed.add(kind);else state.confirmed.delete(kind);
   state.snapshots[kind]=remote;
   const existing=window.RecallLocal?.(kind)||[];
