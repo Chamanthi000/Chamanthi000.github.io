@@ -88,3 +88,17 @@ test('previous history and custom checkpoints survive assessments with fresh fut
  assert.equal(next.reviewDraft,null);
  assert.equal(next.history.at(-1).missing[0],'custom-1');
 });
+
+test('passing a previously failed challenge consolidates after three days before expanding to seven',()=>{
+ const items=source.get({id:'manual:sorting-techniques',title:'Sorting techniques'}).checks;
+ const attempt=plan.assessmentFor('sorting','Sorting techniques',null,{items,checked:items.map(x=>x.id),
+  memorized:'yes',codeBlind:'no',challenge:'Merge Sort'},TODAY);
+ const recovered=plan.assessmentFor('sorting','Sorting techniques',attempt,{items,checked:items.map(x=>x.id),
+  memorized:'yes',codeBlind:'yes',challenge:'Merge Sort'},'2026-11-15');
+ assert.equal(recovered.nextReview,'2026-11-18');
+ assert.equal(recovered.stage,0);
+ const consolidated=plan.assessmentFor('sorting','Sorting techniques',recovered,{items,checked:items.map(x=>x.id),
+  memorized:'yes',codeBlind:'yes',challenge:'Quick Sort'},'2026-11-18');
+ assert.equal(consolidated.nextReview,'2026-11-25');
+ assert.equal(consolidated.stage,1);
+});
