@@ -64,5 +64,7 @@ jobs:
         run: node leetcode-revision/tests/extra-notes-browser.test.cjs
       - name: Test short DSA review plans on phones, tablets and desktop
         run: node leetcode-revision/tests/revision-planner-browser.test.cjs
+      - name: Test quick Journal autosave, backups, private sync merge and layout
+        run: node leetcode-revision/tests/journal-browser.test.cjs
       - name: Test private recovery controls on phone, tablet and desktop
         run: node leetcode-revision/tests/recovery-browser.test.cjs
