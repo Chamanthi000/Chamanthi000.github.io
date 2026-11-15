@@ -94,8 +94,35 @@ function progressFor(topicId,title,old,action,today=dayKey(),now=new Date().toIS
  return {...prev,id:recordId(id),recordType:RECORD_TYPE,topicId:id,title:String(title),startedOn:started,stage,
   nextReview:plusDays(today,action==='practice'?1:INTERVALS[stage]),history,updatedAt:now};
 }
+// Persist review assessment separately from personal DSA notes. A checkbox alone
+// never means mastery, and remembering steps is distinct from coding unaided.
+function assessmentFor(topicId,title,old,assessment,today=dayKey(),now=new Date().toISOString()){
+ if(!validDay(today))throw Error('Invalid review date');
+ const id=String(topicId||'');if(!id)throw Error('Missing topic identity');
+ const prev=old&&old.recordType===RECORD_TYPE?old:null;
+ const history=Array.isArray(prev?.history)?prev.history.slice(-119):[];
+ if(history.some(entry=>entry.day===today))throw Error('Already reviewed this topic today');
+ if(!assessment||!['yes','no'].includes(assessment.memorized)||!['yes','no'].includes(assessment.codeBlind))
+  throw Error('Answer both memory and no-peeking coding questions.');
+ const items=Array.isArray(assessment.items)?assessment.items.filter(x=>x&&typeof x.id==='string'&&x.id.length<150).slice(0,30):[];
+ if(items.length<2)throw Error('No review checklist was provided');
+ const chosen=new Set(Array.isArray(assessment.checked)?assessment.checked.filter(x=>typeof x==='string'):[]);
+ const covered=items.filter(x=>chosen.has(x.id)).map(x=>x.id);
+ const missing=items.filter(x=>!chosen.has(x.id)).map(x=>x.id);
+ const allCovered=missing.length===0;
+ const memoryOk=assessment.memorized==='yes',codeOk=assessment.codeBlind==='yes';
+ const fullPass=memoryOk&&codeOk&&allCovered;
+ const stage=fullPass?Math.min(5,Math.max(0,Number(prev?.stage)||0)+1):0;
+ const nextDays=fullPass?INTERVALS[stage]:(memoryOk&&codeOk?3:1);
+ const focus=!memoryOk&& !codeOk?'steps-and-coding':!memoryOk?'algorithm-recall':!codeOk?'blind-coding':!allCovered?'unfinished-checkpoints':'maintain';
+ history.push({day:today,result:fullPass?'remembered':'practice',memorized:assessment.memorized,
+  codeBlind:assessment.codeBlind,checked:covered,missing,challenge:String(assessment.challenge||'').slice(0,130),focus});
+ return {...prev,id:recordId(id),recordType:RECORD_TYPE,topicId:id,title:String(title),stage,
+  startedOn:validDay(prev?.startedOn)?prev.startedOn:today,nextReview:plusDays(today,nextDays),
+  focus,history,reviewDraft:null,updatedAt:now};
+}
 function manualId(name){return 'manual:'+titleKey(name).replace(/\s+/g,'-');}
-const api={RECORD_TYPE,PREFIX,INTERVALS,dayKey,validDay,plusDays,recordId,noteText,collectTopics,planDays,progressFor,manualId,titleKey};
+const api={RECORD_TYPE,PREFIX,INTERVALS,dayKey,validDay,plusDays,recordId,noteText,collectTopics,planDays,progressFor,assessmentFor,manualId,titleKey};
 root.RecallRevisionPlan=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
