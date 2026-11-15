@@ -51,7 +51,7 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await quick.evaluate(el=>el.open),true);
   assert.match(await quick.textContent(),/reference pencil/i);
   assert.match(await quick.textContent(),/O\(n²\)/);
-  assert.equal(await section.locator('.sort-table').count(),6);
+  assert.equal(await section.locator('.sort-table').count(),7);
   const practice=quick.locator('.sort-practice');
   await practice.locator(':scope > summary').click();
   assert.match(await practice.locator('code').textContent(),/def quick_sort/);
