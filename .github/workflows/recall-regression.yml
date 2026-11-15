@@ -28,6 +28,8 @@ jobs:
         run: node --test leetcode-revision/tests/revision-planner.test.cjs
       - name: Test source-aligned DSA review checklists and independent skill assessments
         run: node --test leetcode-revision/tests/revision-checklists.test.cjs
+      - name: Verify all Sorting algorithms and runnable Python practice code
+        run: node --test leetcode-revision/tests/sorting-guide.test.cjs
       - name: Validate Arrays fallback Python examples and interview templates
         run: python3 leetcode-revision/tests/arrays-guide-validation.py
       - name: Validate Strings Python examples and interview templates
@@ -56,6 +58,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Test quick Journal autosave, backups, private sync merge and layout
         run: node leetcode-revision/tests/journal-browser.test.cjs
+      - name: Test Sorting guide content, search, private notes and responsive layouts
+        run: node leetcode-revision/tests/sorting-guide-browser.test.cjs
       - name: Test iPhone, iPad and desktop plus local save and reload
         run: node leetcode-revision/tests/browser-smoke.mjs
       - name: Test all-topic UI and private-note preservation using synthetic storage
