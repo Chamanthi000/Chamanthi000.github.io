@@ -111,7 +111,7 @@ const subscriptionFailure=()=>state.subscriptionErrors.size?'Cloud sync failed �
 const isUnclassifiedReferenceRetry=entry=>entry.code==='unknown'&&entry.stage==='document-reference'&&!entry.reason;
 const writeFailure=()=>{
  const actionable=[...state.writeErrors.values()].filter(error=>!isUnclassifiedReferenceRetry(error));
- return actionable.length?'Cloud save failed · Retrying automatically · '+actionable.map(({kind,code,stage,reason})=>kind+': '+code+(stage?' · stage: '+stage:'')+(reason?' · reason: '+reason:'')+' · '+(WRITE_REASON_ACTIONS.get(reason)||WRITE_ERROR_ACTIONS.get(code))).join(' · '):'';
+ return actionable.length?(actionable.every(e=>e.reason==='notebook-type-mismatch')?'Cloud sync paused · ':'Cloud save failed · Retrying automatically · ')+actionable.map(({kind,code,stage,reason})=>kind+': '+code+(stage?' · stage: '+stage:'')+(reason?' · reason: '+reason:'')+' · '+(WRITE_REASON_ACTIONS.get(reason)||WRITE_ERROR_ACTIONS.get(code))).join(' · '):'';
 };
 function syncStatus(){
  if(state.accountPaused){statusText(state.accountPauseReason);updateConflictReviewBox();return}
@@ -123,7 +123,7 @@ function syncStatus(){
  if(state.blocked.size||state.conflicts.size){report('⚠ Conflicts · Device copies retained; review or export conflict copies');return}
  if(typeof navigator!=='undefined'&&navigator.onLine===false){report('Offline · Cloud changes waiting for reconnection');return}
  if(write){statusText('⚠ '+write+' · Device copy retained');return}
- if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending · Sync check v16: '+[...state.writeErrors.values()].filter(isUnclassifiedReferenceRetry).map(e=>[e.kind,e.referenceStep||'reference',e.errorType||'unclassified',e.sourceLine?'line '+e.sourceLine:''].filter(Boolean).join(' / ')).join('; '):'✓ Saved on device · Waiting for cloud acknowledgement');return}
+ if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending · Sync check v17: '+[...state.writeErrors.values()].filter(isUnclassifiedReferenceRetry).map(e=>[e.kind,e.referenceStep||'reference',e.errorType||'unclassified',e.sourceLine?'line '+e.sourceLine:''].filter(Boolean).join(' / ')).join('; '):'✓ Saved on device · Waiting for cloud acknowledgement');return}
  if(page.every(k=>state.confirmed.has(k)))statusText('✓ Cloud confirmed · Server acknowledged current notebooks');
  else statusText('Waiting · Cached data or remaining notebooks need server acknowledgement');
 }
@@ -157,7 +157,8 @@ const WRITE_REASON_ACTIONS=new Map([
  ['server-scan-unconfirmed','Cloud lookup was not acknowledged by the server; the device copy is retained.'],
  ['client-type-error','A browser code error interrupted sync; your device copy is retained.'],
  ['client-reference-error','A required browser function is unavailable; reload this page to load the latest sync code.'],
- ['client-uri-error','A record identifier could not be encoded; your device copy is retained.']
+ ['client-uri-error','A record identifier could not be encoded; your device copy is retained.'],
+ ['notebook-type-mismatch','This device record belongs to another notebook. Repeated uploads are paused; the original is retained.']
 ]);
 function writeErrorCode(error){
  const code=typeof error?.code==='string'?error.code.replace(/^firestore\//,''):'unknown';
@@ -195,6 +196,7 @@ function safeWriteError(error,stage){
  const code=writeErrorCode(error),details={code};
  if(WRITE_STAGES.has(stage))details.stage=stage;
  const safeGuards=new Map([
+  ['Record type does not belong to this notebook; save stopped.','notebook-type-mismatch'],
   ['Cloud document identity mismatch; save stopped.','target-id-collision'],
   ['Cloud history identity mismatch; save stopped.','history-id-collision'],
   ['Multiple cloud documents match this record; save stopped.','duplicate-cloud-identity'],
@@ -308,6 +310,9 @@ async function writeWithHistory(kind,value,options={}){
  assertSession(session);
  let operation='document-reference',referenceStep='collection';
  try{
+ // Never write a record that this notebook's own listener will filter out.
+ // Otherwise every snapshot creates another fallback copy indefinitely.
+ if(!isMember(kind,prepare(kind,value)))throw Object.assign(Error('Record type does not belong to this notebook; save stopped.'),{code:'invalid-argument'});
  const owner=list(kind,session);
  referenceStep='resolve-id';
  let physicalId=await resolveDocumentId(kind,value,owner,session);
@@ -834,7 +839,7 @@ function arm(key,delay){
   }catch(e){
    if(session.epoch!==state.epoch||session.uid!==state.user?.uid)return;
    const count=(state.retries.get(key)||0)+1;state.retries.set(key,count);
-   if(state.pending.get(key)===value)arm(key,Math.min(60000,1000*2**Math.min(count,6)));
+   if(state.pending.get(key)===value&&e.reason!=='notebook-type-mismatch')arm(key,Math.min(60000,1000*2**Math.min(count,6)));
    // Only the current queued version can report a failure; never expose exception text.
    if(state.pending.get(key)===value)state.writeErrors.set(key,{kind:kinds.includes(kind)?kind:'unknown',...writeErrorDetails(e)});
    syncStatus();
@@ -845,6 +850,11 @@ function queue(kind,item){
  if(!state.user||state.accountPaused)return;
  const key=kind+':'+idOf(kind,item),earlier=state.pending.get(key);
  if(!earlier||String(item.updatedAt||'')>=String(earlier.updatedAt||''))state.pending.set(key,JSON.parse(JSON.stringify(item)));
+ if(!isMember(kind,prepare(kind,item))){
+  clearTimeout(state.timers.get(key));state.timers.delete(key);
+  state.writeErrors.set(key,{kind,code:'invalid-argument',stage:'document-reference',reason:'notebook-type-mismatch'});
+  return;
+ }
  state.retries.set(key,0);arm(key,180);
 }
 function maybeAutoVerifyArchivedConflicts(){

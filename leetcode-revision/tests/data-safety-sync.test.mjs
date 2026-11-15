@@ -1016,3 +1016,13 @@ for(const [ErrorClass,reason] of [[ReferenceError,'client-reference-error'],[URI
  fault.reference=null;await f.cloud.retry();await b.runTimers(0);
  assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.store.get(path('a')),record);
 });
+
+for(const recordType of ['structure','conceptReview','syncBackup'])test('misfiled Coding '+recordType+' cannot create an endless series of cloud copies',async()=>{
+ const record={...item('misfiled'),recordType};
+ const b=browser({coding:[record]}),f=await firebase(b);await f.auth();
+ for(let cycle=0;cycle<4;cycle++){f.emit('coding');await b.runTimers(180);}
+ assert.equal(f.writes.length,0);assert.deepEqual(b.rows('coding'),[record]);
+ assert.equal(f.cloud.pendingCount,1);
+ assert.equal(f.cloud.writeErrors[0].reason,'notebook-type-mismatch');
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+});
