@@ -31,13 +31,13 @@ function dateFromRecord(value,today){
  const raw=String(value?.updatedAt||value?.createdAt||'').slice(0,10);
  return validDay(raw)?(raw>today?today:raw):today;
 }
-// These are the same eleven section identities visible in DSA Revision.
+// These are the built-in section identities visible in DSA Revision.
 // Other historical records stay in storage, but cannot become planner topics.
 const BUILTIN_SECTIONS=Object.freeze([
  ['arrays','Arrays'],['strings','Strings'],['hash-maps','Hash Maps & Sets'],
  ['linked-lists','Linked Lists'],['stacks','Stacks'],['queues','Queues & Deques'],
  ['trees','Trees & BSTs'],['heaps','Heaps & Priority Queues'],
- ['graphs','Graphs'],['tries','Tries'],['union-find','Union Find']
+ ['graphs','Graphs'],['tries','Tries'],['union-find','Union Find'],['sorting','Sorting Algorithms']
 ]);
 const BUILTIN_NAMES=new Map(BUILTIN_SECTIONS);
 function isVisibleSection(row){
@@ -51,7 +51,7 @@ function revisionSections(noteRows){
   const previous=records.get(item.id);
   if(!previous||String(item.updatedAt||'')>String(previous.updatedAt||''))records.set(item.id,item);
  }
- // DSA Revision always displays these eleven guides, even before notes exist.
+ // DSA Revision always displays these built-in guides, even before notes exist.
  // Respect an explicit tombstone: an archived/deleted guide is not due.
  const visible=[];
  for(const [id,title] of BUILTIN_SECTIONS){
@@ -84,10 +84,12 @@ function collectTopics(noteRows,progressRows,today=dayKey()){
   const legacyManual=states.has(directId)||counts.get(key)!==1?null:manualByTitle.get(key);
   const id=legacyManual?String(legacyManual.topicId):directId,progress=states.get(id);
   const hasNotes=!!noteText(row).trim();
-  // Never manufacture reminders from orphaned progress. A topic is scheduled
-  // only if its CURRENT DSA section has notes or a matching tracked review.
-  if(!hasNotes&&!progress)continue;
-  const initial=dateFromRecord(row,today);
+  const studyDay=validDay(row.studiedOn)?(row.studiedOn>today?today:row.studiedOn):null;
+  // A dated study entry supplied by the user is sufficient to schedule the
+  // initial review even before extra personal notes are written. Orphaned
+  // records for deleted/hidden topics still never produce reminders.
+  if(!hasNotes&&!progress&&!studyDay)continue;
+  const initial=studyDay||dateFromRecord(row,today);
   const started=validDay(progress?.startedOn)?progress.startedOn:initial;
   const next=validDay(progress?.nextReview)?progress.nextReview:plusDays(started,INTERVALS[0]);
   topics.push({id,title:row.title,startedOn:started,nextReview:next,
