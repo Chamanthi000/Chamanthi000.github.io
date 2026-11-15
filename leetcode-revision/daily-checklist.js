@@ -34,14 +34,23 @@ const formatTime=s=>{
   const [hours,minutes]=s.split(':').map(Number);
   return ((hours+11)%12+1)+(minutes?':'+String(minutes).padStart(2,'0'):'')+(hours>=12?' PM':' AM');
 };
+// Stable chronological order; end-only tasks use their end time, untimed tasks come last.
+function sortTasks(tasks){
+ const minutes=clock=>{
+  if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(clock||''))return Infinity;
+  const [hours,mins]=clock.split(':').map(Number);return hours*60+mins;
+ };
+ const time=t=>{const start=minutes(t.start);return Number.isFinite(start)?start:minutes(t.end)};
+ return copy(tasks).sort((a,b)=>{const x=time(a),y=time(b);return x===y?0:x<y?-1:1});
+}
 const liveHabits=()=>api.getHabits().filter(h=>!h.deleted&&!h.recordType);
 const findRecord=id=>api.getHabits().find(h=>h.id===id&&!h.deleted);
-const template=()=>{const r=findRecord(TEMPLATE);return r&&Array.isArray(r.tasks)?copy(r.tasks):copy(defaults)};
+const template=()=>{const r=findRecord(TEMPLATE);return r&&Array.isArray(r.tasks)?sortTasks(r.tasks):sortTasks(defaults)};
 let selected=isoDate(),editing=null,templateMode=false,lastDate=isoDate();
 function getTasks(){
  if(templateMode)return template();
  const r=findRecord(PREFIX+selected);
- return r&&Array.isArray(r.tasks)?copy(r.tasks):template();
+ return r&&Array.isArray(r.tasks)?sortTasks(r.tasks):template();
 }
 function linkOf(t,tasks){
  const habits=liveHabits();
@@ -76,7 +85,7 @@ function linkOf(t,tasks){
 function isDone(t,tasks){const h=linkOf(t,tasks);return h?(h.dates||[]).includes(selected):!!t.done}
 function writeTasks(tasks,extra){
  const id=templateMode?TEMPLATE:PREFIX+selected,now=new Date().toISOString(),previous=findRecord(id);
- const rec={...previous,id,recordType:templateMode?'dailyTemplate':'dailyDay',date:templateMode?'':selected,tasks:copy(tasks),updatedAt:now};
+ const rec={...previous,id,recordType:templateMode?'dailyTemplate':'dailyDay',date:templateMode?'':selected,tasks:sortTasks(tasks),updatedAt:now};
  const saved=api.saveHabits(habits=>{
   const ix=habits.findIndex(h=>h.id===id);
   if(ix>=0)habits[ix]=rec;else habits.push(rec);
@@ -102,7 +111,7 @@ function render(){
  const tasks=getTasks(),done=templateMode?0:tasks.filter(t=>isDone(t,tasks)).length;
  const pct=templateMode?0:(tasks.length?Math.round(done/tasks.length*100):0);
  $('dailyHeading').textContent=templateMode?'Recurring daily template':'Daily checklist';
- $('dailyDesc').textContent=templateMode?'Change your default routine here. Edits apply to new or uncustomized days.':'Today starts fresh from your template. Edit any day without changing other days.';
+ $('dailyDesc').textContent=templateMode?'Tasks sort automatically by time. Template edits apply to new or uncustomized days.':'Tasks sort automatically by time; untimed tasks appear last. Edit any day without changing other days.';
  $('dailyDate').value=selected;
  $('dailyDateBox').hidden=templateMode;
  $('dailyGoToday').hidden=templateMode;
@@ -131,8 +140,6 @@ function render(){
     '<label class="label">End time<input class="field" type="time" name="taskEnd" value="'+esc(t.end||'')+'"></label></div>'+
     '<label class="label">Link to existing habit<select class="field" name="taskHabit">'+options(linkId)+'</select></label>'+
     '<div class="dailyEditActions"><button class="btn small" type="submit">Save</button>'+
-    '<button class="btn secondary small" type="button" data-day-action="up" data-task="'+esc(t.id)+'" '+(i===0?'disabled':'')+'>↑</button>'+
-    '<button class="btn secondary small" type="button" data-day-action="down" data-task="'+esc(t.id)+'" '+(i===tasks.length-1?'disabled':'')+'>↓</button>'+
     '<button class="btn danger small" type="button" data-day-action="delete" data-task="'+esc(t.id)+'">Remove</button>'+
     '<button class="btn secondary small" type="button" data-day-action="edit" data-task="'+esc(t.id)+'">Cancel</button></div></form>':'');
  }).join('')||'<div class="empty">No tasks for this day. Add one below.</div>';
@@ -174,8 +181,6 @@ $('dailyTasks').addEventListener('click',e=>{
  const tasks=getTasks(),i=tasks.findIndex(x=>x.id===id);
  if(i<0)return;
  if(action==='delete'){if(!confirm('Remove this task from '+(templateMode?'the recurring template':'this day')+'?'))return;tasks.splice(i,1)}
- else if(action==='up'&&i>0)[tasks[i-1],tasks[i]]=[tasks[i],tasks[i-1]];
- else if(action==='down'&&i<tasks.length-1)[tasks[i+1],tasks[i]]=[tasks[i],tasks[i+1]];
  else return;
  editing=null;writeTasks(tasks);
 });
@@ -209,7 +214,7 @@ window.RecallDailyChecklist={
   const item=tasks.find(t=>t.reviewTopicId===topicId);
   if(!item)return false;
   item.done=true;item.response='yes';
-  const now=new Date().toISOString(),record={...previous,tasks,updatedAt:now};
+  const now=new Date().toISOString(),record={...previous,tasks:sortTasks(tasks),updatedAt:now};
   const saved=api.saveHabits(habits=>{
    const index=habits.findIndex(x=>x.id===id);
    if(index>=0)habits[index]=record;
@@ -227,7 +232,7 @@ window.RecallDailyChecklist={
   }
   if(!added)return {saved:true,added:0};
   const now=new Date().toISOString(),id=PREFIX+date;
-  const record={...existing,id,date,recordType:'dailyDay',tasks,updatedAt:now};
+  const record={...existing,id,date,recordType:'dailyDay',tasks:sortTasks(tasks),updatedAt:now};
   const saved=api.saveHabits(habits=>{
    const i=habits.findIndex(h=>h.id===id);
    if(i>=0)habits[i]=record;else habits.push(record);
@@ -245,7 +250,7 @@ function browserNotify(title,body,key){
 }
 function tasksForDate(date){
  const r=findRecord(PREFIX+date);
- return r&&Array.isArray(r.tasks)?copy(r.tasks):template();
+ return r&&Array.isArray(r.tasks)?sortTasks(r.tasks):template();
 }
 function doneOnDate(t,tasks,date){
  const h=linkOf(t,tasks);return h?(h.dates||[]).includes(date):!!t.done;
