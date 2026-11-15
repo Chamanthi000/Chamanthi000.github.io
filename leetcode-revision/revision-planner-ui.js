@@ -4,7 +4,7 @@ const core=window.RecallRevisionPlan,api=window.RecallGoals,root=document.getEle
 if(!core||!api||!root)return;
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let cloudNotes=[],cloudSession='',cloudBusy=false,cloudFailedSession='',cloudRetryAt=0,lastDay='',lastTopics=[],lastPlan=[];
+let cloudNotes=[],cloudSession='',cloudBusy=false,cloudFailedSession='',cloudRetryAt=0,lastDay='',lastTopics=[],lastPlan=[],activeReviewId=null;
 const dateLabel=date=>new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 function localNotes(){
  try{
@@ -40,12 +40,46 @@ function saveRecord(record){
  }catch{result=false}
  return result;
 }
+function checklistFor(topic){
+ const index=topic.reviewCount||0;
+ const base=window.RecallReviewChecklists?.get(topic,index)||{challenge:'Representative algorithm',
+  checks:[{id:'recognize',label:'Recall when to use this technique.'},{id:'code',label:'Attempt code without looking.'}]};
+ const extras=Array.isArray(topic.record?.extraReviewChecks)?topic.record.extraReviewChecks.filter(x=>x?.id&&x?.label).slice(0,15):[];
+ return {...base,checks:[...base.checks,...extras]};
+}
+function focusText(focus){
+ return ({'algorithm-recall':'Focus next: reconstruct the algorithm steps from memory.',
+ 'blind-coding':'Focus next: write the code without opening the solution.',
+ 'steps-and-coding':'Focus next: recall the steps, then implement from scratch.',
+ 'unfinished-checkpoints':'Focus next: cover any checklist items you missed.',
+ 'maintain':'Strong recall and coding. Keep it fresh with a later review.'})[focus]||'';
+}
+function assessmentMarkup(topic){
+ const checklist=checklistFor(topic),old=topic.record,draft=old?.reviewDraft?.date===core.dayKey()&&old.reviewDraft.challenge===checklist.challenge?old.reviewDraft:null;
+ const checked=new Set(draft?.checked||[]),memory=draft?.memorized||'',code=draft?.codeBlind||'';
+ const prompts=checklist.checks.map((point,i)=>
+  '<label class="rpCheck"><input type="checkbox" data-rp-check="'+esc(point.id)+'" '+(checked.has(point.id)?'checked':'')+'><span><b>'+String(i+1)+'.</b> '+esc(point.label)+'</span></label>').join('');
+ const question=(name,title,value)=>'<fieldset class="rpQuestion"><legend>'+esc(title)+'</legend><div class="rpRadioRow">'+
+  ['yes','no'].map(choice=>'<label><input type="radio" name="'+name+'" data-rp-answer="'+name+'" value="'+choice+'" '+(value===choice?'checked':'')+'><span>'+ (choice==='yes'?'Yes, without help':'Not yet')+'</span></label>').join('')+'</div></fieldset>';
+ return '<form class="rpAssessment" data-rp-assessment="'+esc(topic.id)+'">'+
+  '<div class="rpAssessmentHead"><div><strong>Quick topic recall</strong><p>Try from memory first. Tick what you really covered, not what you only read.</p></div><span>~5–12 min</span></div>'+
+  '<div class="rpCheckList">'+prompts+'</div>'+
+  '<div class="rpCustom"><label for="rpCustom-'+encodeURIComponent(topic.id)+'">One extra thing to remember (optional)</label>'+
+  '<div><input id="rpCustom-'+encodeURIComponent(topic.id)+'" data-rp-custom-input maxlength="130" placeholder="e.g. Stable vs unstable sorting"><button type="button" data-rp-add-custom>Add</button></div></div>'+
+  '<div class="rpDivider"></div>'+
+  question('memorized','Can you explain the algorithm steps without seeing your notes?',memory)+
+  question('codeBlind','Can you write the selected code without looking at notes or a solution?',code)+
+  '<p class="rpDecisionHelp">Both yes + all checkpoints covered → longer interval. Any “Not yet” → targeted review tomorrow. Unchecked checkpoints → short follow-up.</p>'+
+  '<div class="rpAssessmentActions"><button type="submit">Save review & schedule next</button><button type="button" class="rpSecondary" data-rp-close>Close</button></div></form>';
+}
 function rowMarkup(t,allowMark){
- const noteState=t.estimated?'Based on when you last edited notes':'Based on your completed reviews';
+ const noteState=t.estimated?'Based on your latest notes':'Based on your review history';
+ const open=allowMark&&activeReviewId===t.id;
  return '<article class="rpItem"><div class="rpInfo"><strong>'+esc(t.title)+'</strong>'+
-  '<small>'+esc(noteState)+' · ~5 min'+(t.overdue?' · Due earlier':'')+'</small></div>'+
-  (allowMark?'<div class="rpItemActions"><button type="button" data-rp-action="remembered" data-rp-id="'+esc(t.id)+'">✓ Remembered</button><button type="button" class="rpSecondary" data-rp-action="practice" data-rp-id="'+esc(t.id)+'">Need practice</button></div>':'')+
- '</article>';
+  '<small>'+esc(noteState)+' · ~5–12 min'+(t.overdue?' · Due earlier':'')+'</small>'+
+  (t.record?.focus&&t.record.focus!=='maintain'?'<small>'+esc(focusText(t.record.focus))+'</small>':'')+'</div>'+
+  (allowMark?'<div class="rpItemActions"><button type="button" data-rp-open="'+esc(t.id)+'" aria-expanded="'+String(open)+'">'+(open?'Hide review':'Start quick review')+'</button></div>':'')+
+  (open?assessmentMarkup(t):'')+'</article>';
 }
 function render(){
  const day=core.dayKey(),tomorrow=core.plusDays(day,1),topics=currentTopics(),planned=core.planDays(topics,day,8,2);
@@ -65,22 +99,89 @@ function render(){
  const waiting=topics.filter(t=>t.nextReview<=day).length-today.length;
  $('rpCarryover').textContent=waiting>0?waiting+' more due topic'+(waiting===1?'':'s')+' will roll into the next free day.':'At most two five-minute reviews are suggested per day.';
 }
-function reviewed(id,result){
+function reviewRecord(id){return reviewRecords().find(row=>row.topicId===id)}
+function baseRecord(topic){
+ return reviewRecord(topic.id)||{id:core.recordId(topic.id),recordType:core.RECORD_TYPE,topicId:topic.id,title:topic.title,startedOn:topic.startedOn,stage:0,history:[]};
+}
+function openReview(id){
  const topic=lastTopics.find(t=>t.id===id);
- if(!topic){showStatus('This topic has changed. Refresh the planner and try again.',true);return false}
- const previous=reviewRecords().find(row=>row.topicId===id);
- const initial=previous||{recordType:core.RECORD_TYPE,startedOn:topic.startedOn,stage:0,history:[]};
- let next;
- try{next=core.progressFor(id,topic.title,initial,result,core.dayKey())}
- catch(e){showStatus(e.message==='Already reviewed this topic today'?'You already reviewed this topic today. The next date is scheduled.':'Could not update the review.',true);return false}
- if(!saveRecord(next)){showStatus('Could not save this review. Keep your notes and back up your Goals & Habits data.',true);return false}
+ if(!topic){showStatus('This topic is not available in your saved revisions.',true);return false;}
+ activeReviewId=activeReviewId===id?null:id;
  render();
- showStatus(result==='practice'?'Saved: revisit '+topic.title+' tomorrow.':'Saved: '+topic.title+' is scheduled again on '+dateLabel(next.nextReview)+'.');
+ if(activeReviewId){
+  const target=[...document.querySelectorAll('[data-rp-assessment]')].find(el=>el.dataset.rpAssessment===id);
+  target?.scrollIntoView({block:'nearest',behavior:'auto'});
+  if(!target)showStatus('This topic is not in today’s two scheduled reviews. It remains in your upcoming plan.');
+ }
  return true;
 }
+function saveDraft(id,update){
+ const topic=lastTopics.find(t=>t.id===id);
+ if(!topic)return false;
+ const list=checklistFor(topic),previous=baseRecord(topic),today=core.dayKey();
+ const draft=previous.reviewDraft?.date===today&&previous.reviewDraft?.challenge===list.challenge?
+  {...previous.reviewDraft}: {date:today,challenge:list.challenge,checked:[],memorized:null,codeBlind:null};
+ update(draft);
+ const next={...previous,reviewDraft:draft,updatedAt:new Date().toISOString()};
+ if(!saveRecord(next)){showStatus('Review progress could not be saved on this device. Keep your backup.',true);return false;}
+ render();
+ return true;
+}
+function submitAssessment(id){
+ const topic=lastTopics.find(t=>t.id===id);
+ if(!topic){showStatus('Topic no longer available.',true);return}
+ const checklist=checklistFor(topic),old=baseRecord(topic),draft=old.reviewDraft;
+ if(!draft||draft.date!==core.dayKey()||draft.challenge!==checklist.challenge||
+  !['yes','no'].includes(draft.memorized)||!['yes','no'].includes(draft.codeBlind)){
+  showStatus('Answer both questions about recall and writing code without notes.',true);return;
+ }
+ let next;
+ try{
+  next=core.assessmentFor(id,topic.title,old,{items:checklist.checks,checked:draft.checked,
+   memorized:draft.memorized,codeBlind:draft.codeBlind,challenge:checklist.challenge},core.dayKey());
+ }catch(error){showStatus(error.message||'Could not finish the review.',true);return}
+ if(!saveRecord(next)){showStatus('Could not save the assessment. Nothing was marked reviewed.',true);return}
+ activeReviewId=null;
+ window.RecallDailyChecklist?.markRevisionAssessed?.(id,core.dayKey());
+ render();
+ const last=next.history.at(-1);
+ const message=last.focus==='maintain'?'All covered, algorithm remembered, and code written from memory.':
+  last.focus==='blind-coding'?'You remember the algorithm; next time focus on writing it unaided.':
+  last.focus==='algorithm-recall'?'Next time reconstruct the steps before coding.':
+  last.focus==='unfinished-checkpoints'?'Next time finish the unchecked concepts.':
+  'Next time practice both the algorithm steps and blind coding.';
+ showStatus('✓ Saved. '+message+' Next review: '+dateLabel(next.nextReview)+'.');
+}
 $('rpTodayItems').addEventListener('click',e=>{
- const button=e.target.closest('[data-rp-action]');
- if(button)reviewed(button.dataset.rpId,button.dataset.rpAction);
+ const open=e.target.closest('[data-rp-open]');if(open){openReview(open.dataset.rpOpen);return}
+ const close=e.target.closest('[data-rp-close]');if(close){activeReviewId=null;render();return}
+ const add=e.target.closest('[data-rp-add-custom]');
+ if(add){
+  const form=add.closest('[data-rp-assessment]'),topicId=form?.dataset.rpAssessment,input=form?.querySelector('[data-rp-custom-input]');
+  const label=String(input?.value||'').trim();
+  if(!topicId||!label||label.length>130){showStatus('Enter a short checklist point (up to 130 characters).',true);return}
+  const topic=lastTopics.find(t=>t.id===topicId),old=baseRecord(topic),extras=Array.isArray(old.extraReviewChecks)?old.extraReviewChecks:[];
+  if(extras.length>=15){showStatus('The personal checklist has reached its 15-item limit.',true);return}
+  const id='custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);
+  if(!saveRecord({...old,extraReviewChecks:[...extras,{id,label}],updatedAt:new Date().toISOString()})){
+   showStatus('Could not save the personal checklist point.',true);return}
+  render();showStatus('Your personal checkpoint was saved for future reviews.');
+ }
+});
+$('rpTodayItems').addEventListener('change',e=>{
+ const form=e.target.closest('[data-rp-assessment]');if(!form)return;
+ const id=form.dataset.rpAssessment;
+ if(e.target.matches('[data-rp-check]')){
+  const point=e.target.dataset.rpCheck,checked=e.target.checked;
+  saveDraft(id,draft=>{const ids=new Set(draft.checked||[]);if(checked)ids.add(point);else ids.delete(point);draft.checked=[...ids]});
+ }else if(e.target.matches('[data-rp-answer]')){
+  const name=e.target.dataset.rpAnswer,value=e.target.value;
+  if(['memorized','codeBlind'].includes(name)&&['yes','no'].includes(value))saveDraft(id,draft=>{draft[name]=value});
+ }
+});
+$('rpTodayItems').addEventListener('submit',e=>{
+ const form=e.target.closest('[data-rp-assessment]');if(!form)return;
+ e.preventDefault();submitAssessment(form.dataset.rpAssessment);
 });
 $('rpStudiedForm').addEventListener('submit',e=>{
  e.preventDefault();
@@ -128,12 +229,11 @@ window.addEventListener('storage',e=>{if(['recall-structures-v1','recall-goals-h
 window.addEventListener('focus',refresh);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 setInterval(()=>{if(core.dayKey()!==lastDay)render()},60000);
-window.RecallRevisionPlanner={render,markFromChecklist(id,date){
- // Checking an explicitly linked daily revision item counts as a completed review.
- // Only today's task can advance the schedule; a historic checkbox cannot
- // backdate or silently reorder the spaced-repetition history.
+window.RecallRevisionPlanner={render,openReviewFromChecklist(id,date){
  if(date!==core.dayKey())return false;
- return reviewed(id,'remembered');
+ if(activeReviewId!==id)openReview(id);
+ document.getElementById('revisionPlanner')?.scrollIntoView({block:'start',behavior:'smooth'});
+ return true;
 }};
 render();
 refreshFromCloud();
