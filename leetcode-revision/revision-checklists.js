@@ -13,10 +13,12 @@ const guides={
  'sorting':{
   checks:[
    {id:'recognize',label:'Decide when to sort versus hashing, a heap, or a selection algorithm.'},
-   {id:'elementary',label:'Recall Bubble, Selection, and Insertion Sort; identify their best uses.'},
-   {id:'efficient',label:'Compare Merge, Quick, and Heap Sort: the core steps and invariants.'},
-   {id:'noncomparison',label:'Explain when Counting or Radix Sort is valid (key-domain constraints).'},
-   {id:'complexity',label:'Say best/average/worst time, extra space, stability, and in-place behavior for the techniques.'},
+   {id:'elementary',label:'Recall Bubble, Selection, and Insertion Sort; when each simple O(n²) method makes sense.'},
+   {id:'merge',label:'Merge Sort: split/merge, recurrence, stable ordering, and O(n) extra merge space.'},
+   {id:'quick',label:'Quick Sort: partition invariant, pivot choice, and worst-case O(n²) on bad partitions.'},
+   {id:'heap',label:'Heap Sort: heapify, root extraction, sift-down, and in-place but unstable output.'},
+   {id:'noncomparison',label:'Counting and Radix Sort: the bounded-key/domain assumptions and memory tradeoffs.'},
+   {id:'complexity',label:'Compare time (best/average/worst), extra space, stability, and in-place behavior across all sorts.'},
    {id:'edge',label:'Walk through duplicates, all-equal, nearly sorted, and sorted/reversed inputs; remember common traps.'},
    {id:'code',label:'Write today’s selected sorting algorithm from scratch before opening notes.'}
   ],
