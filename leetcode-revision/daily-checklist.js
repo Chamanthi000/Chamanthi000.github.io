@@ -144,7 +144,7 @@ function recordResponse(id,complete){
  if(!t)return;
  const h=linkOf(t,tasks);
  t.done=complete;t.response=complete?'yes':'no';
- writeTasks(tasks,(habits,now)=>{
+ const saved=writeTasks(tasks,(habits,now)=>{
   if(!h)return;
   const linked=habits.find(x=>x.id===h.id);
   if(!linked)return;
@@ -152,6 +152,7 @@ function recordResponse(id,complete){
   if(complete)dates.add(selected);else dates.delete(selected);
   linked.dates=[...dates].sort();linked.updatedAt=now;
  });
+ if(saved&&complete&&t.reviewTopicId)window.RecallRevisionPlanner?.markFromChecklist(t.reviewTopicId,selected);
 }
 $('dailyTasks').addEventListener('change',e=>{
  const tick=e.target.closest('[data-day-action="check"]');
@@ -190,6 +191,28 @@ $('dailyAddForm').addEventListener('submit',e=>{
  tasks.push({id:'task_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),name,start,end,linkedHabitId:$('dailyAddHabit').value,done:false});
  writeTasks(tasks);$('dailyAddForm').reset();$('dailyAddDetails').open=false;
 });
+// Add suggestions to a specific dated checklist without changing its template
+// or replacing any hand-edited tasks. This is opt-in from the review planner.
+window.RecallDailyChecklist={
+ addSuggested(date,suggestions){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Array.isArray(suggestions))return {saved:false,added:0};
+  const existing=findRecord(PREFIX+date),tasks=existing&&Array.isArray(existing.tasks)?copy(existing.tasks):template();
+  let added=0;
+  for(const item of suggestions){
+   if(!item?.id||!item?.name||!item.reviewTopicId||tasks.some(t=>t.id===item.id||t.reviewTopicId===item.reviewTopicId))continue;
+   tasks.push({...item,linkedHabitId:'',done:false});added++;
+  }
+  if(!added)return {saved:true,added:0};
+  const now=new Date().toISOString(),id=PREFIX+date;
+  const record={...existing,id,date,recordType:'dailyDay',tasks,updatedAt:now};
+  const saved=api.saveHabits(habits=>{
+   const i=habits.findIndex(h=>h.id===id);
+   if(i>=0)habits[i]=record;else habits.push(record);
+  })!==false;
+  if(saved&&selected===date&&!templateMode)render();
+  return {saved,added:saved?added:0};
+ }
+};
 $('dailyTemplateMode').onclick=()=>{templateMode=!templateMode;editing=null;$('dailyAddDetails').open=false;render()};
 $('dailyGoToday').onclick=()=>{selected=isoDate();editing=null;render();checkReminders()};
 $('dailyDate').onchange=e=>{if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){selected=e.target.value;editing=null;render();checkReminders()}};
