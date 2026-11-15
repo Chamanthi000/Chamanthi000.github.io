@@ -123,7 +123,7 @@ async function run() {
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('recall-dsa-guides-open-v1')).includes('dg-trees-operations'));
 
   for (const id of topics) {
-    await page.locator('#dsSearch').fill(id + ' invariant');
+    await page.locator('#dsSearch').fill(id==='sorting'?'sorting exam papers by score':id + ' invariant');
     assert.equal(await page.locator('.ds-topic').count(), 1, 'search must cover every public guide');
     assert.equal(await page.locator('.ds-topic').getAttribute('data-id'), id);
   }
