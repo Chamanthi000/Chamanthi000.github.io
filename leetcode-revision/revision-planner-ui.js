@@ -4,7 +4,7 @@ const core=window.RecallRevisionPlan,api=window.RecallGoals,root=document.getEle
 if(!core||!api||!root)return;
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let cloudNotes=[],cloudSession='',cloudBusy=false,lastDay='',lastTopics=[],lastPlan=[];
+let cloudNotes=[],cloudSession='',cloudBusy=false,cloudFailedSession='',cloudRetryAt=0,lastDay='',lastTopics=[],lastPlan=[];
 const dateLabel=date=>new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 function localNotes(){
  try{
@@ -14,10 +14,16 @@ function localNotes(){
 }
 function noteRows(){
  const combined=new Map();
- for(const row of [...cloudNotes,...localNotes()]){
+ for(const row of cloudNotes){
   if(!row||typeof row.id!=='string')continue;
   const current=combined.get(row.id);
   if(!current||String(row.updatedAt||'')>String(current.updatedAt||''))combined.set(row.id,row);
+ }
+ // The user selected this device as the authority for their current DSA notes.
+ // Don't let an older or conflicted cloud copy redefine a local topic's study date.
+ for(const row of localNotes()){
+  if(!row||typeof row.id!=='string')continue;
+  if(core.noteText(row).trim()||!combined.has(row.id))combined.set(row.id,row);
  }
  return [...combined.values()];
 }
@@ -101,17 +107,18 @@ $('rpTomorrowChecklist').addEventListener('click',()=>{
 });
 async function refreshFromCloud(){
  const cloud=window.RecallCloud,token=cloud?.sessionToken;
- if(!token||cloudBusy||token===cloudSession)return;
+ if(!token||cloudBusy||token===cloudSession||(token===cloudFailedSession&&Date.now()<cloudRetryAt))return;
  cloudBusy=true;
  try{
   const snapshot=await cloud.readAll({serverOnly:true});
   if(cloud.sessionToken!==token)return;
   // Read-only: never merge or overwrite notes on this device.
   cloudNotes=Array.isArray(snapshot.structures)?snapshot.structures:[];
-  cloudSession=token;
+  cloudSession=token;cloudFailedSession='';cloudRetryAt=0;
   render();
  }catch{
-  showStatus('Using the notes available on this device. Sign in and open Coding on other devices to sync additional topics.',false);
+  cloudFailedSession=token;cloudRetryAt=Date.now()+60000;
+  showStatus('Using this device’s saved notes for now. The cloud topic list could not be verified; your notes were not changed.',false);
  }finally{cloudBusy=false}
 }
 function refresh(){render();refreshFromCloud()}
