@@ -105,7 +105,14 @@ function send(kind){
  if(state.localFailure)statusText('⚠ Device save failed · Export a backup before leaving');
 }
 const subscriptionFailure=()=>state.subscriptionErrors.size?'Cloud sync failed · '+[...state.subscriptionErrors].map(([kind,message])=>kind+': '+message).join(' · ')+' · Refresh or sign in again to reconnect':'';
-const writeFailure=()=>state.writeErrors.size?'Cloud save failed · Retrying automatically · '+[...state.writeErrors.values()].map(({kind,code,stage,reason})=>kind+': '+code+(stage?' · stage: '+stage:'')+(reason?' · reason: '+reason:'')+' · '+(WRITE_REASON_ACTIONS.get(reason)||WRITE_ERROR_ACTIONS.get(code))).join(' · '):'';
+// Suppress only the opaque, repetitive reference-stage message in the main
+// status line. Keep the failure in writeErrors, the pending record on device,
+ // and automatic retries; never report the cloud as confirmed prematurely.
+const isUnclassifiedReferenceRetry=entry=>entry.code==='unknown'&&entry.stage==='document-reference'&&!entry.reason;
+const writeFailure=()=>{
+ const actionable=[...state.writeErrors.values()].filter(error=>!isUnclassifiedReferenceRetry(error));
+ return actionable.length?'Cloud save failed · Retrying automatically · '+actionable.map(({kind,code,stage,reason})=>kind+': '+code+(stage?' · stage: '+stage:'')+(reason?' · reason: '+reason:'')+' · '+(WRITE_REASON_ACTIONS.get(reason)||WRITE_ERROR_ACTIONS.get(code))).join(' · '):'';
+};
 function syncStatus(){
  if(state.accountPaused){statusText(state.accountPauseReason);updateConflictReviewBox();return}
  updateConflictReviewBox();
@@ -116,7 +123,7 @@ function syncStatus(){
  if(state.blocked.size||state.conflicts.size){report('⚠ Conflicts · Device copies retained; review or export conflict copies');return}
  if(typeof navigator!=='undefined'&&navigator.onLine===false){report('Offline · Cloud changes waiting for reconnection');return}
  if(write){statusText('⚠ '+write+' · Device copy retained');return}
- if(state.pending.size){statusText('✓ Saved on device · Waiting for cloud acknowledgement');return}
+ if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending':'✓ Saved on device · Waiting for cloud acknowledgement');return}
  if(page.every(k=>state.confirmed.has(k)))statusText('✓ Cloud confirmed · Server acknowledged current notebooks');
  else statusText('Waiting · Cached data or remaining notebooks need server acknowledgement');
 }
