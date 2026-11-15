@@ -4,7 +4,7 @@ const source=require('../revision-checklists.js');
 const plan=require('../revision-planner-core.js');
 const TODAY='2026-11-14';
 test('every built-in DSA topic receives a distinct meaningful checklist',()=>{
- const ids=['arrays','strings','hash-maps','linked-lists','stacks','queues','trees','heaps','graphs','tries','union-find'];
+ const ids=['arrays','strings','hash-maps','linked-lists','stacks','queues','trees','heaps','graphs','tries','union-find','sorting'];
  for(const id of ids){
   const p=source.get({id,title:id},0);
   assert.ok(p.checks.length>=6,id+' check count');
@@ -19,10 +19,13 @@ test('every built-in DSA topic receives a distinct meaningful checklist',()=>{
 test('sorting covers named algorithms, tradeoffs, stability and rotating blind coding',()=>{
  const a=source.get({id:'manual:sorting-techniques',title:'Sorting techniques'},0);
  const lines=a.checks.map(x=>x.label).join(' ').toLowerCase();
- for(const technique of ['bubble','selection','insertion','merge','quick','heap','counting','radix','stability','space','in-place'])assert.ok(lines.includes(technique),technique);
- assert.match(a.challenge,/Merge Sort/);
- assert.match(source.get({id:'manual:sorting-techniques',title:'Sorting techniques'},1).challenge,/Quick Sort/);
- assert.match(source.get({id:'manual:sorting-techniques',title:'Sorting techniques'},2).challenge,/Heap Sort/);
+ for(const technique of ['bubble','selection','insertion','merge','quick','stability','space','in-place'])assert.ok(lines.includes(technique),technique);
+ for(const unlearned of ['heap sort','counting','radix'])assert.ok(!lines.includes(unlearned),'do not schedule unstudied '+unlearned);
+ assert.match(a.challenge,/Insertion Sort/);
+ assert.match(source.get({id:'manual:sorting-techniques',title:'Sorting techniques'},1).challenge,/Selection Sort/);
+ assert.match(source.get({id:'manual:sorting-techniques',title:'Sorting techniques'},2).challenge,/Bubble Sort/);
+ assert.match(source.get({id:'manual:sorting-techniques',title:'Sorting techniques'},3).challenge,/Merge Sort/);
+ assert.match(source.get({id:'manual:sorting-techniques',title:'Sorting techniques'},4).challenge,/Quick Sort/);
 });
 test('unknown new personal topics get safe generic tasks, without leaking notes into source',()=>{
  const other=source.get({id:'custom-dsa-superprivate',title:'My private topic',notes:'secret never put into public guide'});
