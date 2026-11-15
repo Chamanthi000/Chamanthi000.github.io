@@ -38,7 +38,7 @@ const root=path.resolve(__dirname,'..');
    await page.locator('textarea[name="learned"]').fill('Learned when to use Insertion Sort');
    await page.locator('textarea[name="improve"]').fill('I checked my phone during deep work');
    await page.locator('textarea[name="tomorrow"]').fill('Put my phone away before coding');
-   await page.locator('input[name="mood"][value="good"]').check();
+   await page.locator('#journalMoods label:has(input[value="good"])').click();
    let envelope=await page.evaluate(()=>JSON.parse(localStorage.getItem('recall-goals-habits-v1')));
    assert.deepEqual(envelope.goals,[{id:'goal-keep',name:'Be a confident driver'}]);
    assert.equal(envelope.habits.filter(h=>h.recordType!=='journalEntry').length,1);
