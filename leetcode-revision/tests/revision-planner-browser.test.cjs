@@ -35,6 +35,17 @@ const root=path.resolve(__dirname,'..');
    assert.match(await page.locator('#rpTomorrowItems').textContent(),/Strings/);
    assert.match(await page.locator('#rpUpcoming').textContent(),/Sorting techniques/);
    const notesBefore=await page.evaluate(()=>localStorage.getItem('recall-structures-v1'));
+   // A conflicting, newer cloud note is a read-only reference, not a reason
+   // to replace the preferred device's actual study date or note contents.
+   await page.evaluate(()=>{
+    window.RecallCloud={sessionToken:'simulated-authority-test',readAll:async()=>({
+     structures:[{id:'arrays',title:'Arrays',notes:'unwanted remote revision',updatedAt:'2099-01-01T12:00:00.000Z'}]
+    })};
+    window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:'Server confirmed'}}));
+   });
+   await page.waitForTimeout(30);
+   assert.match(await page.locator('#rpTodayItems').textContent(),/Arrays/,'the device study date must remain authoritative');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('recall-structures-v1')),notesBefore);
    // Explicit checkbox completion on the daily plan counts as one true review.
    await page.evaluate(()=>{
     const date=window.RecallRevisionPlan.dayKey();
