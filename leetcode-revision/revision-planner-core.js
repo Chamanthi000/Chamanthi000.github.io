@@ -37,7 +37,7 @@ const BUILTIN_SECTIONS=Object.freeze([
  ['arrays','Arrays'],['strings','Strings'],['hash-maps','Hash Maps & Sets'],
  ['linked-lists','Linked Lists'],['stacks','Stacks'],['queues','Queues & Deques'],
  ['trees','Trees & BSTs'],['heaps','Heaps & Priority Queues'],
- ['graphs','Graphs'],['tries','Tries'],['union-find','Union Find'],['sorting','Sorting Algorithms']
+ ['graphs','Graphs'],['tries','Tries'],['union-find','Union Find'],['sorting-algorithms','Sorting Algorithms']
 ]);
 const BUILTIN_NAMES=new Map(BUILTIN_SECTIONS);
 function isVisibleSection(row){
