@@ -79,6 +79,21 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.evaluate(()=>window.RecallStructures().find(x=>x.id==='arrays').notes),'ORIGINAL ARRAY NOTES -- do not edit');
   assert.equal(await page.evaluate(()=>window.RecallStructures().find(x=>x.id==='custom-dsa-my-notes').notes),'CUSTOM SAFE');
   assert.equal(await page.evaluate(()=>window.RecallStructures().find(x=>x.id==='sorting').notes),'OLD SORTING RECOVERY COPY','old tombstone kept across save and refresh');
+  // If the legacy tombstone truly has no content, that obsolete stub can be
+  // removed safely. The new Sorting notebook must remain completely intact.
+  await page.evaluate(()=>{
+   const key='recall-structures-v1',rows=JSON.parse(localStorage.getItem(key));
+   const legacy=rows.find(x=>x.id==='sorting');
+   legacy.notes='';
+   localStorage.setItem(key,JSON.stringify(rows));
+  });
+  await page.reload();
+  if(await page.locator('#dsBody').isHidden())await page.locator('#dsToggle').click();
+  assert.equal(await page.evaluate(()=>window.RecallStructures().find(x=>x.id==='sorting')),undefined,
+   'empty deleted obsolete stub removed from the device');
+  assert.equal(await page.locator('[data-id="sorting-algorithms"]').count(),1);
+  assert.equal(await page.evaluate(()=>window.RecallStructures().find(x=>x.id==='sorting-algorithms').notes),privateText,
+   'deleting an empty legacy stub must not erase current Sorting notes');
   await page.locator('[data-nav-id="sorting-algorithms"]').click();
   await page.locator('[data-id="sorting-algorithms"] [data-sort-algorithm="merge"] > summary').click();
   const measure=await page.locator('[data-id="sorting-algorithms"] .sort-guide').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth}));
