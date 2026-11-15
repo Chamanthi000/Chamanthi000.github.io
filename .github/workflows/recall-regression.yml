@@ -24,6 +24,8 @@ jobs:
           node-version: "22"
       - name: Test progress, reminders, storage, and accessibility
         run: node --test leetcode-revision/tests/recall.test.mjs
+      - name: Test smart topic-level spaced revision planning
+        run: node --test leetcode-revision/tests/revision-planner.test.cjs
       - name: Validate Arrays fallback Python examples and interview templates
         run: python3 leetcode-revision/tests/arrays-guide-validation.py
       - name: Validate Strings Python examples and interview templates
@@ -58,5 +60,7 @@ jobs:
         run: node leetcode-revision/tests/dsa-real-content.test.cjs
       - name: Test Extra notes across every DSA topic
         run: node leetcode-revision/tests/extra-notes-browser.test.cjs
+      - name: Test short DSA review plans on phones, tablets and desktop
+        run: node leetcode-revision/tests/revision-planner-browser.test.cjs
       - name: Test private recovery controls on phone, tablet and desktop
         run: node leetcode-revision/tests/recovery-browser.test.cjs
