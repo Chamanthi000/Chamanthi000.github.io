@@ -54,6 +54,8 @@ jobs:
         run: npm install --no-save playwright@1.56.1
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Test quick Journal autosave, backups, private sync merge and layout
+        run: node leetcode-revision/tests/journal-browser.test.cjs
       - name: Test iPhone, iPad and desktop plus local save and reload
         run: node leetcode-revision/tests/browser-smoke.mjs
       - name: Test all-topic UI and private-note preservation using synthetic storage
@@ -64,7 +66,5 @@ jobs:
         run: node leetcode-revision/tests/extra-notes-browser.test.cjs
       - name: Test short DSA review plans on phones, tablets and desktop
         run: node leetcode-revision/tests/revision-planner-browser.test.cjs
-      - name: Test quick Journal autosave, backups, private sync merge and layout
-        run: node leetcode-revision/tests/journal-browser.test.cjs
       - name: Test private recovery controls on phone, tablet and desktop
         run: node leetcode-revision/tests/recovery-browser.test.cjs
