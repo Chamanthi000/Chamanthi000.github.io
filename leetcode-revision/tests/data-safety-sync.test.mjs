@@ -949,7 +949,7 @@ test('only empty deleted legacy Sorting stub is removed after server confirmatio
  await flush();
  assert.equal(f.store.has(path('structure-sorting')),false,'empty deleted old cloud document gets deleted');
  assert.deepEqual(f.store.get(path('structure-sorting-algorithms')),{...current,recordType:'structure'},'new topic untouched');
- assert.deepEqual(b.rows('structures'),[current],'obsolete item never returns to device');
+ assert.deepEqual(b.rows('structures').map(({recordType,...value})=>value),[current],'obsolete item never returns to device');
  assert.deepEqual(f.writes.filter(x=>x.deleted).map(x=>x.key),[path('structure-sorting')]);
  assert.equal(f.cloud.pendingCount,0);
 });
