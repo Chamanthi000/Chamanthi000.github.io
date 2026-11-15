@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),plan=require('../revision-planner-core.js');
-const TODAY='2026-11-14',sample=(id,title,date)=>({id,title,notes:'My private notes',createdAt:date+'T10:00:00.000Z',updatedAt:date+'T10:00:00.000Z'});
+const TODAY='2026-11-14',sample=(id,title,date)=>({id,title,customTopic:true,notes:'My private notes',createdAt:date+'T10:00:00.000Z',updatedAt:date+'T10:00:00.000Z'});
 test('notes suggest study but do not count as a completed review',()=>{
  const topics=plan.collectTopics([sample('sorting','Sorting techniques',TODAY)],[],TODAY);
  assert.equal(topics.length,1);
@@ -32,10 +32,13 @@ test('no user notes or explicit study means no fake completed topics',()=>{
  const topics=plan.collectTopics([sample('arrays','Arrays',TODAY),{id:'stacks',title:'Stacks',notes:'',updatedAt:TODAY+'T10:00:00.000Z'}],[],TODAY);
  assert.deepEqual(topics.map(x=>x.id),['arrays']);
 });
-test('manual studied sorting stays scheduled without requiring fabricated notes',()=>{
+test('old manual topics without an existing DSA section disappear; progress is retained',()=>{
  const record=plan.progressFor(plan.manualId('Sorting Techniques'),'Sorting Techniques',null,'studied',TODAY);
- const topics=plan.collectTopics([],[record],TODAY);
+ assert.deepEqual(plan.collectTopics([],[record],TODAY),[],'an old manually registered topic is not a current DSA section');
+ const current={id:'custom-dsa-sorting',title:'Sorting Techniques',notes:'',customTopic:true};
+ const topics=plan.collectTopics([current],[record],TODAY);
  assert.deepEqual(topics.map(x=>x.title),['Sorting Techniques']);
+ assert.equal(topics[0].id,record.topicId,'readding a section can reuse the saved review history');
  assert.equal(topics[0].nextReview,'2026-11-17');
  assert.equal(topics[0].estimated,false);
 });
@@ -79,4 +82,41 @@ test('manual Sorting review history is reused when private Sorting notes are add
  assert.equal(topics[0].nextReview,'2026-11-17');
  assert.equal(topics[0].estimated,false);
  assert.equal(topics[0].hasNotes,true);
+});
+
+
+test('planner excludes hidden legacy, deleted custom sections and orphaned progress records',()=>{
+ const archived=sample('old-hidden','Old deleted algorithm',TODAY);delete archived.customTopic;
+ const removed={...sample('custom-dsa-removed','Removed topic',TODAY),deleted:true};
+ const current=sample('custom-dsa-current','Current custom topic',TODAY);
+ const histories=[
+  plan.progressFor('old-hidden','Old deleted algorithm',null,'studied',TODAY),
+  plan.progressFor('custom-dsa-removed','Removed topic',null,'studied',TODAY),
+  plan.progressFor(plan.manualId('No matching section'),'No matching section',null,'studied',TODAY)
+ ];
+ const sections=plan.revisionSections([archived,removed,current]);
+ assert.ok(sections.some(x=>x.id==='custom-dsa-current'));
+ assert.ok(!sections.some(x=>x.id==='old-hidden'||x.id==='custom-dsa-removed'));
+ const topics=plan.collectTopics([archived,removed,current],histories,TODAY);
+ assert.deepEqual(topics.map(x=>x.id),['custom-dsa-current']);
+ assert.deepEqual(histories.map(x=>x.title),['Old deleted algorithm','Removed topic','No matching section'],'saved history is preserved');
+});
+test('builtin sections remain available even without notes, but do not create unscheduled reminders',()=>{
+ const rows=[{id:'arrays',title:'Arrays',notes:''},{id:'stacks',title:'Stacks',notes:''}];
+ const sections=plan.revisionSections(rows);
+ assert.equal(sections.length,11);
+ assert.deepEqual(plan.collectTopics(rows,[],TODAY),[]);
+ const progress=plan.progressFor('stacks','Stacks',null,'studied',TODAY);
+ const topics=plan.collectTopics(rows,[progress],TODAY);
+ assert.equal(topics.length,1);
+ assert.equal(topics[0].id,'stacks');
+ assert.equal(topics[0].hasNotes,false);
+});
+test('removed Sorting stays excluded from all future day buckets even if old review is due',()=>{
+ const deleted={...sample('custom-dsa-sorting','Sorting techniques','2026-11-01'),deleted:true};
+ const historic=plan.progressFor('custom-dsa-sorting','Sorting techniques',null,'studied','2026-11-03');
+ const visible=sample('arrays','Arrays','2026-11-01');
+ const topics=plan.collectTopics([deleted,visible],[historic],TODAY);
+ assert.deepEqual(topics.map(x=>x.id),['arrays']);
+ assert.ok(plan.planDays(topics,TODAY,8,2).every(d=>d.items.every(x=>x.title!=='Sorting techniques')));
 });
