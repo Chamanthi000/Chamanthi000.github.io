@@ -126,7 +126,29 @@
 .autoBackupHistory .label{white-space:nowrap}
 @media(max-width:650px){.autoBackupControls .field{max-width:none;width:100%}.autoBackupControls .btn{flex:1}}
 .recovery-originals{max-height:360px;max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#f8f6f8;border:1px solid #e1d6df;border-radius:9px;padding:12px;font:13px/1.6 ui-monospace,monospace}.recovery-originals:focus-visible{outline:3px solid #9d5985}#recallRecoveryReview{min-width:0}#recoveryCopies{max-width:100%;min-width:0}
-</style><link rel="stylesheet" href="./revision-readability.css?v=20261112-progress-fix-v3"></head><body class="rev-page rev-goals"><main class="app"><header class="top"><a class="brand" href="./"><span>↗</span>recall.</a><nav class="nav"><a href="./#coding">⌘ Coding</a><a href="./#sql">▤ SQL</a><a href="./goals.html" class="active" aria-current="page">◎ Goals & Habits</a></nav></header><section class="hero"><div><div class="eyebrow">MAKE YOUR INTENTIONS ACTIONABLE</div><h1>Small steps. Big goals.<br><span style="color:#639a70">Real progress.</span></h1><p>Turn a clear vision into milestones and daily habits.</p></div><div class="row"><button class="btn secondary" type="button" id="futureOpenButton">＋ Future to-dos</button><button class="btn secondary" id="newHabit">＋ New habit</button><button class="btn" id="newGoal">＋ New goal</button></div></section>
+</style><link rel="stylesheet" href="./revision-readability.css?v=20261112-progress-fix-v3"><link rel="stylesheet" href="./revision-planner.css?v=20261114-topic-recall-v1"></head><body class="rev-page rev-goals"><main class="app"><header class="top"><a class="brand" href="./"><span>↗</span>recall.</a><nav class="nav"><a href="./#coding">⌘ Coding</a><a href="./#sql">▤ SQL</a><a href="./goals.html" class="active" aria-current="page">◎ Goals & Habits</a></nav></header><section class="hero"><div><div class="eyebrow">MAKE YOUR INTENTIONS ACTIONABLE</div><h1>Small steps. Big goals.<br><span style="color:#639a70">Real progress.</span></h1><p>Turn a clear vision into milestones and daily habits.</p></div><div class="row"><button class="btn secondary" type="button" id="futureOpenButton">＋ Future to-dos</button><button class="btn secondary" id="newHabit">＋ New habit</button><button class="btn" id="newGoal">＋ New goal</button></div></section>
+
+<section id="revisionPlanner" class="revisionPlanner" aria-labelledby="rpHeading">
+ <div class="rpHeader">
+  <div><div class="eyebrow">SMART SPACED REVISION</div>
+   <h2 id="rpHeading">A few minutes. Everything stays fresh.</h2>
+   <p>Review the <strong>topic</strong>, not every line of notes. Recall its techniques from memory, then mark how it went. New personal notes suggest the first review in 3 days; completed reviews determine later dates.</p></div>
+  <span class="rpCount" id="rpSummary">Finding topics…</span>
+ </div>
+ <div class="rpGrid">
+  <article class="rpDay" aria-label="Revisions due today"><div class="rpDayTop"><h3>Today · quick recall</h3><time id="rpTodayDate"></time></div><div id="rpTodayItems"><p class="rpEmpty">Loading your topics…</p></div></article>
+  <article class="rpDay" aria-label="Tomorrow's revision plan"><div class="rpDayTop"><h3>Tomorrow · planned</h3><time id="rpTomorrowDate"></time></div><div id="rpTomorrowItems"><p class="rpEmpty">Loading…</p></div></article>
+ </div>
+ <div class="rpUpcoming"><div class="rpUpcomingHeader">Coming up this week</div><div id="rpUpcoming"></div></div>
+ <div class="rpFooter">
+  <form class="rpStudyForm" id="rpStudiedForm"><label for="rpStudyInput">Just studied a topic?</label>
+   <div class="rpStudyRow"><input id="rpStudyInput" type="text" maxlength="90" list="rpTopicOptions" placeholder="e.g. Sorting techniques" autocomplete="off" required><datalist id="rpTopicOptions"></datalist><button type="submit">✓ Studied today</button></div>
+  </form>
+  <button type="button" class="rpChecklistButton" id="rpTomorrowChecklist">Add tomorrow's reviews to checklist</button>
+ </div>
+ <p class="rpFootnote" id="rpCarryover">Up to two five-minute topics each day.</p>
+ <p class="rpFootnote" id="rpStatus" role="status" aria-live="polite">Adding notes suggests you studied a topic, but never automatically marks a review complete. Reminders appear here when you open Recall.</p>
+</section>
 
 <section class="tile dailyPanel" id="dailyChecklist" aria-labelledby="dailyHeading">
  <div class="dailyTop">
@@ -259,7 +281,7 @@ window.RecallLocal=kind=>kind==='goals'?data.goals:kind==='habits'?data.habits:[
 window.addEventListener('recall-cloud-data',event=>{const {kind,items}=event.detail||{};if(!['goals','habits'].includes(kind)||!Array.isArray(items))return;let next;try{const raw=localStorage.getItem(KEY),envelope=raw===null?{}:JSON.parse(raw);if(!envelope||typeof envelope!=='object'||Array.isArray(envelope))throw Error('Invalid device storage');const other=kind==='goals'?'habits':'goals';if(envelope[other]!==undefined&&!Array.isArray(envelope[other]))throw Error('Invalid other collection');next={...data,[other]:envelope[other]??data[other],[kind]:items};const encoded=JSON.stringify({...envelope,...next});localStorage.setItem(KEY,encoded);if(localStorage.getItem(KEY)!==encoded)throw Error('Device save could not be verified');data=next;const syncSummary=$('syncSummary');if(syncSummary)delete syncSummary.dataset.deviceFailure;render()}catch(error){const message='⚠ Device save failed · Incoming cloud data was not applied in this view. Export/review before leaving.';notice(message);const status=$('syncSummary');if(status){status.textContent=message;status.dataset.deviceFailure=message;}window.dispatchEvent(new CustomEvent('recall-device-save-failed',{detail:{kind,message}}));}});
 
 render()})();
-</script><script src="./daily-checklist.js?v=20261113-plan-tomorrow-v2"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261113-data-safety-v4"></script><script src="./recovery-review.js?v=20261113-recovery-v1"></script><script src="./auto-backup.js?v=20261113-data-safety-v4"></script><script>
+</script><script src="./daily-checklist.js?v=20261114-review-checklist-v3"></script><script src="./revision-planner-core.js?v=20261114-topic-recall-v1"></script><script src="./revision-planner-ui.js?v=20261114-topic-recall-v1"></script><script src="./future-todos.js?v=20261112-future"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261113-data-safety-v4"></script><script src="./recovery-review.js?v=20261113-recovery-v1"></script><script src="./auto-backup.js?v=20261113-data-safety-v4"></script><script>
 (function(){
   const status=document.getElementById('firebaseStatus');
   const button=document.getElementById('firebaseLogin');
