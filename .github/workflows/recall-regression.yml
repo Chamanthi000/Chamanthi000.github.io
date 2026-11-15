@@ -26,6 +26,8 @@ jobs:
         run: node --test leetcode-revision/tests/recall.test.mjs
       - name: Test smart topic-level spaced revision planning
         run: node --test leetcode-revision/tests/revision-planner.test.cjs
+      - name: Test source-aligned DSA review checklists and independent skill assessments
+        run: node --test leetcode-revision/tests/revision-checklists.test.cjs
       - name: Validate Arrays fallback Python examples and interview templates
         run: python3 leetcode-revision/tests/arrays-guide-validation.py
       - name: Validate Strings Python examples and interview templates
