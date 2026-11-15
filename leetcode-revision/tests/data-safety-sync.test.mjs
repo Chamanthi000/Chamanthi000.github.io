@@ -1044,3 +1044,27 @@ test('recovery records are retained in the separate archive after active Coding 
  assert.equal(b.rows('coding').some(x=>x.recordType==='syncBackup'),false);
  assert.equal(f.cloud.writeErrors.length,0);
 });
+
+for(const kind of ['coding','sql','structures','concepts','goals','habits'])test('two devices receive '+kind+' edits live without flagging unchanged device copies',async()=>{
+ const initial=item('shared','initial'),a=browser({[kind]:[initial]}),b=browser({[kind]:[initial]});
+ if(['goals','habits'].includes(kind)){a.location.pathname='/goals.html';b.location.pathname='/goals.html'}
+ const fa=await firebase(a),fb=await firebase(b);await fa.auth();await fb.auth();
+ const transfer=(from,to)=>{to.store.clear();for(const [key,value] of from.store)to.store.set(key,structuredClone(value))};
+ fa.local(kind,[initial]);await a.runTimers(0);transfer(fa,fb);fa.emit(kind);fb.emit(kind);
+ const first={...initial,notes:'edited on desktop',updatedAt:'2026-02-01'};
+ fa.local(kind,[first]);await a.runTimers(0);fa.emit(kind);transfer(fa,fb);fb.emit(kind);
+ assert.equal(b.rows(kind)[0].notes,first.notes);assert.deepEqual(b.rows('conflicts'),[]);
+ const second={...first,notes:'edited on tablet',updatedAt:'2026-03-01'};
+ fb.local(kind,[second]);await b.runTimers(0);fb.emit(kind);transfer(fb,fa);fa.emit(kind);
+ assert.equal(a.rows(kind)[0].notes,second.notes);assert.deepEqual(a.rows('conflicts'),[]);
+ assert.equal(fa.cloud.pendingCount,0);assert.equal(fb.cloud.pendingCount,0);
+});
+test('a concurrent local edit is preserved when another device sends a newer record',async()=>{
+ const initial=item('shared','initial'),b=browser({coding:[initial]}),f=await firebase(b);await f.auth();
+ f.store.set(path('shared'),initial);f.emit('coding');
+ const local=item('shared','my unsent change','2026-02-01'),remote=item('shared','other device change','2026-03-01');
+ f.local('coding',[local]);f.store.set(path('shared'),remote);f.emit('coding');
+ assert.deepEqual(b.rows('coding'),[local]);
+ assert.ok(b.rows('conflicts').some(x=>x.device.notes===local.notes&&x.cloud.notes===remote.notes));
+ assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+});

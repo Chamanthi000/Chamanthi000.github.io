@@ -52,7 +52,7 @@ const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRed
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),unverifiedConflicts:new Set(),historyCheckFailed:false,resolvingKinds:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:'',obsoleteCleanup:new Set()};
+const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},serverSnapshots:{},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),unverifiedConflicts:new Set(),historyCheckFailed:false,resolvingKinds:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:'',obsoleteCleanup:new Set()};
 const kinds=['coding','sql','goals','habits','structures','concepts'];
 const page=location.pathname.endsWith('journal.html')?['habits']:location.pathname.endsWith('goals.html')?['goals','habits']:location.pathname.endsWith('sql-pattern-guide.html')?['concepts']:['coding','sql','structures','concepts'];
 const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:s}}))};
@@ -101,7 +101,7 @@ function separateCodingBackups(rows){
   throw Error('Device recovery copy could not be safely separated.');
  }
 }
-function send(kind){
+function send(kind,acceptedRemoteUpdates=new Map()){
  // Disk may contain another tab's edit that the app's in-memory accessor has not seen.
  // Never dispatch a replacement until every different persisted copy is retained or archived.
  let stored;
@@ -114,6 +114,9 @@ function send(kind){
   const id=idOf(kind,item),candidate=output.get(id);
   if(!candidate){output.set(id,item);queue(kind,item)}
   else if(!sameRecord(item,candidate)){
+   // Only replace a device version known to be unchanged since its last
+   // acknowledged server snapshot. Another tab's different disk edit survives.
+   if(acceptedRemoteUpdates.has(id)&&sameRecord(item,acceptedRemoteUpdates.get(id))&&!state.pending.has(kind+':'+id))continue;
    const localStamp=String(item.updatedAt||item.createdAt||''),candidateStamp=String(candidate.updatedAt||candidate.createdAt||'');
    if(localStamp>candidateStamp){
     output.set(id,item);queue(kind,item);
@@ -877,13 +880,15 @@ function arm(key,delay){
 function queue(kind,item){
  if(!state.user||state.accountPaused)return;
  const key=kind+':'+idOf(kind,item),earlier=state.pending.get(key);
+ // Snapshot echoes must not postpone or replace the same queued edit.
+ if(earlier&&sameRecord(earlier,item))return;
  if(!earlier||String(item.updatedAt||'')>=String(earlier.updatedAt||''))state.pending.set(key,JSON.parse(JSON.stringify(item)));
  if(!isMember(kind,prepare(kind,item))){
   clearTimeout(state.timers.get(key));state.timers.delete(key);
   state.writeErrors.set(key,{kind,code:'invalid-argument',stage:'document-reference',reason:'notebook-type-mismatch'});
   return;
  }
- state.retries.set(key,0);arm(key,180);
+ state.retries.set(key,0);arm(key,0);
 }
 function maybeAutoVerifyArchivedConflicts(){
  // Do not classify an unfinished device-to-cloud edit as a lasting conflict.
@@ -903,7 +908,7 @@ function maybeAutoVerifyArchivedConflicts(){
 async function setup(user){
 for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);
 state.epoch++;state.obsoleteCleanup.clear();state.resolvingKinds.clear();state.conflictReviewEpoch=-1;state.unverifiedConflicts.clear();state.historyCheckFailed=false;state.conflictReviewHasResult=false;state.conflictDetails=[];conflictCompareList.replaceChildren();state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
-state.snapshots=Object.fromEntries(kinds.map(k=>[k,[]]));state.user=user;state.ready=!!user;displayAccount(user);
+state.snapshots=Object.fromEntries(kinds.map(k=>[k,[]]));state.serverSnapshots={};state.user=user;state.ready=!!user;displayAccount(user);
 if(!user){statusText('Cloud signed out · Device storage is separate');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 // Device records are shared by the app. Never silently migrate one account's notes to another.
 try{
@@ -948,6 +953,9 @@ for(const kind of page){
   }
   if(state.subscriptionErrors.get(kind)===AMBIGUOUS_PATH_MESSAGE)state.subscriptionErrors.delete(kind);
   if(acknowledged)state.confirmed.add(kind);else state.confirmed.delete(kind);
+  const previousServer=new Map((state.serverSnapshots[kind]||[]).map(item=>[idOf(kind,item),item]));
+  const acceptedRemoteUpdates=new Map();
+  if(acknowledged)state.serverSnapshots[kind]=remote;
   state.snapshots[kind]=remote;
   const existing=window.RecallLocal?.(kind)||[];
   state.initial.add(kind);
@@ -961,11 +969,13 @@ for(const kind of page){
     // Cache absence is not proof that this record is missing on the server.
     if(acknowledged)queue(kind,item);
    }else if(!sameRecord(item,cloud)){
+    const prior=previousServer.get(id);
+    if(acknowledged&&prior&&sameRecord(item,prior)&&!state.pending.has(key)){acceptedRemoteUpdates.set(id,item);continue}
     if(!holdConflict(kind,item,cloud)||state.pending.has(key))output.set(id,item);
    }
   }
   for(const [key,item] of state.pending)if(key.startsWith(kind+':'))output.set(idOf(kind,item),item);
-  state.snapshots[kind]=[...output.values()];send(kind);syncStatus();
+  state.snapshots[kind]=[...output.values()];send(kind,acceptedRemoteUpdates);syncStatus();
   // Only after every displayed subscription has a server acknowledgement may
   // we recheck historical conflicts. The recheck scans every archived kind,
   // including Habits when the user is viewing Coding.
