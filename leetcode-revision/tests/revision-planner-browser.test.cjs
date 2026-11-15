@@ -52,10 +52,29 @@ const root=path.resolve(__dirname,'..');
     window.RecallDailyChecklist.addSuggested(date,[{id:'rp-arrays',reviewTopicId:'arrays',name:'Revise Arrays · 5 min',start:'',end:''}]);
    });
    await page.locator('#dailyTasks [data-day-action="check"][data-task="rp-arrays"]').check();
-   assert.match(await page.locator('#rpStatus').textContent(),/scheduled again/);
-   const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('recall-goals-habits-v1')).habits);
+   assert.equal(await page.locator('[data-rp-assessment="arrays"]').count(),1,'daily task must open the real assessment, not grant mastery');
+   let stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('recall-goals-habits-v1')).habits);
+   assert.equal(stored.filter(x=>x.recordType==='dsaTopicReview'&&x.topicId==='arrays').length,0,'checking task alone is not a completed review');
+   // Draft checkboxes persist after a refresh, without incrementing intervals.
+   await page.locator('[data-rp-assessment="arrays"] [data-rp-check="recognize"]').check();
+   await page.reload();
+   await page.locator('[data-rp-open="arrays"]').click();
+   assert.equal(await page.locator('[data-rp-assessment="arrays"] [data-rp-check="recognize"]').isChecked(),true);
+   const checkCount=await page.locator('[data-rp-assessment="arrays"] [data-rp-check]').count();
+   assert.ok(checkCount>=6);
+   for(let i=0;i<checkCount;i++)await page.locator('[data-rp-assessment="arrays"] [data-rp-check]').nth(i).check();
+   await page.locator('[data-rp-assessment="arrays"] input[name="memorized"][value="yes"]').check();
+   await page.locator('[data-rp-assessment="arrays"] input[name="codeBlind"][value="no"]').check();
+   await page.locator('[data-rp-assessment="arrays"] button[type="submit"]').click();
+   assert.match(await page.locator('#rpStatus').textContent(),/focus on writing it unaided/);
+   stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('recall-goals-habits-v1')).habits);
    assert.equal(stored.filter(x=>x.recordType==='dsaTopicReview'&&x.topicId==='arrays').length,1);
-   assert.equal(stored.find(x=>x.topicId==='arrays').history.length,1);
+   const progress=stored.find(x=>x.topicId==='arrays');
+   assert.equal(progress.history.length,1);
+   assert.equal(progress.history[0].memorized,'yes');
+   assert.equal(progress.history[0].codeBlind,'no');
+   assert.equal(progress.focus,'blind-coding');
+   assert.equal(progress.nextReview,await page.evaluate(()=>window.RecallRevisionPlan.plusDays(window.RecallRevisionPlan.dayKey(),1)));
    assert.equal(await page.locator('#rpTodayItems .rpItem').count(),0);
    // Register a just-learned new topic even if it has no notes yet.
    await page.locator('#rpStudyInput').fill('Heap sort');
@@ -64,7 +83,7 @@ const root=path.resolve(__dirname,'..');
    assert.match(await page.locator('#rpUpcoming').textContent(),/Heap sort/);
    // Tomorrow's plan stays editable and idempotent, with the regular template intact.
    await page.locator('#rpTomorrowChecklist').click();
-   assert.match(await page.locator('#rpStatus').textContent(),/Added 1/);
+   assert.match(await page.locator('#rpStatus').textContent(),/Added 2/);
    await page.locator('#rpTomorrowChecklist').click();
    assert.match(await page.locator('#rpStatus').textContent(),/already on tomorrow/);
    const tomorrow=await page.evaluate(()=>{
@@ -72,6 +91,7 @@ const root=path.resolve(__dirname,'..');
     return JSON.parse(localStorage.getItem('recall-goals-habits-v1')).habits.find(x=>x.id==='__recall_daily_'+day);
    });
    assert.equal(tomorrow.tasks.filter(x=>x.reviewTopicId==='strings').length,1);
+   assert.equal(tomorrow.tasks.filter(x=>x.reviewTopicId==='arrays').length,1);
    assert.ok(tomorrow.tasks.length>1,'existing routine template preserved');
    assert.equal(await page.evaluate(()=>localStorage.getItem('recall-structures-v1')),notesBefore,'read-only schedule never edits original study notes');
    await page.reload();
@@ -81,6 +101,6 @@ const root=path.resolve(__dirname,'..');
    assert.deepEqual(errors,[]);
    await context.close();
   }
-  console.log('PASS: short DSA revision planning, real checklist completion, manual sorting, no duplicate tasks, reload, preserved notes, responsive mobile tablet desktop');
+  console.log('PASS: topic checklists, draft persistence, distinct memory and blind-coding outcomes, safe daily task links, short scheduling, no duplicate tasks, reload, responsive layouts');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
