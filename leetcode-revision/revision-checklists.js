@@ -12,17 +12,17 @@ const common=(recognize,methods,trace,complexity,pitfall,code)=>[
 const guides={
  'sorting':{
   checks:[
-   {id:'recognize',label:'Decide when to sort versus hashing, a heap, or a selection algorithm.'},
-   {id:'elementary',label:'Recall Bubble, Selection, and Insertion Sort; when each simple O(n²) method makes sense.'},
-   {id:'merge',label:'Merge Sort: split/merge, recurrence, stable ordering, and O(n) extra merge space.'},
-   {id:'quick',label:'Quick Sort: partition invariant, pivot choice, and worst-case O(n²) on bad partitions.'},
-   {id:'heap',label:'Heap Sort: heapify, root extraction, sift-down, and in-place but unstable output.'},
-   {id:'noncomparison',label:'Counting and Radix Sort: the bounded-key/domain assumptions and memory tradeoffs.'},
-   {id:'complexity',label:'Compare time (best/average/worst), extra space, stability, and in-place behavior across all sorts.'},
-   {id:'edge',label:'Walk through duplicates, all-equal, nearly sorted, and sorted/reversed inputs; remember common traps.'},
-   {id:'code',label:'Write today’s selected sorting algorithm from scratch before opening notes.'}
+   {id:'recognize',label:'Choose among the five you studied: nearly sorted, fewer writes, adjacent swaps, stable/guaranteed sort, or fast average partitioning.'},
+   {id:'insertion',label:'Insertion Sort: select a key, compare backward, shift larger values, then insert into the sorted prefix.'},
+   {id:'selection',label:'Selection Sort: find min_idx in the unsorted portion and swap once to grow the sorted prefix.'},
+   {id:'bubble',label:'Bubble Sort: compare neighboring pairs, swap when needed, grow the right suffix, and use the early-stop flag.'},
+   {id:'merge',label:'Merge Sort: split into halves, merge sorted fronts, and explain stability and O(n) array buffer.'},
+   {id:'quick',label:'Quick Sort: choose a pivot, partition left/right, recurse, and explain the O(n²) bad-pivot case.'},
+   {id:'complexity',label:'Compare best/average/worst time, auxiliary space, stability and in-place behavior for these five techniques.'},
+   {id:'edge',label:'Explain nearly sorted, reverse sorted, duplicates, equal-value ties and off-by-one boundaries.'},
+   {id:'code',label:'Implement one selected algorithm blind, then compare your Python template with the reference.'}
   ],
-  codes:['Merge Sort including merge','Quick Sort including partition','Heap Sort with sift-down','Insertion Sort','Counting Sort for bounded integers','Merge Sort including merge']
+  codes:['Insertion Sort with shifting','Selection Sort with min_idx','Bubble Sort with early stop','Merge Sort with stable merge','Quick Sort with in-place partition']
  },
  'arrays':{checks:common(
   'Identify when to use two pointers, sliding window, prefix sums, or binary search.',
