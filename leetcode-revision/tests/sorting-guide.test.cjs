@@ -50,10 +50,10 @@ test('all five optional Python templates sort duplicate, ordered, reversed, empt
  assert.match(output,/SORT TEMPLATES PASS/);
 });
 test('Sorting study date enters spaced revision without rewriting notes or marking mastery',()=>{
- const row={id:'sorting',title:'Sorting Algorithms',notes:'',studiedOn:'2026-11-14',createdAt:'2026-11-12T00:00:00Z',updatedAt:'2026-11-12T00:00:00Z'};
+ const row={id:'sorting-algorithms',title:'Sorting Algorithms',notes:'',studiedOn:'2026-11-14',createdAt:'2026-11-12T00:00:00Z',updatedAt:'2026-11-12T00:00:00Z'};
  const topics=plan.collectTopics([row],[],'2026-11-14');
  assert.equal(topics.length,1);
- assert.equal(topics[0].id,'sorting');
+ assert.equal(topics[0].id,'sorting-algorithms');
  assert.equal(topics[0].nextReview,'2026-11-17');
  assert.equal(topics[0].hasNotes,false);
  assert.equal(topics[0].reviewCount,0);
@@ -61,8 +61,8 @@ test('Sorting study date enters spaced revision without rewriting notes or marki
  assert.equal(row.notes,'');
 });
 test('a pre-existing user review date takes precedence over the original study date',()=>{
- const row={id:'sorting',title:'Sorting Algorithms',notes:'',studiedOn:'2026-11-14'};
- const done=plan.progressFor('sorting','Sorting Algorithms',null,'studied','2026-11-15');
+ const row={id:'sorting-algorithms',title:'Sorting Algorithms',notes:'',studiedOn:'2026-11-14'};
+ const done=plan.progressFor('sorting-algorithms','Sorting Algorithms',null,'studied','2026-11-15');
  const topics=plan.collectTopics([row],[done],'2026-11-15');
  assert.equal(topics.length,1);assert.equal(topics[0].nextReview,'2026-11-18');
  assert.equal(topics[0].estimated,false);
