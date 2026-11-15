@@ -36,3 +36,32 @@
 #rpCarryover{font-size:11px;color:#66806c}
 @media(max-width:690px){.revisionPlanner{padding:14px 12px}.rpGrid{grid-template-columns:1fr}.rpHeader h2{font-size:19px}.rpItem{padding:10px}.rpItemActions{width:100%}.rpItemActions button{flex:1}.rpFooter{align-items:stretch}.rpChecklistButton{width:100%}.rpStudyForm{flex-basis:100%}}
 @media(prefers-reduced-motion:reduce){.revisionPlanner *, .revisionPlanner *::before{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+/* Review experience: checklist and two independent self-assessments. */
+.rpItem:has(.rpAssessment){background:#fff;border-color:#b5d2ba}
+.rpAssessment{width:100%;flex:1 0 100%;border-top:1px solid #dae8dc;padding-top:12px;margin-top:2px;min-width:0}
+.rpAssessmentHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.rpAssessmentHead strong{font-size:14px;color:#285b3c}
+.rpAssessmentHead p{margin:3px 0 0;font-size:12px;color:#607b66;line-height:1.5}
+.rpAssessmentHead>span{white-space:nowrap;font-size:10px;color:#64846c;background:#f0f7ef;padding:5px 8px;border-radius:20px}
+.rpCheckList{display:grid;gap:5px}
+.rpCheck{display:flex;align-items:flex-start;gap:9px;padding:9px;border:1px solid #e1eae0;background:#f9fbf8;border-radius:9px;font-size:12px;line-height:1.5;color:#354f3b;cursor:pointer}
+.rpCheck input{width:17px;height:17px;flex:0 0 17px;margin:1px 0 0;accent-color:#2a704a}
+.rpCheck b{color:#55745d}
+.rpCustom{margin-top:11px}
+.rpCustom label{display:block;margin-bottom:5px;font-size:11px;font-weight:700;color:#4f7757}
+.rpCustom>div{display:flex;gap:6px;flex-wrap:wrap}
+.rpCustom input{min-width:0;flex:1 1 160px;min-height:40px;border:1px solid #cbdccd;border-radius:8px;padding:9px;font:inherit;font-size:12px}
+.rpCustom button{min-height:40px;padding:7px 12px;border:1px solid #b5d0bd;background:#fff;color:#315e42;border-radius:8px;font-size:12px;font-weight:700}
+.rpDivider{border-top:1px solid #dde8db;margin:13px 0}
+.rpQuestion{border:0;padding:0;margin:14px 0;min-width:0}
+.rpQuestion legend{font-size:12px;font-weight:800;color:#2e563e;padding:0;line-height:1.45;margin-bottom:8px}
+.rpRadioRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rpRadioRow label{display:flex;align-items:center;gap:6px;border-radius:9px;border:1px solid #d6e5d8;background:#fff;padding:10px;font-size:12px;font-weight:700;color:#3d6049;cursor:pointer;min-height:43px}
+.rpRadioRow input{margin:0;accent-color:#2a704a;min-width:15px;min-height:15px}
+.rpRadioRow label:has(input:checked){background:#e8f4e8;border-color:#76af83}
+.rpDecisionHelp{font-size:11px!important;line-height:1.6!important;color:#58735e!important;margin:6px 0 12px!important}
+.rpAssessmentActions{display:flex;flex-wrap:wrap;gap:8px}
+.rpAssessmentActions button{border-radius:9px;border:1px solid #306949;background:#2d6847;color:#fff;min-height:43px;padding:9px 13px;font-size:12px;font-weight:750}
+.rpAssessmentActions .rpSecondary{background:#fff;color:#365c46;border-color:#bfd3c2}
+.rpAssessment :is(button,input):focus-visible{outline:3px solid #83b897;outline-offset:2px}
+@media(max-width:440px){.rpAssessmentHead{flex-wrap:wrap}.rpRadioRow{grid-template-columns:1fr}.rpAssessmentActions button{flex:1 1 100%}}
