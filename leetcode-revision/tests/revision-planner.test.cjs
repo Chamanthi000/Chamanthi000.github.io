@@ -104,7 +104,7 @@ test('planner excludes hidden legacy, deleted custom sections and orphaned progr
 test('builtin sections remain available even without notes, but do not create unscheduled reminders',()=>{
  const rows=[{id:'arrays',title:'Arrays',notes:''},{id:'stacks',title:'Stacks',notes:''}];
  const sections=plan.revisionSections(rows);
- assert.equal(sections.length,11);
+ assert.equal(sections.length,12);
  assert.deepEqual(plan.collectTopics(rows,[],TODAY),[]);
  const progress=plan.progressFor('stacks','Stacks',null,'studied',TODAY);
  const topics=plan.collectTopics(rows,[progress],TODAY);
