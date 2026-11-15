@@ -110,7 +110,18 @@ panel.addEventListener('toggle',e=>{
  else set.delete(section.dataset.agSection);
  store();
 },true);
-const read=()=>{try{const p=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(p)?p.filter(x=>x&&typeof x.id==='string'&&typeof x.title==='string'):[]}catch{return []}};
+// Only an EMPTY, ALREADY DELETED legacy Sorting stub is obsolete.
+ // An old record with notes, review state, custom fields or recovery data is
+ // not proven obsolete and must never be removed automatically.
+const isEmptyDeletedLegacySorting=x=>{
+ if(!x||x.id!=='sorting'||x.deleted!==true)return false;
+ if(x.recordType!=null&&x.recordType!=='structure')return false;
+ if(!['sorting','sorting techniques','sorting algorithms'].includes(String(x.title||'').trim().toLowerCase()))return false;
+ if(typeof x.notes==='string'&&x.notes.trim())return false;
+ const allowed=new Set(['id','title','notes','deleted','createdAt','updatedAt','recordType','customTopic']);
+ return Object.keys(x).every(k=>allowed.has(k))&&x.customTopic!==true;
+};
+const read=()=>{try{const p=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(p)?p.filter(x=>x&&typeof x.id==='string'&&typeof x.title==='string'&&!isEmptyDeletedLegacySorting(x)):[]}catch{return []}};
 let records=read(),cloudTimer=null;const editingIds=new Set();
 for(const d of presets)if(!records.some(x=>x.id===d.id))records.push({...d,createdAt:STAMP,updatedAt:STAMP});
 const presetRank=new Map(presets.map((p,i)=>[p.id,i]));
@@ -480,7 +491,7 @@ window.addEventListener('recall-cloud-data',e=>{
 if(e.detail?.kind!=='structures'||!Array.isArray(e.detail.items))return;
 const latest=new Map();
 for(const item of [...e.detail.items,...records]){
-if(!item||typeof item.id!=='string')continue;
+if(!item||typeof item.id!=='string'||isEmptyDeletedLegacySorting(item))continue;
 const old=latest.get(item.id);if(!old||String(item.updatedAt||'')>String(old.updatedAt||''))latest.set(item.id,item);
 }
 const merged=[...latest.values()];const changed=JSON.stringify(merged)!==JSON.stringify(records);records=merged;
