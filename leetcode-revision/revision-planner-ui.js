@@ -23,7 +23,9 @@ function noteRows(){
  // Don't let an older or conflicted cloud copy redefine a local topic's study date.
  for(const row of localNotes()){
   if(!row||typeof row.id!=='string')continue;
-  if(core.noteText(row).trim()||!combined.has(row.id))combined.set(row.id,row);
+  // A local deleted or emptied section takes precedence over stale cloud data.
+  // Do not resurrect removed DSA topics through the planner.
+  combined.set(row.id,row);
  }
  return [...combined.values()];
 }
@@ -109,8 +111,9 @@ function render(){
  $('rpTomorrowItems').innerHTML=next.length?next.map(t=>rowMarkup(t,false)).join(''):'<p class="rpEmpty">Nothing scheduled tomorrow.</p>';
  const later=planned.slice(2).filter(day=>day.items.length);
  $('rpUpcoming').innerHTML=later.length?later.map(day=>'<span class="rpFuture"><b>'+esc(dateLabel(day.date))+'</b> · '+day.items.map(t=>esc(t.title)).join(', ')+'</span>').join(''):'<span class="rpEmpty">No further reviews scheduled this week.</span>';
- const names=new Set(topics.map(item=>core.titleKey(item.title)));
- $('rpTopicOptions').innerHTML=[...topics.map(t=>t.title),'Sorting techniques'].filter((x,i,arr)=>arr.findIndex(t=>core.titleKey(t)===core.titleKey(x))===i).map(title=>'<option value="'+esc(title)+'"></option>').join('');
+ // The picker lists ONLY current DSA Revision sections, never orphan history.
+ $('rpTopicOptions').innerHTML=[...new Set(core.revisionSections(noteRows()).map(t=>t.title))]
+  .map(title=>'<option value="'+esc(title)+'"></option>').join('');
  $('rpTomorrowChecklist').disabled=next.length===0||!window.RecallDailyChecklist;
  $('rpTomorrowChecklist').textContent=next.length?'Add '+next.length+' to tomorrow’s checklist':'No reviews to add tomorrow';
  $('rpSummary').textContent=topics.length+' tracked topic'+(topics.length===1?'':'s')+' · '+today.length+' for today · '+next.length+' for tomorrow';
@@ -205,11 +208,19 @@ $('rpStudiedForm').addEventListener('submit',e=>{
  e.preventDefault();
  const raw=$('rpStudyInput').value.trim().replace(/\s+/g,' ');
  if(!raw||raw.length>90){showStatus('Enter a topic name (up to 90 characters).',true);return}
- const existing=lastTopics.find(t=>core.titleKey(t.title)===core.titleKey(raw));
- const id=existing?.id||core.manualId(raw);
+ const sections=core.revisionSections(noteRows()).filter(row=>core.titleKey(row.title)===core.titleKey(raw));
+ if(!sections.length){
+  showStatus('Only current DSA Revision sections can be scheduled. Add the topic in DSA Revision first.',true);return;
+ }
+ if(sections.length>1){
+  showStatus('Two DSA sections share that name. Rename one in DSA Revision before scheduling.',true);return;
+ }
+ const section=sections[0];
+ const existing=lastTopics.find(t=>t.sectionId===section.id);
+ const id=existing?.id||section.id;
  const old=reviewRecords().find(row=>row.topicId===id);
  let next;
- try{next=core.progressFor(id,existing?.title||raw,old,'studied',core.dayKey())}
+ try{next=core.progressFor(id,section.title,old,'studied',core.dayKey())}
  catch{showStatus('Could not schedule this topic.',true);return}
  if(!saveRecord(next)){showStatus('Could not save the study date to this device. Please export a backup.',true);return}
  $('rpStudyInput').value='';
