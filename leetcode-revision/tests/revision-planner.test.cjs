@@ -69,3 +69,14 @@ test('custom topics and migrated note fields are eligible without exposing note 
  assert.deepEqual(topics.map(x=>x.id),['arrays','custom-dsa-sorting']);
  assert.equal(JSON.stringify(topics).includes('Learned merge sort'),false);
 });
+
+test('manual Sorting review history is reused when private Sorting notes are added later',()=>{
+ const manual=plan.progressFor(plan.manualId('Sorting techniques'),'Sorting techniques',null,'studied',TODAY);
+ const notebook=sample('custom-dsa-sorting','Sorting techniques','2026-11-15');
+ const topics=plan.collectTopics([notebook],[manual],'2026-11-16');
+ assert.equal(topics.length,1,'manual reminder and private notebook form one topic');
+ assert.equal(topics[0].id,manual.topicId);
+ assert.equal(topics[0].nextReview,'2026-11-17');
+ assert.equal(topics[0].estimated,false);
+ assert.equal(topics[0].hasNotes,true);
+});
