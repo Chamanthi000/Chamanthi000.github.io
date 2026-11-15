@@ -4,7 +4,7 @@
 const KEY='recall-goals-habits-v1',TYPE='journalEntry',PREFIX='journal-',FIELDS=['good','learned','improve','tomorrow','more'],MOODS=new Set(['rough','low','okay','good','great']);
 const $=id=>document.getElementById(id);
 const iso=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
-const validDay=date=>typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)&&new Date(date+'T12:00:00Z').toISOString().slice(0,10)===date;
+const validDay=date=>{if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;const d=new Date(date+'T12:00:00Z');return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===date};
 const compare=(a,b)=>String(a?.updatedAt||a?.createdAt||'').localeCompare(String(b?.updatedAt||b?.createdAt||''));
 let selected=iso(),cloudTimer=null,isLoading=false,localProblem=false,typing=false;
 function readEnvelope(){
@@ -19,7 +19,14 @@ function entry(date,rows){
  return matches.sort((a,b)=>compare(b,a))[0]||null;
 }
 function allEntries(rows){
- return (rows||[]).filter(x=>x?.recordType===TYPE&&!x.deleted&&validDay(x.date)&&x.id===PREFIX+x.date&&FIELDS.some(k=>String(x[k]||'').trim())||x?.recordType===TYPE&&!x.deleted&&validDay(x.date)&&x.id===PREFIX+x.date&&MOODS.has(x.mood)).sort((a,b)=>b.date.localeCompare(a.date));
+ const byDate=new Map();
+ for(const x of Array.isArray(rows)?rows:[]){
+  if(x?.recordType!==TYPE||x.deleted||!validDay(x.date)||x.id!==PREFIX+x.date)continue;
+  if(!FIELDS.some(k=>String(x[k]||'').trim())&&!MOODS.has(x.mood))continue;
+  const previous=byDate.get(x.date);
+  if(!previous||compare(x,previous)>0)byDate.set(x.date,x);
+ }
+ return [...byDate.values()].sort((a,b)=>b.date.localeCompare(a.date));
 }
 function saveStatus(message,failed=false){$('journalSave').textContent=message;$('journalSave').style.color=failed?'#aa5050':'';document.querySelector('.saveDot').style.background=failed?'#cb7373':'#80b793'}
 function valueFromEditor(){
