@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f8f4"><title>Journal · Recall</title><link rel="stylesheet" href="./journal.css?v=20261114-journal-v1"></head>
+<body><main class="app">
+<header class="top"><a class="brand" href="./"><span>↗</span> recall.</a>
+<nav class="nav" aria-label="Recall sections"><a href="./#coding">⌘ Coding</a><a href="./#sql">▤ SQL</a><a href="./goals.html">◎ Goals &amp; Habits</a><a class="active" aria-current="page" href="./journal.html">✎ Journal</a></nav>
+<div class="topActions"><button type="button" id="firebaseLogin">Sign in with Google</button><button type="button" id="firebaseLogout" hidden>Sign out</button></div></header>
+<div id="firebaseStatus" role="status" aria-live="polite" class="sync">Saved on this device · Sign in to sync across devices</div>
+<section class="intro"><div class="introCopy"><div class="kicker">YOUR PERSONAL JOURNAL</div><h1>A little more aware, every day.</h1><p>No perfect days or long essays required. Capture what happened, what you learned, and what you'll do differently. Just a minute or two.</p></div><span class="timePill">✦ 60–90 sec</span></section>
+<section class="sheet" aria-labelledby="entryHeading">
+<div class="sheetHeader"><div><span class="kicker">TODAY'S CHECK-IN</span><h2 id="entryHeading">One day at a time</h2></div><div class="dateNav"><button id="journalPrev" type="button" title="Previous day" aria-label="Previous day">‹</button><input type="date" id="journalDate" aria-label="Journal date"><button id="journalNext" type="button" title="Next day" aria-label="Next day">›</button></div></div>
+<div class="mood"><fieldset><legend>How did today feel overall? <span class="optional">optional</span></legend><div class="moodChoices" id="journalMoods">
+<label><input type="radio" name="mood" value="rough"><span>😣<small>Rough</small></span></label>
+<label><input type="radio" name="mood" value="low"><span>😕<small>Low</small></span></label>
+<label><input type="radio" name="mood" value="okay"><span>😐<small>Okay</small></span></label>
+<label><input type="radio" name="mood" value="good"><span>🙂<small>Good</small></span></label>
+<label><input type="radio" name="mood" value="great"><span>✨<small>Great</small></span></label>
+</div></fieldset></div>
+<form id="journalForm" autocomplete="off">
+<div class="fields">
+<label class="prompt"><span class="promptNumber">01</span><span class="promptContent"><strong>What felt good today?</strong><small>One small moment or win counts.</small><textarea name="good" data-journal-field="good" rows="2" maxlength="800" placeholder="A good conversation, a small win, or time with Lucas…"></textarea></span></label>
+<label class="prompt"><span class="promptNumber">02</span><span class="promptContent"><strong>What did I learn today?</strong><small>Something about life, work, coding, or yourself.</small><textarea name="learned" data-journal-field="learned" rows="2" maxlength="800" placeholder="One thing I understand better now…"></textarea></span></label>
+<label class="prompt"><span class="promptNumber">03</span><span class="promptContent"><strong>What did I do badly, or what didn't go well?</strong><small>Be specific about the action, not your worth.</small><textarea name="improve" data-journal-field="improve" rows="2" maxlength="800" placeholder="I rushed a decision; I could have paused first…"></textarea></span></label>
+<label class="prompt"><span class="promptNumber">04</span><span class="promptContent"><strong>What's one thing I'd do differently tomorrow?</strong><small>A small, realistic next step.</small><textarea name="tomorrow" data-journal-field="tomorrow" rows="2" maxlength="800" placeholder="Try a five-minute review before opening my notes…"></textarea></span></label>
+</div>
+<details class="optionalThoughts"><summary>+ Add a longer thought <span>(only if you feel like it)</span></summary><label for="journalMore">Anything else worth remembering?</label><textarea id="journalMore" name="more" data-journal-field="more" rows="4" maxlength="4000" placeholder="Write freely. You can return and edit this anytime."></textarea></details>
+<div class="saveRow"><div><span class="saveDot"></span><span id="journalSave" role="status" aria-live="polite">Nothing written yet · entries save as you type</span></div><button id="journalExport" type="button">Export my journal</button></div>
+</form></section>
+<section class="memories" aria-labelledby="recentHeading"><div class="memoriesHeader"><div><span class="kicker">LOOK BACK, MOVE FORWARD</span><h2 id="recentHeading">Your recent days</h2></div><span class="quietCount" id="journalCount">0 entries</span></div><p class="memoriesHint">Real memories, not a score. Open any day to revisit or edit what you wrote.</p><div id="journalRecent" class="recentList"></div></section>
+<footer class="footer">Your journal stays on this browser first. Google sync is optional and confirms separately. Export a backup whenever you want.</footer>
+</main><script src="./journal.js?v=20261114-journal-v1"></script><script type="module" src="./firebase-sync.js?v=20261114-quiet-sync-status-v11"></script></body></html>
