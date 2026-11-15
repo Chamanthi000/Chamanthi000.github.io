@@ -31,40 +31,71 @@ function dateFromRecord(value,today){
  const raw=String(value?.updatedAt||value?.createdAt||'').slice(0,10);
  return validDay(raw)?(raw>today?today:raw):today;
 }
+// These are the same eleven section identities visible in DSA Revision.
+// Other historical records stay in storage, but cannot become planner topics.
+const BUILTIN_SECTIONS=Object.freeze([
+ ['arrays','Arrays'],['strings','Strings'],['hash-maps','Hash Maps & Sets'],
+ ['linked-lists','Linked Lists'],['stacks','Stacks'],['queues','Queues & Deques'],
+ ['trees','Trees & BSTs'],['heaps','Heaps & Priority Queues'],
+ ['graphs','Graphs'],['tries','Tries'],['union-find','Union Find']
+]);
+const BUILTIN_NAMES=new Map(BUILTIN_SECTIONS);
+function isVisibleSection(row){
+ return !!row&&!row.deleted&&typeof row.id==='string'&&
+  (BUILTIN_NAMES.has(row.id)||row.customTopic===true);
+}
+function revisionSections(noteRows){
+ const records=new Map();
+ for(const item of Array.isArray(noteRows)?noteRows:[]){
+  if(!item||typeof item.id!=='string')continue;
+  const previous=records.get(item.id);
+  if(!previous||String(item.updatedAt||'')>String(previous.updatedAt||''))records.set(item.id,item);
+ }
+ // DSA Revision always displays these eleven guides, even before notes exist.
+ // Respect an explicit tombstone: an archived/deleted guide is not due.
+ const visible=[];
+ for(const [id,title] of BUILTIN_SECTIONS){
+  const row=records.get(id);
+  if(row?.deleted)continue;
+  visible.push({...row,id,title:typeof row?.title==='string'&&row.title.trim()?row.title:title});
+ }
+ for(const row of records.values()){
+  if(!isVisibleSection(row)||BUILTIN_NAMES.has(row.id)||typeof row.title!=='string'||!row.title.trim())continue;
+  visible.push(row);
+ }
+ return visible;
+}
 function collectTopics(noteRows,progressRows,today=dayKey()){
  if(!validDay(today))throw Error('A valid local planning date is required');
- const states=new Map((progressRows||[]).filter(x=>x&&x.recordType===RECORD_TYPE&&!x.deleted).map(x=>[String(x.topicId),x]));
- const notes=new Map();
- for(const item of Array.isArray(noteRows)?noteRows:[]){
-  if(!item||item.deleted||!item.id||!item.title||!noteText(item).trim())continue;
-  const id=String(item.id),previous=notes.get(id);
-  if(!previous||String(item.updatedAt||'')>String(previous.updatedAt||''))notes.set(id,item);
+ const sections=revisionSections(noteRows);
+ const states=new Map((progressRows||[]).filter(x=>x&&x.recordType===RECORD_TYPE&&!x.deleted)
+  .map(x=>[String(x.topicId),x]));
+ const counts=new Map();
+ for(const row of sections){
+  const name=titleKey(row.title);
+  counts.set(name,(counts.get(name)||0)+1);
  }
- const all=new Map();
- const titleCounts=new Map();
- for(const item of notes.values()){const title=titleKey(item.title);titleCounts.set(title,(titleCounts.get(title)||0)+1);}
- const manualByTitle=new Map([...states.values()].filter(row=>String(row.topicId||'').startsWith('manual:')).map(row=>[titleKey(row.title),row]));
- for(const item of notes.values()){
-  const directId=String(item.id),key=titleKey(item.title);
-  // A manually tracked subject and newly created private notebook with the same
-  // unambiguous title are one study topic. Retain the manual review schedule.
-  const manual=states.has(directId)||titleCounts.get(key)!==1?null:manualByTitle.get(key);
-  const id=manual?String(manual.topicId):directId,progress=states.get(id);
-  const initial=dateFromRecord(item,today),started=validDay(progress?.startedOn)?progress.startedOn:initial;
+ const manualByTitle=new Map([...states.values()]
+  .filter(row=>String(row.topicId||'').startsWith('manual:')&&row.title)
+  .map(row=>[titleKey(row.title),row]));
+ const topics=[];
+ for(const row of sections){
+  const directId=String(row.id),key=titleKey(row.title);
+  const legacyManual=states.has(directId)||counts.get(key)!==1?null:manualByTitle.get(key);
+  const id=legacyManual?String(legacyManual.topicId):directId,progress=states.get(id);
+  const hasNotes=!!noteText(row).trim();
+  // Never manufacture reminders from orphaned progress. A topic is scheduled
+  // only if its CURRENT DSA section has notes or a matching tracked review.
+  if(!hasNotes&&!progress)continue;
+  const initial=dateFromRecord(row,today);
+  const started=validDay(progress?.startedOn)?progress.startedOn:initial;
   const next=validDay(progress?.nextReview)?progress.nextReview:plusDays(started,INTERVALS[0]);
-  all.set(id,{id,title:item.title,startedOn:started,nextReview:next,stage:Math.max(0,Math.min(5,Number(progress?.stage)||0)),
-   hasNotes:true,estimated:!progress,reviewCount:Array.isArray(progress?.history)?progress.history.length:0,record:progress||null});
+  topics.push({id,title:row.title,startedOn:started,nextReview:next,
+   stage:Math.max(0,Math.min(5,Number(progress?.stage)||0)),hasNotes,
+   estimated:!progress,reviewCount:Array.isArray(progress?.history)?progress.history.length:0,
+   record:progress||null,sectionId:directId});
  }
- for(const progress of states.values()){
-  const id=String(progress.topicId||'');if(!id||all.has(id))continue;
-  // Explicitly registered topics without notes are still legitimate study items.
-  const started=validDay(progress.startedOn)?progress.startedOn:today;
-  const next=validDay(progress.nextReview)?progress.nextReview:plusDays(started,INTERVALS[0]);
-  all.set(id,{id,title:String(progress.title||id),startedOn:started,nextReview:next,
-    stage:Math.max(0,Math.min(5,Number(progress.stage)||0)),hasNotes:false,estimated:false,
-    reviewCount:Array.isArray(progress.history)?progress.history.length:0,record:progress});
- }
- return [...all.values()].sort((a,b)=>a.nextReview.localeCompare(b.nextReview)||a.stage-b.stage||a.title.localeCompare(b.title));
+ return topics.sort((a,b)=>a.nextReview.localeCompare(b.nextReview)||a.stage-b.stage||a.title.localeCompare(b.title));
 }
 function planDays(topics,today=dayKey(),length=8,limit=2){
  if(!validDay(today))throw Error('Invalid planning date');
@@ -123,7 +154,7 @@ function assessmentFor(topicId,title,old,assessment,today=dayKey(),now=new Date(
   focus,history,reviewDraft:null,updatedAt:now};
 }
 function manualId(name){return 'manual:'+titleKey(name).replace(/\s+/g,'-');}
-const api={RECORD_TYPE,PREFIX,INTERVALS,dayKey,validDay,plusDays,recordId,noteText,collectTopics,planDays,progressFor,assessmentFor,manualId,titleKey};
+const api={RECORD_TYPE,PREFIX,INTERVALS,dayKey,validDay,plusDays,recordId,noteText,isVisibleSection,revisionSections,collectTopics,planDays,progressFor,assessmentFor,manualId,titleKey};
 root.RecallRevisionPlan=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
