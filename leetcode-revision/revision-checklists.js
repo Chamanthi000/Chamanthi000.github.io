@@ -10,7 +10,7 @@ const common=(recognize,methods,trace,complexity,pitfall,code)=>[
  {id:'code',label:code}
 ];
 const guides={
- 'sorting':{
+ 'sorting-algorithms':{
   checks:[
    {id:'recognize',label:'Choose among the five you studied: nearly sorted, fewer writes, adjacent swaps, stable/guaranteed sort, or fast average partitioning.'},
    {id:'insertion',label:'Insertion Sort: select a key, compare backward, shift larger values, then insert into the sorted prefix.'},
@@ -140,7 +140,7 @@ const guides={
 function get(topic,reviewIndex=0){
  const name=String(topic?.title||'').trim(),id=String(topic?.id||'');
  const key=Object.prototype.hasOwnProperty.call(guides,id)?id:
-  /sort/i.test(name)?'sorting':/dynami[c ]+program|(^|\b)dp(\b|$)/i.test(name)?'dynamic-programming':
+  /sort/i.test(name)?'sorting-algorithms':/dynami[c ]+program|(^|\b)dp(\b|$)/i.test(name)?'dynamic-programming':
   /backtrack|recursion/i.test(name)?'backtracking':/binary search/i.test(name)?'binary-search':null;
  const fallback=common(
   'Explain what problem clues make this technique useful and what alternatives exist.',
