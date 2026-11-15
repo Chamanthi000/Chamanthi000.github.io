@@ -229,7 +229,7 @@ function isEmptyDeletedLegacySorting(item){
  if(!item||item.id!=='sorting'||item.deleted!==true)return false;
  if(item.recordType!=null&&item.recordType!=='structure')return false;
  if(!['sorting','sorting techniques','sorting algorithms'].includes(String(item.title||'').trim().toLowerCase()))return false;
- if(typeof item.notes==='string'&&item.notes.trim())return false;
+ if(item.notes!=null&&(typeof item.notes!=='string'||item.notes.trim()))return false;
  const allowed=new Set(['id','title','notes','deleted','createdAt','updatedAt','recordType','customTopic']);
  return Object.keys(item).every(k=>allowed.has(k))&&item.customTopic!==true;
 }
