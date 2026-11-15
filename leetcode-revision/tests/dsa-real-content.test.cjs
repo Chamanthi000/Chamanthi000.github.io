@@ -28,7 +28,7 @@ const destination=process.env.DSA_SCREENSHOT_DIR || path.join(root,'output/playw
    await page.goto('http://recall-dsa.test/#coding');
    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.fixtureCopied=text}}));
    await page.locator('#dsToggle')[device.touch?'tap':'click']();
-   assert.equal(await page.locator('.ds-topic').count(),11);
+   assert.equal(await page.locator('.ds-topic').count(),12);
    for(const id of topics){
     const data=JSON.parse(fs.readFileSync(path.join(root,'data/dsa',id+'-guide.json'),'utf8'));
     await page.locator('[data-nav-id="'+id+'"]')[device.touch?'tap':'click']();
@@ -65,7 +65,7 @@ const destination=process.env.DSA_SCREENSHOT_DIR || path.join(root,'output/playw
    await page.locator('#dsSearch').fill('');await page.locator('[data-nav-id="graphs"]').click();
    fs.mkdirSync(destination,{recursive:true});await page.locator('.ds-topic[data-id="graphs"] > summary').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(destination,'dsa-real-'+device.name+'.png')});
    await page.locator('[data-ag-open="dg-graphs-patterns"]').click();if(!await page.locator('#dg-graphs-pattern-0').evaluate(el=>el.open))await page.locator('#dg-graphs-pattern-0 > summary').click();await page.locator('#dg-graphs-pattern-0 > summary').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(destination,'dsa-pattern-'+device.name+'.png')});
-   assert.deepEqual(errors,[]);report.push({device:device.name,width:device.width,height:device.height,topics:11,result:'PASS'});await context.close();
+   assert.deepEqual(errors,[]);report.push({device:device.name,width:device.width,height:device.height,topics:12,result:'PASS'});await context.close();
   }
   console.log(JSON.stringify({result:'PASS',report,limits:'All requests intercepted; Firebase disabled; no physical Safari or real account testing.'},null,2));
  } finally {await browser.close();}
