@@ -297,11 +297,23 @@ test('transaction detects fallback stolen after scan and safely retries a new se
  assert.deepEqual(f.cloud.writeErrors,[]);assert.equal(f.cloud.pendingCount,0);
 });
 
-test('occupied alternative fallbacks never overwrite any record or guess when scan is not server confirmed',async()=>{
- const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record('a/b');
- for(let i=0;i<12;i++)f.store.set(path(mapped(local.id)+(i?'-'+i:'')),record('different-'+i));
- const before=structuredClone([...f.store]);
+for(const [id,count] of [['a/b',12],['42',40]])test('saturated '+count+' fallback IDs save safely and reuse the chosen cloud record: '+id,async()=>{
+ const b=browser({conflicts:copies}),f=await firebase(b);await f.auth();const local=record(id);
+ if(id==='42')f.store.set(path(id),{...record(id),recordType:'structure'});
+ for(let i=0;i<count;i++)f.store.set(path(mapped(id)+(i?'-'+i:'')),record('different-'+i));
+ const originals=structuredClone([...f.store]);
  f.local('coding',[local]);await b.runTimers(180);
- unchanged(f,b,before,local);
- assert.deepEqual(f.cloud.writeErrors,[{...writeFailure('document-reference')[0],referenceStep:'resolve-id',errorType:'Error'}]);
+ for(const [key,value] of originals)assert.deepEqual(f.store.get(key),value);
+ const chosen=path(mapped(id)+'-'+count);
+ assert.deepEqual(f.store.get(chosen),local);
+ assert.deepEqual(f.writes.map(x=>x.key),[chosen]);
+ assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.cloud.writeErrors,[]);
+ assert.deepEqual(b.rows('conflicts'),copies);
+ // A subsequent edit must find the same document instead of creating duplicates.
+ const edited={...local,notes:'later edit',updatedAt:'2026-03-01'};
+ f.local('coding',[edited]);await b.runTimers(180);
+ assert.deepEqual(f.store.get(chosen),edited);
+ for(const [key,value] of originals)assert.deepEqual(f.store.get(key),value);
+ assert.equal([...f.store.values()].filter(x=>x.id===id&&!x.recordType).length,1);
+ assert.equal(f.cloud.pendingCount,0);
 });

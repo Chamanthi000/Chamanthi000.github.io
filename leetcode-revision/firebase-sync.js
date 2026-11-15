@@ -123,7 +123,7 @@ function syncStatus(){
  if(state.blocked.size||state.conflicts.size){report('⚠ Conflicts · Device copies retained; review or export conflict copies');return}
  if(typeof navigator!=='undefined'&&navigator.onLine===false){report('Offline · Cloud changes waiting for reconnection');return}
  if(write){statusText('⚠ '+write+' · Device copy retained');return}
- if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending · Sync check v15: '+[...state.writeErrors.values()].filter(isUnclassifiedReferenceRetry).map(e=>[e.kind,e.referenceStep||'reference',e.errorType||'unclassified',e.sourceLine?'line '+e.sourceLine:''].filter(Boolean).join(' / ')).join('; '):'✓ Saved on device · Waiting for cloud acknowledgement');return}
+ if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending · Sync check v16: '+[...state.writeErrors.values()].filter(isUnclassifiedReferenceRetry).map(e=>[e.kind,e.referenceStep||'reference',e.errorType||'unclassified',e.sourceLine?'line '+e.sourceLine:''].filter(Boolean).join(' / ')).join('; '):'✓ Saved on device · Waiting for cloud acknowledgement');return}
  if(page.every(k=>state.confirmed.has(k)))statusText('✓ Cloud confirmed · Server acknowledged current notebooks');
  else statusText('Waiting · Cached data or remaining notebooks need server acknowledgement');
 }
@@ -293,9 +293,13 @@ async function resolveDocumentId(kind,value,owner,session,forceScan=false,exclud
  }
  const occupied=new Set(snapshot.docs.map(document=>document.id));
  const baseId=await safeDocumentId(kind,value,session);
- for(let attempt=0;attempt<12;attempt++){
+ // A confirmed scan tells us every occupied ID. With N unavailable IDs,
+ // N+1 distinct candidates must contain a free one; a fixed cap can strand
+ // a valid save forever. The transaction still checks ownership before writing.
+ const unavailable=new Set([...occupied,...excludedIds]);
+ for(let attempt=0;attempt<=unavailable.size;attempt++){
   const candidate=checkedDocumentId(attempt===0?baseId:baseId+'-'+attempt);
-  if(!occupied.has(candidate)&&!excludedIds.has(candidate))return candidate;
+  if(!unavailable.has(candidate))return candidate;
  }
  throw Error('No verified safe document path is available; save stopped.');
 }
