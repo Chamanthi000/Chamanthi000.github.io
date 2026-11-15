@@ -23,8 +23,11 @@ const root=path.resolve(__dirname,'..');
     const key='recall-structures-v1';
     if(!localStorage.getItem('rp-test-seeded')){
      const shift=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
-     const row=(id,title,days)=>({id,title,notes:'Private notes on '+title,createdAt:shift(days)+'T12:00:00.000Z',updatedAt:shift(days)+'T12:00:00.000Z'});
-     localStorage.setItem(key,JSON.stringify([row('arrays','Arrays',-3),row('strings','Strings',-2),row('custom-dsa-sorting','Sorting techniques',0)]));
+     const row=(id,title,days)=>({id,title,...(id.startsWith('custom-dsa-')?{customTopic:true}:{}),notes:'Private notes on '+title,createdAt:shift(days)+'T12:00:00.000Z',updatedAt:shift(days)+'T12:00:00.000Z'});
+     localStorage.setItem(key,JSON.stringify([
+      row('arrays','Arrays',-3),row('strings','Strings',-2),row('custom-dsa-sorting','Sorting techniques',0),
+      row('old-hidden','Old Deleted Algorithm',-5),{...row('custom-dsa-removed','Removed Topic',-5),deleted:true}
+     ]));
      localStorage.setItem('rp-test-seeded','true');
     }
    });
@@ -36,6 +39,8 @@ const root=path.resolve(__dirname,'..');
    await page.locator('#rpTomorrowItems .rpPreview > summary').click();
    assert.ok((await page.locator('#rpTomorrowItems .rpPreview li').count())>=6,'tomorrow preview must include a complete topic checklist');
    assert.match(await page.locator('#rpUpcoming').textContent(),/Sorting techniques/);
+   assert.doesNotMatch(await page.locator('#revisionPlanner').textContent(),/Old Deleted Algorithm|Removed Topic/);
+   assert.doesNotMatch(await page.locator('#rpTopicOptions').innerHTML(),/Old Deleted Algorithm|Removed Topic/);
    const notesBefore=await page.evaluate(()=>localStorage.getItem('recall-structures-v1'));
    // A conflicting, newer cloud note is a read-only reference, not a reason
    // to replace the preferred device's actual study date or note contents.
@@ -82,11 +87,16 @@ const root=path.resolve(__dirname,'..');
    assert.ok(tomorrowPreview.includes('Arrays'));
    assert.ok(tomorrowPreview.includes('Focus next: write the code without opening the solution.'), 'tomorrow targets the actual missed coding skill');
    assert.equal(await page.locator('#rpTodayItems .rpItem').count(),0);
-   // Register a just-learned new topic even if it has no notes yet.
+   // Old/manual subjects cannot be added to the planner unless they have a
+   // current DSA Revision section. A built-in guide can be tracked even blank.
    await page.locator('#rpStudyInput').fill('Heap sort');
    await page.locator('#rpStudiedForm button').click();
+   assert.match(await page.locator('#rpStatus').textContent(),/Only current DSA Revision sections/);
+   assert.doesNotMatch(await page.locator('#rpUpcoming').textContent(),/Heap sort/);
+   await page.locator('#rpStudyInput').fill('Trees & BSTs');
+   await page.locator('#rpStudiedForm button').click();
    assert.match(await page.locator('#rpStatus').textContent(),/3 days later/);
-   assert.match(await page.locator('#rpUpcoming').textContent(),/Heap sort/);
+   assert.match(await page.locator('#rpUpcoming').textContent(),/Trees & BSTs/);
    // Tomorrow's plan stays editable and idempotent, with the regular template intact.
    await page.locator('#rpTomorrowChecklist').click();
    assert.match(await page.locator('#rpStatus').textContent(),/Added 2/);
@@ -101,8 +111,19 @@ const root=path.resolve(__dirname,'..');
    assert.ok(tomorrow.tasks.length>1,'existing routine template preserved');
    assert.equal(await page.evaluate(()=>localStorage.getItem('recall-structures-v1')),notesBefore,'read-only schedule never edits original study notes');
    await page.reload();
-   assert.match(await page.locator('#rpUpcoming').textContent(),/Heap sort/);
+   assert.match(await page.locator('#rpUpcoming').textContent(),/Trees & BSTs/);
    assert.equal(await page.locator('#rpTodayItems .rpItem').count(),0);
+   // Removing a custom section also removes its scheduled review, without
+   // deleting unrelated review history or any original notes.
+   await page.evaluate(()=>{
+    const key='recall-structures-v1',rows=JSON.parse(localStorage.getItem(key));
+    const target=rows.find(x=>x.id==='custom-dsa-sorting');target.deleted=true;
+    target.updatedAt=new Date().toISOString();
+    localStorage.setItem(key,JSON.stringify(rows));
+    window.RecallRevisionPlanner.render();
+   });
+   assert.doesNotMatch(await page.locator('#revisionPlanner').textContent(),/Sorting techniques/);
+   assert.doesNotMatch(await page.locator('#rpTopicOptions').innerHTML(),/Sorting techniques/);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+6),'no mobile or tablet horizontal overflow');
    assert.deepEqual(errors,[]);
    await context.close();
