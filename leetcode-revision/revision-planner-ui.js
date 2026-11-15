@@ -52,7 +52,15 @@ function checklistFor(topic){
  const checks=base.checks.map(point=>point.id==='code'&&retry?
   {...point,label:point.label.replace(base.challenge,challenge)}:point);
  const extras=Array.isArray(topic.record?.extraReviewChecks)?topic.record.extraReviewChecks.filter(x=>x?.id&&x?.label).slice(0,15):[];
- return {...base,challenge,checks:[...checks,...extras]};
+ const all=[...checks,...extras];
+ if(last?.result==='practice'){
+  const priorities=new Set(last.missing||[]);
+  if(last.memorized==='no'){priorities.add('methods');priorities.add('trace');}
+  if(last.codeBlind==='no')priorities.add('code');
+  // Missed checkpoints are first next time, but no checklist content disappears.
+  all.sort((a,b)=>Number(priorities.has(b.id))-Number(priorities.has(a.id)));
+ }
+ return {...base,challenge,checks:all};
 }
 function focusText(focus){
  return ({'algorithm-recall':'Focus next: reconstruct the algorithm steps from memory.',
