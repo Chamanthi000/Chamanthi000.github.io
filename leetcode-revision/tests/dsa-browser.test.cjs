@@ -14,7 +14,7 @@ try {
 }
 const root = path.resolve(__dirname, '..');
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'recall-browser-'));
-const topics = ['arrays', 'strings', 'hash-maps', 'linked-lists', 'stacks', 'queues', 'trees', 'heaps', 'graphs', 'tries', 'union-find', 'sorting'];
+const topics = ['arrays', 'strings', 'hash-maps', 'linked-lists', 'stacks', 'queues', 'trees', 'heaps', 'graphs', 'tries', 'union-find', 'sorting-algorithms'];
 const KEY = 'recall-structures-v1';
 const OPEN = 'recall-dsa-guides-open-v1';
 const privateText = '  PRIVATE fixture <tag> & "quotes"\n\n    keep indentation and trailing spaces  ';
@@ -123,7 +123,7 @@ async function run() {
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('recall-dsa-guides-open-v1')).includes('dg-trees-operations'));
 
   for (const id of topics) {
-    await page.locator('#dsSearch').fill(id==='sorting'?'sorting exam papers by score':id + ' invariant');
+    await page.locator('#dsSearch').fill(id==='sorting-algorithms'?'sorting exam papers by score':id + ' invariant');
     assert.equal(await page.locator('.ds-topic').count(), 1, 'search must cover every public guide');
     assert.equal(await page.locator('.ds-topic').getAttribute('data-id'), id);
   }
@@ -167,8 +167,8 @@ async function run() {
   assert.equal(await page.locator('[data-nav-id="custom-existing"]').count(), 0);
   assert.equal(await page.locator('[data-id="custom-existing"]').count(), 0);
   assert.equal(await page.locator('#dsAdd, #dsNewTitle, [data-remove]').count(), 0);
-  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'), 'sorting');
-  assert.equal(await page.locator('[data-nav-id]').last().getAttribute('data-nav-id'), 'sorting');
+  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'), 'sorting-algorithms');
+  assert.equal(await page.locator('[data-nav-id]').last().getAttribute('data-nav-id'), 'sorting-algorithms');
   assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item => item.id === 'custom-existing')), seed.find(item => item.id === 'custom-existing'));
   await page.locator('#dsSearch').fill('Existing notebook');
   assert.equal(await page.locator('.ds-topic').count(), 0);
@@ -195,7 +195,7 @@ async function run() {
   await page.locator('#dsSearch').fill('');
 
   assert.equal(await page.locator('.ds-topic').count(),12);
-  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'),'sorting');
+  assert.equal(await page.locator('.ds-topic').last().getAttribute('data-id'),'sorting-algorithms');
   assert.equal(await page.locator('[data-nav-id="legacy-dynamic-programming"]').count(),0);
   assert.deepEqual(await page.evaluate(() => window.RecallStructures().find(item=>item.id==='legacy-dynamic-programming')),cloudExtra);
   await page.reload();
@@ -210,14 +210,14 @@ async function run() {
   await secondPage.locator('#dsToggle').click();
   await secondPage.evaluate(items=>window.dispatchEvent(new CustomEvent('recall-cloud-data',{detail:{kind:'structures',items}})), sharedRecords);
   assert.equal(await secondPage.locator('.ds-topic').count(),12);
-  assert.equal(await secondPage.locator('[data-nav-id]').last().getAttribute('data-nav-id'),'sorting');
+  assert.equal(await secondPage.locator('[data-nav-id]').last().getAttribute('data-nav-id'),'sorting-algorithms');
   assert.deepEqual(await secondPage.evaluate(()=>window.RecallStructures().find(item=>item.id==='legacy-dynamic-programming')),cloudExtra);
   assert.deepEqual(await secondPage.evaluate(()=>window.RecallStructures().find(item=>item.id==='custom-existing')),updatedHidden);
   assert.deepEqual(await secondPage.locator('.ds-topic').evaluateAll(nodes=>nodes.map(node=>node.dataset.id)),canonicalIds);
   await secondPage.reload();
   await secondPage.locator('#dsToggle').click();
   assert.equal(await secondPage.locator('.ds-topic').count(),12);
-  assert.equal(await secondPage.locator('.ds-topic').last().getAttribute('data-id'),'sorting');
+  assert.equal(await secondPage.locator('.ds-topic').last().getAttribute('data-id'),'sorting-algorithms');
   assert.match(await secondPage.locator('#dsSummary').textContent(), /^12 revision topics/);
   await secondDevice.close();
 
