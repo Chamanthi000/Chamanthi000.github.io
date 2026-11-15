@@ -65,3 +65,9 @@
 .rpAssessmentActions .rpSecondary{background:#fff;color:#365c46;border-color:#bfd3c2}
 .rpAssessment :is(button,input):focus-visible{outline:3px solid #83b897;outline-offset:2px}
 @media(max-width:440px){.rpAssessmentHead{flex-wrap:wrap}.rpRadioRow{grid-template-columns:1fr}.rpAssessmentActions button{flex:1 1 100%}}
+
+.rpPreview{flex:1 0 100%;min-width:0;margin-top:5px;border-top:1px solid #e0eadf;padding-top:7px}
+.rpPreview summary{cursor:pointer;color:#345c41;font-size:12px;font-weight:750;padding:5px 0;min-height:35px}
+.rpPreview ol{padding-left:20px;margin:6px 0 9px;color:#496653;font-size:11px;line-height:1.6}
+.rpPreview li{margin-bottom:6px;overflow-wrap:anywhere}
+.rpPreview p{font-size:11px;color:#6a856e;margin:6px 0}
