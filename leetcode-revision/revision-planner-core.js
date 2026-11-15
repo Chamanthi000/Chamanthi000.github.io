@@ -112,7 +112,8 @@ function assessmentFor(topicId,title,old,assessment,today=dayKey(),now=new Date(
  const allCovered=missing.length===0;
  const memoryOk=assessment.memorized==='yes',codeOk=assessment.codeBlind==='yes';
  const fullPass=memoryOk&&codeOk&&allCovered;
- const stage=fullPass?Math.min(5,Math.max(0,Number(prev?.stage)||0)+1):0;
+ const recovered=history.at(-1)?.result==='practice';
+ const stage=fullPass?(recovered?0:Math.min(5,Math.max(0,Number(prev?.stage)||0)+1)):0;
  const nextDays=fullPass?INTERVALS[stage]:(memoryOk&&codeOk?3:1);
  const focus=!memoryOk&& !codeOk?'steps-and-coding':!memoryOk?'algorithm-recall':!codeOk?'blind-coding':!allCovered?'unfinished-checkpoints':'maintain';
  history.push({day:today,result:fullPass?'remembered':'practice',memorized:assessment.memorized,
