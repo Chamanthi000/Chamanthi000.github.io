@@ -52,7 +52,7 @@ const [{initializeApp},{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRed
 ]);
 const app=initializeApp({apiKey:"AIzaSyCmIM8dCDg9H8D52ZXYPGxEpTV85pBciDQ",authDomain:"recall-46335.firebaseapp.com",projectId:"recall-46335",storageBucket:"recall-46335.firebasestorage.app",messagingSenderId:"611507493769",appId:"1:611507493769:web:708b8c892c47aed721df58"});
 const auth=getAuth(app),db=getFirestore(app),provider=new GoogleAuthProvider();
-const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},serverSnapshots:{},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),unverifiedConflicts:new Set(),historyCheckFailed:false,resolvingKinds:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewEpoch:-1,deviceOwner:null,accountPaused:false,accountPauseReason:'',obsoleteCleanup:new Set()};
+const state={user:null,ready:false,unsub:[],pending:new Map(),timers:new Map(),retries:new Map(),writeErrors:new Map(),snapshots:{coding:[],sql:[],goals:[],habits:[],structures:[],concepts:[]},serverSnapshots:{},initial:new Set(),epoch:0,confirmed:new Set(),subscriptionErrors:new Map(),blocked:new Map(),localFailure:false,localFailures:new Set(),conflicts:new Set(),unverifiedConflicts:new Set(),historyCheckFailed:false,resolvingKinds:new Set(),conflictDetails:[],conflictReviewHasResult:false,conflictReviewSignature:null,conflictReviewInFlight:null,deviceOwner:null,accountPaused:false,accountPauseReason:'',obsoleteCleanup:new Set()};
 const kinds=['coding','sql','goals','habits','structures','concepts'];
 const page=location.pathname.endsWith('journal.html')?['habits']:location.pathname.endsWith('goals.html')?['goals','habits']:location.pathname.endsWith('sql-pattern-guide.html')?['concepts']:['coding','sql','structures','concepts'];
 const statusText=s=>{if(status)status.textContent=s;window.dispatchEvent(new CustomEvent('recall-cloud-status',{detail:{message:s}}))};
@@ -509,7 +509,8 @@ async function verifyArchivedConflictCopies(){
    unresolved.add(key);details.set(key,{kind:row.kind,recordId:row.recordId,device:null,cloud:null,reviewable:false,
     issue:'Cloud write still pending or recovery confirmation unavailable'});continue
   }
-  const device=check.local.filter(x=>idOf(row.kind,x)===row.recordId);
+  // Read after all server awaits: another tab may have edited this notebook meanwhile.
+  const device=deviceRecords(row.kind).filter(x=>idOf(row.kind,x)===row.recordId);
   const remoteDocs=check.remoteDocs.filter(x=>idOf(row.kind,x.value)===row.recordId);
   const remote=remoteDocs.map(x=>x.value);
   // Unique matching live copies (or acknowledged absence on both sides) can
@@ -814,6 +815,8 @@ const conflictButton=document.getElementById('downloadConflictCopies');
 if(conflictButton)conflictButton.addEventListener('click',()=>window.RecallSyncConflicts.download());
 
 function holdConflict(kind,device,cloud){
+ // Metadata-only differences do not require a choice between study notes.
+ if(contentEquivalent(device,cloud))return true;
  const key=kind+':'+idOf(kind,device||cloud);
  state.unverifiedConflicts.delete(key);state.conflicts.add(key);
  if(!archiveConflict(kind,device,cloud)){state.blocked.set(key,device);return false}
@@ -891,23 +894,45 @@ function queue(kind,item){
  state.retries.set(key,0);arm(key,0);
 }
 function maybeAutoVerifyArchivedConflicts(){
- // Do not classify an unfinished device-to-cloud edit as a lasting conflict.
- // Check once the initial subscriptions and all queued writes are acknowledged.
- if(state.resolvingKinds.size||state.conflictReviewEpoch===state.epoch||!state.user||state.accountPaused||!state.conflicts.size||
+ // Recheck when live inputs change, not just once per sign-in. Serialize reads
+ // and remember unchanged inputs so snapshot echoes cannot create a read loop.
+ if(state.resolvingKinds.size||state.conflictReviewInFlight||!state.user||state.accountPaused||!state.conflicts.size||
     state.pending.size||state.writeErrors.size||state.localFailure||state.subscriptionErrors.size||
     !page.every(k=>state.confirmed.has(k)))return;
- state.conflictReviewEpoch=state.epoch;
+ let signature;
+ try{
+  signature=JSON.stringify([state.epoch,window.RecallSyncConflicts.read(),
+   kinds.map(kind=>deviceRecords(kind)),state.serverSnapshots]);
+ }catch{state.historyCheckFailed=true;syncStatus();return}
+ if(signature===state.conflictReviewSignature)return;
+ state.conflictReviewSignature=signature;
  const session=captureSession();
- void verifyArchivedConflictCopies().then(()=>updateConflictReviewBox()).catch(()=>{
+ state.conflictReviewInFlight=session;
+ let succeeded=false;
+ void verifyArchivedConflictCopies().then(result=>{
+  assertSession(session);succeeded=true;
+  state.conflictReviewHasResult=true;
+  reviewConflictMessage.textContent=result.unresolved
+   ?result.unresolved+' current record group(s) need a decision. Compare both live versions below; older recovery copies remain saved.'
+   :'✓ No current differences found. Original recovery copies remain available.';
+  renderConflictComparisons();updateConflictReviewBox();
+ }).catch(()=>{
   if(session.epoch!==state.epoch)return;
+  state.conflictReviewSignature=null;
   state.historyCheckFailed=true;syncStatus();
   reviewConflictMessage.textContent='Cannot verify old conflicts right now. Copies retained.';
   updateConflictReviewBox();
+ }).finally(()=>{
+  if(state.conflictReviewInFlight!==session)return;
+  state.conflictReviewInFlight=null;
+  // Catch changes received while the previous server check was in flight.
+  if(succeeded)maybeAutoVerifyArchivedConflicts();
  });
 }
+
 async function setup(user){
 for(const u of state.unsub)u();for(const timer of state.timers.values())clearTimeout(timer);
-state.epoch++;state.obsoleteCleanup.clear();state.resolvingKinds.clear();state.conflictReviewEpoch=-1;state.unverifiedConflicts.clear();state.historyCheckFailed=false;state.conflictReviewHasResult=false;state.conflictDetails=[];conflictCompareList.replaceChildren();state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
+state.epoch++;state.obsoleteCleanup.clear();state.resolvingKinds.clear();state.conflictReviewSignature=null;state.conflictReviewInFlight=null;state.unverifiedConflicts.clear();state.historyCheckFailed=false;state.conflictReviewHasResult=false;state.conflictDetails=[];conflictCompareList.replaceChildren();state.conflicts.clear();state.timers.clear();state.retries.clear();state.writeErrors.clear();state.unsub=[];state.pending.clear();state.initial.clear();state.confirmed.clear();state.subscriptionErrors.clear();state.blocked.clear();
 state.snapshots=Object.fromEntries(kinds.map(k=>[k,[]]));state.serverSnapshots={};state.user=user;state.ready=!!user;displayAccount(user);
 if(!user){statusText('Cloud signed out · Device storage is separate');if(login)login.hidden=false;if(logout)logout.hidden=true;return}
 // Device records are shared by the app. Never silently migrate one account's notes to another.

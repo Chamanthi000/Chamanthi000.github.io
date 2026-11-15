@@ -1068,3 +1068,35 @@ test('a concurrent local edit is preserved when another device sends a newer rec
  assert.ok(b.rows('conflicts').some(x=>x.device.notes===local.notes&&x.cloud.notes===remote.notes));
  assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
 });
+
+test('a conflict verified earlier in the session clears after a subsequent acknowledged edit',async()=>{
+ const device=item('a','device version'),cloud=item('a','cloud version');
+ const archive={id:'same-session',kind:'coding',recordId:'a',device,cloud};
+ const b=browser({coding:[device],conflicts:[archive]}),f=await firebase(b);
+ f.store.set(path('a'),cloud);await f.auth();f.emit('coding');f.emit('sql');await flush();
+ assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+ const edited=item('a','resolved by editing','2026-03-01');
+ f.local('coding',[edited]);await b.runTimers(180);await flush();
+ assert.deepEqual(f.store.get(path('a')),edited);
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts|Checking saved copies/);
+ assert.ok(b.rows('conflicts').some(row=>row.id===archive.id));
+});
+
+test('timestamp-only snapshot echoes never create active conflicts or extra archives',async()=>{
+ const device=item('a','same content'),cloud=item('a','same content','2026-03-01');
+ const b=browser({coding:[device]}),f=await firebase(b);
+ f.store.set(path('a'),cloud);await f.auth();f.emit('coding');f.emit('sql');await flush();
+ assert.deepEqual(b.rows('conflicts'),[]);
+ assert.ok(statuses(b).every(text=>!text.includes('⚠ Conflicts')));
+ assert.equal(f.writes.length,0);
+});
+
+test('unchanged unresolved snapshot echoes do not loop server verification reads',async()=>{
+ const device=item('a','local'),cloud=item('a','remote');
+ const b=browser({coding:[device],conflicts:[{id:'echo',kind:'coding',recordId:'a',device,cloud}]}),f=await firebase(b);
+ let reads=0;f.controls.read=()=>{reads++};f.store.set(path('a'),cloud);
+ await f.auth();f.emit('coding');f.emit('sql');await flush();const checked=reads;
+ assert.ok(checked>0);
+ for(let i=0;i<5;i++){f.emit('coding');f.emit('sql');await flush()}
+ assert.equal(reads,checked);assert.match(b.elements.firebaseStatus.textContent,/Conflicts/);
+});
