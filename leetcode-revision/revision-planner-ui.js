@@ -44,8 +44,15 @@ function checklistFor(topic){
  const index=topic.reviewCount||0;
  const base=window.RecallReviewChecklists?.get(topic,index)||{challenge:'Representative algorithm',
   checks:[{id:'recognize',label:'Recall when to use this technique.'},{id:'code',label:'Attempt code without looking.'}]};
+ const last=topic.record?.history?.at?.(-1);
+ // When a challenge was failed, revisit that exact algorithm instead of
+ // accidentally rotating to a new one at the next-day follow-up.
+ const retry=last?.result==='practice'&&last.challenge?last.challenge:null;
+ const challenge=retry||base.challenge;
+ const checks=base.checks.map(point=>point.id==='code'&&retry?
+  {...point,label:point.label.replace(base.challenge,challenge)}:point);
  const extras=Array.isArray(topic.record?.extraReviewChecks)?topic.record.extraReviewChecks.filter(x=>x?.id&&x?.label).slice(0,15):[];
- return {...base,checks:[...base.checks,...extras]};
+ return {...base,challenge,checks:[...checks,...extras]};
 }
 function focusText(focus){
  return ({'algorithm-recall':'Focus next: reconstruct the algorithm steps from memory.',
@@ -79,7 +86,10 @@ function rowMarkup(t,allowMark){
   '<small>'+esc(noteState)+' · ~5–12 min'+(t.overdue?' · Due earlier':'')+'</small>'+
   (t.record?.focus&&t.record.focus!=='maintain'?'<small>'+esc(focusText(t.record.focus))+'</small>':'')+'</div>'+
   (allowMark?'<div class="rpItemActions"><button type="button" data-rp-open="'+esc(t.id)+'" aria-expanded="'+String(open)+'">'+(open?'Hide review':'Start quick review')+'</button></div>':'')+
-  (open?assessmentMarkup(t):'')+'</article>';
+  (open?assessmentMarkup(t):'')+
+  (!allowMark?'<details class="rpPreview"><summary>See what to cover</summary><ol>'+
+   checklistFor(t).checks.map(check=>'<li>'+esc(check.label)+'</li>').join('')+
+   '</ol><p>At review time, assess memory and blind coding separately.</p></details>':'')+'</article>';
 }
 function render(){
  const day=core.dayKey(),tomorrow=core.plusDays(day,1),topics=currentTopics(),planned=core.planDays(topics,day,8,2);
