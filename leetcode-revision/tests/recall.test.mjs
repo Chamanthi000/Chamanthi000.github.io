@@ -95,7 +95,7 @@ test('DSA includes Sorting without deleting hidden private records',()=>{
  const raw=dsRevision.slice(dsRevision.indexOf(prefix)+prefix.length).split(';')[0];
  const presets=JSON.parse(raw);
  assert.equal(presets.length,12);
- assert.equal(presets.at(-1).id,'sorting');
+ assert.equal(presets.at(-1).id,'sorting-algorithms');
  const line=dsRevision.split(String.fromCharCode(10)).find(text=>text.startsWith('const isVisibleTopic='));
  assert.ok(line,'Display must have an explicit canonical-topic predicate');
  const visible=new Function('presetRank',line+'return isVisibleTopic;')(new Map(presets.map((item,i)=>[item.id,i])));
