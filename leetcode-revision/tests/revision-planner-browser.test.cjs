@@ -33,6 +33,8 @@ const root=path.resolve(__dirname,'..');
    assert.equal(await page.locator('#rpTodayItems .rpItem').count(),1);
    assert.match(await page.locator('#rpTodayItems').textContent(),/Arrays/);
    assert.match(await page.locator('#rpTomorrowItems').textContent(),/Strings/);
+   await page.locator('#rpTomorrowItems .rpPreview > summary').click();
+   assert.ok((await page.locator('#rpTomorrowItems .rpPreview li').count())>=6,'tomorrow preview must include a complete topic checklist');
    assert.match(await page.locator('#rpUpcoming').textContent(),/Sorting techniques/);
    const notesBefore=await page.evaluate(()=>localStorage.getItem('recall-structures-v1'));
    // A conflicting, newer cloud note is a read-only reference, not a reason
@@ -51,7 +53,7 @@ const root=path.resolve(__dirname,'..');
     const date=window.RecallRevisionPlan.dayKey();
     window.RecallDailyChecklist.addSuggested(date,[{id:'rp-arrays',reviewTopicId:'arrays',name:'Revise Arrays · 5 min',start:'',end:''}]);
    });
-   await page.locator('#dailyTasks [data-day-action="check"][data-task="rp-arrays"]').check();
+   await page.locator('#dailyTasks [data-day-action="check"][data-task="rp-arrays"]').click();
    assert.equal(await page.locator('[data-rp-assessment="arrays"]').count(),1,'daily task must open the real assessment, not grant mastery');
    let stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('recall-goals-habits-v1')).habits);
    assert.equal(stored.filter(x=>x.recordType==='dsaTopicReview'&&x.topicId==='arrays').length,0,'checking task alone is not a completed review');
