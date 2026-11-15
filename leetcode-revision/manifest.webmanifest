@@ -1,0 +1,10 @@
+{
+  "id": "./goals.html",
+  "name": "Recall Goals & Habits",
+  "short_name": "Recall",
+  "start_url": "./goals.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff7fb",
+  "theme_color": "#b95f90"
+}

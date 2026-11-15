@@ -37,7 +37,7 @@ const formatTime=s=>{
 const liveHabits=()=>api.getHabits().filter(h=>!h.deleted&&!h.recordType);
 const findRecord=id=>api.getHabits().find(h=>h.id===id&&!h.deleted);
 const template=()=>{const r=findRecord(TEMPLATE);return r&&Array.isArray(r.tasks)?copy(r.tasks):copy(defaults)};
-let selected=isoDate(),editing=null,templateMode=false,lastDate=isoDate(),notifyBusy=false;
+let selected=isoDate(),editing=null,templateMode=false,lastDate=isoDate();
 function getTasks(){
  if(templateMode)return template();
  const r=findRecord(PREFIX+selected);
@@ -241,19 +241,21 @@ $('dailyGoToday').onclick=()=>{selected=isoDate();editing=null;render();checkRem
 $('dailyDate').onchange=e=>{if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){selected=e.target.value;editing=null;render();checkReminders()}};
 const alertKey=(day,task,event)=>'recall-notify-v2:'+day+':'+task+':'+event;
 function browserNotify(title,body,key){
- if(!('Notification' in window)||Notification.permission!=='granted'||localStorage.getItem(key))return;
- try{
-  const n=new Notification(title,{body,tag:key});
-  n.onclick=()=>{window.focus();$('dailyChecklist').scrollIntoView({behavior:'smooth'});n.close()};
-  localStorage.setItem(key,'1');
- }catch(e){console.warn('Notification not available:',e)}
+ return window.RecallNotifications?.show(title,body,key);
+}
+function tasksForDate(date){
+ const r=findRecord(PREFIX+date);
+ return r&&Array.isArray(r.tasks)?copy(r.tasks):template();
+}
+function doneOnDate(t,tasks,date){
+ const h=linkOf(t,tasks);return h?(h.dates||[]).includes(date):!!t.done;
 }
 function checkPlanPrompt(){
  const now=new Date(),day=isoDate(now),key='recall-night-plan-v1:'+day;
  const isTime=now.getHours()>=22;
  const show=!templateMode&&selected===day&&isTime&&!localStorage.getItem(key);
  $('dailyPlanBanner').hidden=!show;
- if(show)browserNotify('Plan tomorrow ✨','Review and edit tomorrow’s daily checklist before bed.',alertKey(day,'tomorrow','plan'));
+ if(isTime&&!localStorage.getItem(key))browserNotify('Plan tomorrow ✨','Review and edit tomorrow’s daily checklist before bed.',alertKey(day,'tomorrow','plan'));
 }
 $('dailyPlanTomorrow').onclick=()=>{
  const current=isoDate(),next=new Date();next.setDate(next.getDate()+1);
@@ -274,36 +276,49 @@ function checkReminders(){
  }
  if(!document.querySelector('.dailyTaskEditor')&&!document.activeElement?.closest?.('#dailyAddDetails'))render();
  checkPlanPrompt();
- if(templateMode||selected!==current)return;
- const now=Date.now(),tasks=getTasks();
- for(const t of tasks){
-  const start=localTime(current,t.start),end=localTime(current,t.end);
-  if(Number.isFinite(start)&&now>=start-30*60000&&now<start){
-   const left=Math.max(1,Math.ceil((start-now)/60000));
-   browserNotify('Upcoming task · '+t.name,'Starts in '+left+' minutes at '+formatTime(t.start),alertKey(current,t.id,'before'));
-  }
-  if(Number.isFinite(end)&&now>=end&&now<end+2*60000&&!isDone(t,tasks)&&t.response!=='no'){
-   browserNotify('Did you finish? · '+t.name,'Open your checklist to answer Yes or No.',alertKey(current,t.id,'after'));
+ // Scheduling follows actual dates, independently of the date/template being edited.
+ const now=Date.now(),tomorrow=new Date(current+'T12:00:00');tomorrow.setDate(tomorrow.getDate()+1);
+ for(const date of [current,isoDate(tomorrow)]){
+  const tasks=tasksForDate(date);
+  for(const t of tasks){
+   if(doneOnDate(t,tasks,date))continue;
+   const start=localTime(date,t.start),end=localTime(date,t.end);
+   if(Number.isFinite(start)&&now>=start-30*60000&&now<start){
+    const left=Math.max(1,Math.ceil((start-now)/60000));
+    browserNotify('Upcoming task · '+t.name,'Starts in '+left+' minutes at '+formatTime(t.start),alertKey(date,t.id,'before:'+t.start));
+   }
+   if(Number.isFinite(end)&&now>=end&&now<end+30*60000&&t.response!=='no'){
+    browserNotify('Did you finish? · '+t.name,'Open your checklist to answer Yes or No.',alertKey(date,t.id,'after:'+t.end));
+   }
   }
  }
 }
 $('dailyNotify').onclick=async()=>{
- if(!('Notification' in window)){
-  $('dailyNotifyStatus').textContent='System notifications are not supported in this browser. In-page completion questions still work.';return;
- }
  try{
-  let p=Notification.permission;
-  if(p==='default')p=await Notification.requestPermission();
-  $('dailyNotifyStatus').textContent=p==='granted'?'Notifications enabled while this page is open. For closed-app alerts, use an external reminder service.':p==='denied'?'Notifications blocked. Allow them in your browser/device settings.':'System notifications are not enabled. In-page reminders still work.';
+  const shown=await window.RecallNotifications.enable();
+  setStatus();
+  if(shown)$('dailyNotifyStatus').textContent='Test alert sent. If you did not see it, check device notification settings and Focus / Do Not Disturb. Browser reminders need Recall running; use Calendar alarms when closed.';
+  else if('Notification' in window&&Notification.permission==='granted')$('dailyNotifyStatus').textContent='The test alert could not be sent. Reload and retry, or use Calendar alarms.';
   checkReminders();
- }catch(err){$('dailyNotifyStatus').textContent='This browser may require installing the website to your Home Screen before enabling notifications.'}
+ }catch(error){$('dailyNotifyStatus').textContent='Could not enable alerts. '+error.message+' Try Calendar alarms below.'}
 };
 function setStatus(){
- const support='Notification' in window,perm=support?Notification.permission:'unsupported';
- $('dailyNotifyStatus').textContent=perm==='granted'?'Notifications enabled while this page stays open.':'On-screen Yes / No prompts work when you open this page. Reliable notifications with the browser closed require a separate push service or calendar alarms.';
- $('dailyNotify').textContent=perm==='granted'?'Notifications enabled ✓':'Enable browser notifications';
- $('dailyNotify').disabled=perm==='granted';
+ $('dailyNotifyStatus').textContent=window.RecallNotifications.status();
+ const granted='Notification' in window&&Notification.permission==='granted';
+ $('dailyNotify').textContent=granted?'Send test notification':'Enable & test notifications';
+ $('dailyNotify').disabled=false;
 }
+$('dailyCalendar').onclick=()=>{
+ if(templateMode){$('dailyCalendarStatus').textContent='Return to the checklist and select a date first.';return}
+ const days=[],length=$('dailyCalendarRange').value==='week'?7:1;
+ for(let i=0;i<length;i++){
+  const d=new Date(selected+'T12:00:00');d.setDate(d.getDate()+i);const date=isoDate(d),tasks=tasksForDate(date);
+  days.push({date,tasks:tasks.map(t=>({...t,done:doneOnDate(t,tasks,date)}))});
+ }
+ const saved=window.RecallTaskCalendar.download(days);
+ $('dailyCalendarStatus').textContent=saved?'File downloaded — import it into Apple Calendar (Mac) or Google Calendar (web), then enable Calendar notifications on your phone. Check an imported event’s alerts. This is a snapshot: after edits, remove the old imported events and import a fresh file; it does not sync automatically.':'No future timed tasks or planning reminders in this date range. Select today or a future date.';
+};
+window.addEventListener('focus',setStatus);
 // Private, one-time checklist link: the schedule stays in the link, never in public source.
 function readSharedPlan(){
  const raw=new URLSearchParams(location.search).get('dailyPlan');

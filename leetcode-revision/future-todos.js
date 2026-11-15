@@ -93,7 +93,7 @@ function reminderCheck(){
   if(t.done||!dueTomorrow(t.deadline))continue;
   const k='recall-future-reminder:'+d+':'+t.id;
   if(localStorage.getItem(k))continue;
-  try{new Notification('Due tomorrow · '+t.name,{body:'Open Recall to prepare or mark it done.',tag:k});localStorage.setItem(k,'1')}catch{}
+  window.RecallNotifications?.show('Due tomorrow · '+t.name,'Open Recall to prepare or mark it done.',k+':'+t.deadline);
  }
 }
 window.addEventListener('recall-cloud-local',e=>{if(e.detail?.kind==='habits')render()});
