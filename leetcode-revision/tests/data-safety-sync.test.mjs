@@ -903,3 +903,37 @@ test('interim Firestore snapshot cannot replace device alternatives during dupli
  assert.equal((await f.cloud.readAll({serverOnly:true})).structures.filter(x=>x.id==='arrays').length,1);
  assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Conflicts/);
 });
+
+
+test('generic unknown document-reference retry is quiet but never claims cloud confirmation',async()=>{
+ const b=browser(),fault={reference:()=>{throw writeError('unknown')}};
+ const f=await diagnosticFirebase(b,fault);await f.auth();
+ const record=item('a','unsynced device note');
+ f.local('coding',[record]);await b.runTimers(180);
+ assert.equal(f.cloud.pendingCount,1);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown',stage:'document-reference'}]);
+ const line=b.elements.firebaseStatus.textContent;
+ assert.match(line,/Saved on device.*Cloud not confirmed.*Retry pending/);
+ assert.doesNotMatch(line,/Cloud save failed|stage: document-reference|coding: unknown|Cloud confirmed/);
+ assert.deepEqual(b.rows('coding'),[record]);
+ assert.equal(f.store.has(path('a')),false);
+ // Background retries remain alive; removing the UI noise must not silently
+ // stop retrying or erase the original notes.
+ assert.deepEqual([...b.timers.values()].map(t=>t.delay),[2000]);
+ fault.reference=null;await b.runTimers(2000);
+ assert.equal(f.cloud.pendingCount,0);
+ assert.deepEqual(f.cloud.writeErrors,[]);
+ assert.deepEqual(f.store.get(path('a')),record);
+ assert.match(b.elements.firebaseStatus.textContent,/Cloud confirmed/);
+});
+test('reference-stage failures with a specific cause still show an actionable warning',async()=>{
+ const b=browser(),fault={reference:()=>{throw new TypeError('private implementation detail')}};
+ const f=await diagnosticFirebase(b,fault);await f.auth();
+ const record=item('a','device copy');
+ f.local('coding',[record]);await b.runTimers(180);
+ assert.equal(f.cloud.pendingCount,1);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown',stage:'document-reference',reason:'client-type-error'}]);
+ assert.match(b.elements.firebaseStatus.textContent,/Cloud save failed/);
+ assert.match(b.elements.firebaseStatus.textContent,/client-type-error/);
+ assert.deepEqual(b.rows('coding'),[record]);
+});
