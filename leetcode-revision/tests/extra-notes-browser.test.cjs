@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require(process.env.DSA_PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'..'),key='recall-structures-v1',openKey='recall-dsa-extra-notes-open-v1';
-const topics=['arrays','strings','hash-maps','linked-lists','stacks','queues','trees','heaps','graphs','tries','union-find','sorting'];
+const topics=['arrays','strings','hash-maps','linked-lists','stacks','queues','trees','heaps','graphs','tries','union-find','sorting-algorithms'];
 const original='  Private <img src=x onerror=alert(1)> & "quotes"\n\n    indent and trailing spaces  ';
 const seed=topics.map(id=>({id,title:id,notes:original,updatedAt:'2026-01-01',metadata:{preserve:id}}));
 seed[0]={...seed[0],notes:'',arrayMergeVersion:1,arrayIntegratedNotes:original,arrayLegacyBackup:'Original Arrays archive'};
