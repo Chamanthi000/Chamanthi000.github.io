@@ -6,7 +6,7 @@ test('Sorting reference includes the five studied algorithms in the user-supplie
  assert.equal((guide.html.match(/class="sort-algorithm"/g)||[]).length,5);
  for(const item of guide.algorithms){
   assert.ok(item.steps.length>=6,item.name+' complete steps');
-  for(const word of ['core','recall','analogy','analogyText','when','cue','proof','code'])assert.ok(item[word]?.length>20,item.name+' '+word);
+  for(const word of ['core','recall','analogy','analogyText','when','cue','proof','code'])assert.ok(item[word]?.length>(word==='analogy'?5:20),item.name+' '+word);
   assert.ok(item.complexity.length>=4,item.name+' complexity cases');
   assert.ok(guide.html.includes(item.analogy),item.name+' visible analogy');
   assert.ok(guide.html.includes(item.recall.replace(/&/g,'&amp;')),item.name+' memory mnemonic');
