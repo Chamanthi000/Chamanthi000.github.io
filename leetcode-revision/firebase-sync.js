@@ -153,7 +153,9 @@ const WRITE_REASON_ACTIONS=new Map([
  ['history-id-collision','Saved history belongs to another record; original versions were protected.'],
  ['duplicate-cloud-identity','Multiple cloud documents share this record ID; originals were preserved for review.'],
  ['server-scan-unconfirmed','Cloud lookup was not acknowledged by the server; the device copy is retained.'],
- ['client-type-error','A browser code error interrupted the read; your device copy is retained.']
+ ['client-type-error','A browser code error interrupted sync; your device copy is retained.'],
+ ['client-reference-error','A required browser function is unavailable; reload this page to load the latest sync code.'],
+ ['client-uri-error','A record identifier could not be encoded; your device copy is retained.']
 ]);
 function writeErrorCode(error){
  const code=typeof error?.code==='string'?error.code.replace(/^firestore\//,''):'unknown';
@@ -197,6 +199,8 @@ function safeWriteError(error,stage){
  if(guardReason)details.reason=guardReason;
  else if(code==='invalid-argument')details.reason=invalidArgumentReason(error);
  else if(code==='unknown'&&error?.name==='TypeError')details.reason='client-type-error';
+ else if(code==='unknown'&&error?.name==='ReferenceError')details.reason='client-reference-error';
+ else if(code==='unknown'&&error?.name==='URIError')details.reason='client-uri-error';
  // Preserve only these fixed application guard messages, never an SDK message/cause.
  const safeMessages=['Account changed; operation stopped.','Previous cloud version could not be archived; restore stopped.','Cloud document identity mismatch; save stopped.','Cloud history identity mismatch; save stopped.','Multiple cloud documents match this record; save stopped.','Server record lookup was not acknowledged; save stopped.'];
  const safe=new Error(safeMessages.find(message=>message===error?.message)||'Cloud save failed.');
@@ -923,14 +927,34 @@ window.addEventListener('recall-cloud-local',e=>{
  if(!state.user){verifyDevice(kind,items);statusText(state.localFailure?'⚠ Device save failed · Export before leaving':'✓ Saved on device · Sign in for cloud sync');return}
  putLocal(kind,items);
 });
-window.addEventListener('online',()=>{if(!state.user)return;syncStatus();for(const key of state.pending.keys())arm(key,0)});
+function retryCloudSync(){
+ if(!state.user||state.accountPaused)return;
+ if(state.subscriptionErrors.size){
+  // Listener failures are terminal. Re-subscribe under a new epoch so stale
+  // callbacks cannot apply data; setup rebuilds pending writes from device copies.
+  return setup(state.user);
+ }
+ syncStatus();for(const key of state.pending.keys())arm(key,0);
+}
+const retrySyncButton=document.createElement('button');
+retrySyncButton.id='recallRetrySync';retrySyncButton.type='button';
+retrySyncButton.textContent='Retry cloud sync';
+retrySyncButton.style.cssText='margin:6px 0;padding:8px 12px;border:1px solid #bed2c2;border-radius:9px;background:#fff;color:#28573c;cursor:pointer;';
+retrySyncButton.hidden=true;
+(status?.parentElement||document.body).appendChild(retrySyncButton);
+retrySyncButton.addEventListener('click',retryCloudSync);
+window.addEventListener('recall-cloud-status',()=>{
+ retrySyncButton.hidden=!state.user||state.accountPaused||!(state.pending.size||state.subscriptionErrors.size||state.writeErrors.size);
+});
+window.addEventListener('online',retryCloudSync);
 window.addEventListener('offline',()=>{if(state.user)syncStatus()});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.user&&state.pending.size){for(const key of state.pending.keys())arm(key,0)}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)retryCloudSync()});
 window.RecallCloud={
   get user(){return state.user},
   sync(kind,items){if(state.user)putLocal(kind,items)},
   get ready(){return initialized},
   get pendingCount(){return state.pending.size},
+  retry:retryCloudSync,
   // Detached, read-only diagnostics: no record keys, account details or exception messages.
   get writeErrors(){return Object.freeze([...state.writeErrors.values()].map(({kind,...error})=>Object.freeze({kind,...writeErrorDetails(error)})))},
   downloadCloudHistory,

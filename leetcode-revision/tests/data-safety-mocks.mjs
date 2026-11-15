@@ -28,7 +28,7 @@ export function browser(records={}){
  class CustomEvent{constructor(type,options){this.type=type;this.detail=options?.detail}}
  const URL={createObjectURL:()=> 'blob:synthetic',revokeObjectURL(){}};
  const bindings={document,window,localStorage:storage,setTimeout,clearTimeout,confirm:()=>true,alert(){},URL,Blob,location,CustomEvent,Event:CustomEvent,navigator,console:{warn(){},error(){}}};
- function execute(code,extra={}){const env={...bindings,...extra};return new Function(...Object.keys(env),code)(...Object.values(env))}
+ function execute(code,extra={}){const env={...bindings,...extra};return new Function(...Object.keys(env),'"use strict";\n'+code)(...Object.values(env))}
  return {values,fault,storage,window,document,elements,events,downloads,timers,runTimers,rows,save,execute,navigator,location};
 }
 export function manual(b){

@@ -987,3 +987,32 @@ test('transaction recheck protects Sorting record populated by another tab befor
  assert.deepEqual(f.store.get(path('structure-sorting')),edited);
  assert.deepEqual(f.writes.filter(x=>x.deleted),[]);
 });
+
+for(const trigger of ['online','visible','manual'])test('terminal listeners reconnect on '+trigger+' and retain unsynced device edits',async()=>{
+ const local=item('retry-note','device edit','2026-11-15');
+ const b=browser({coding:[local]}),f=await firebase(b);await f.auth();
+ const old=f.listeners.filter(x=>x.active);
+ old[0].error(writeError('unavailable'));
+ if(trigger==='online')b.window.dispatchEvent({type:'online'});
+ else if(trigger==='visible'){b.document.hidden=false;b.document.dispatchEvent({type:'visibilitychange'})}
+ else await f.cloud.retry();
+ await flush();
+ assert.ok(old.every(x=>!x.active));
+ assert.equal(f.listeners.filter(x=>x.active).length,4);
+ assert.deepEqual(b.rows('coding'),[local]);
+ f.emit('coding');f.emit('sql');await b.runTimers(180);
+ assert.deepEqual(f.store.get(path(local.id)),local);
+ assert.equal(f.cloud.pendingCount,0);
+ assert.doesNotMatch(b.elements.firebaseStatus.textContent,/Cloud sync failed/);
+});
+
+for(const [ErrorClass,reason] of [[ReferenceError,'client-reference-error'],[URIError,'client-uri-error']])test(reason+' provides safe diagnostics while retaining pending data',async()=>{
+ const b=browser(),fault={reference:()=>{throw new ErrorClass(secret)}};
+ const f=await diagnosticFirebase(b,fault);await f.auth();
+ const record=item('a','retained');f.local('coding',[record]);await b.runTimers(180);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown',stage:'document-reference',reason}]);
+ assert.equal(f.cloud.pendingCount,1);assert.deepEqual(b.rows('coding'),[record]);
+ noSecrets([statuses(b),f.cloud.writeErrors]);
+ fault.reference=null;await f.cloud.retry();await b.runTimers(0);
+ assert.equal(f.cloud.pendingCount,0);assert.deepEqual(f.store.get(path('a')),record);
+});
