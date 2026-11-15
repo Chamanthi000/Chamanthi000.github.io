@@ -90,7 +90,7 @@ function assessmentMarkup(topic){
   '<div class="rpAssessmentActions"><button type="submit">Save review & schedule next</button><button type="button" class="rpSecondary" data-rp-close>Close</button></div></form>';
 }
 function rowMarkup(t,allowMark){
- const noteState=t.estimated?'Based on your latest notes':'Based on your review history';
+ const noteState=t.record?'Based on your review history':t.hasNotes?'Based on your latest notes':'Based on your recorded study date';
  const open=allowMark&&activeReviewId===t.id;
  return '<article class="rpItem"><div class="rpInfo"><strong>'+esc(t.title)+'</strong>'+
   '<small>'+esc(noteState)+' · ~5–12 min'+(t.overdue?' · Due earlier':'')+'</small>'+
