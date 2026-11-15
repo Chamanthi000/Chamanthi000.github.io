@@ -117,7 +117,7 @@ const isEmptyDeletedLegacySorting=x=>{
  if(!x||x.id!=='sorting'||x.deleted!==true)return false;
  if(x.recordType!=null&&x.recordType!=='structure')return false;
  if(!['sorting','sorting techniques','sorting algorithms'].includes(String(x.title||'').trim().toLowerCase()))return false;
- if(typeof x.notes==='string'&&x.notes.trim())return false;
+ if(x.notes!=null&&(typeof x.notes!=='string'||x.notes.trim()))return false;
  const allowed=new Set(['id','title','notes','deleted','createdAt','updatedAt','recordType','customTopic']);
  return Object.keys(x).every(k=>allowed.has(k))&&x.customTopic!==true;
 };
