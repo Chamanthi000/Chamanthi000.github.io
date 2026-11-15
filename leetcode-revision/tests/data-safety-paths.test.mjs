@@ -303,5 +303,5 @@ test('occupied alternative fallbacks never overwrite any record or guess when sc
  const before=structuredClone([...f.store]);
  f.local('coding',[local]);await b.runTimers(180);
  unchanged(f,b,before,local);
- assert.deepEqual(f.cloud.writeErrors,writeFailure('document-reference'));
+ assert.deepEqual(f.cloud.writeErrors,[{...writeFailure('document-reference')[0],referenceStep:'resolve-id',errorType:'Error'}]);
 });

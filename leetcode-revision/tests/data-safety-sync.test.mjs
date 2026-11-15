@@ -911,7 +911,7 @@ test('generic unknown document-reference retry is quiet but never claims cloud c
  const record=item('a','unsynced device note');
  f.local('coding',[record]);await b.runTimers(180);
  assert.equal(f.cloud.pendingCount,1);
- assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown',stage:'document-reference'}]);
+ assert.deepEqual(f.cloud.writeErrors,[{kind:'coding',code:'unknown',stage:'document-reference',referenceStep:'target-reference',errorType:'Error'}]);
  const line=b.elements.firebaseStatus.textContent;
  assert.match(line,/Saved on device.*Cloud not confirmed.*Retry pending/);
  assert.doesNotMatch(line,/Cloud save failed|stage: document-reference|coding: unknown|Cloud confirmed/);

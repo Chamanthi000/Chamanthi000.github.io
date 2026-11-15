@@ -123,7 +123,7 @@ function syncStatus(){
  if(state.blocked.size||state.conflicts.size){report('⚠ Conflicts · Device copies retained; review or export conflict copies');return}
  if(typeof navigator!=='undefined'&&navigator.onLine===false){report('Offline · Cloud changes waiting for reconnection');return}
  if(write){statusText('⚠ '+write+' · Device copy retained');return}
- if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending':'✓ Saved on device · Waiting for cloud acknowledgement');return}
+ if(state.pending.size){statusText([...state.writeErrors.values()].some(isUnclassifiedReferenceRetry)?'Saved on device · Cloud not confirmed · Retry pending · Sync check v15: '+[...state.writeErrors.values()].filter(isUnclassifiedReferenceRetry).map(e=>[e.kind,e.referenceStep||'reference',e.errorType||'unclassified',e.sourceLine?'line '+e.sourceLine:''].filter(Boolean).join(' / ')).join('; '):'✓ Saved on device · Waiting for cloud acknowledgement');return}
  if(page.every(k=>state.confirmed.has(k)))statusText('✓ Cloud confirmed · Server acknowledged current notebooks');
  else statusText('Waiting · Cached data or remaining notebooks need server acknowledgement');
 }
@@ -139,6 +139,8 @@ const WRITE_ERROR_ACTIONS=new Map([
  ['invalid-argument','Check the record format before retrying.'],
  ['unknown','Try again; if this continues, refresh or sign in again.']
 ]);
+const REFERENCE_STEPS=new Set(['collection','resolve-id','target-reference','history-id','history-reference']);
+const ERROR_TYPES=new Set(['Error','FirebaseError','TypeError','ReferenceError','URIError','RangeError','DOMException','SecurityError','NotSupportedError','OperationError']);
 const WRITE_STAGES=new Set(['document-reference','target-read','history-read','history-write','record-write','transaction-commit']);
 const WRITE_REASON_ACTIONS=new Map([
  ['nested-arrays','Check record schema: arrays cannot directly contain arrays.'],
@@ -182,6 +184,9 @@ function invalidArgumentReason(error){
 }
 function writeErrorDetails(error){
  const details={code:writeErrorCode(error)};
+ if(REFERENCE_STEPS.has(error?.referenceStep))details.referenceStep=error.referenceStep;
+ if(ERROR_TYPES.has(error?.errorType)||error?.errorType==='unclassified')details.errorType=error.errorType;
+ if(Number.isInteger(error?.sourceLine)&&error.sourceLine>0&&error.sourceLine<2000)details.sourceLine=error.sourceLine;
  if(WRITE_STAGES.has(error?.stage))details.stage=error.stage;
  if((details.code==='invalid-argument'||details.code==='unknown')&&WRITE_REASON_ACTIONS.has(error?.reason))details.reason=error.reason;
  return details;
@@ -297,18 +302,22 @@ async function resolveDocumentId(kind,value,owner,session,forceScan=false,exclud
 async function writeWithHistory(kind,value,options={}){
  const session=options.session||(state.user?captureSession():null);
  assertSession(session);
- let operation='document-reference';
+ let operation='document-reference',referenceStep='collection';
  try{
  const owner=list(kind,session);
+ referenceStep='resolve-id';
  let physicalId=await resolveDocumentId(kind,value,owner,session);
  const collidingIds=new Set();
  for(;;){
  assertSession(session);
+ referenceStep='target-reference';
  const ref=doc(owner,checkedDocumentId(physicalId));
+ referenceStep='history-id';
  // Preserve every existing encodable history key, including legacy truncation.
  // Unpaired surrogates had no usable encodeURIComponent history key.
  const backupId=wellFormedId(idOf(kind,value))?historyId(kind,value):HISTORY_PREFIX+await safeDocumentId(kind,value,session);
  assertSession(session);
+ referenceStep='history-reference';
  const backupRef=doc(owner,checkedDocumentId(backupId));
  operation='transaction-commit';
  try{return await runTransaction(db,async tx=>{
@@ -361,7 +370,7 @@ async function writeWithHistory(kind,value,options={}){
   // of candidate IDs, before retrying an identity-guarded transaction.
   if(error?.message==='Cloud document identity mismatch; save stopped.'&&collidingIds.size<12){
    collidingIds.add(physicalId);
-   operation='document-reference';
+   operation='document-reference';referenceStep='resolve-id';
    const nextId=await resolveDocumentId(kind,value,owner,session,true,collidingIds);
    if(collidingIds.has(nextId))throw error;
    physicalId=nextId;
@@ -370,7 +379,18 @@ async function writeWithHistory(kind,value,options={}){
   throw error;
  }
  }
- }catch(error){throw safeWriteError(error,operation)}
+ }catch(error){
+ const safe=safeWriteError(error,operation);
+ if(safe.code==='unknown'&&operation==='document-reference'&&!safe.reason){
+  safe.referenceStep=referenceStep;
+  safe.errorType=ERROR_TYPES.has(error?.name)?error.name:'unclassified';
+  // Keep only a line number in our own source, never exception text, values,
+  // paths, account IDs, tokens, or third-party stack frames.
+  const line=typeof error?.stack==='string'?/firebase-sync\.js(?:\?[^\s)]*)?:(\d+):\d+/.exec(error.stack):null;
+  if(line)safe.sourceLine=Number(line[1]);
+ }
+ throw safe;
+}
 }
 async function downloadCloudHistory(){
  if(!state.user){statusText('Sign in with Google to download private cloud version history');return}
