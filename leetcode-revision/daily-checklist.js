@@ -4,7 +4,8 @@
 const api=window.RecallGoals;
 const $=id=>document.getElementById(id);
 if(!api||!$('dailyChecklist'))return;
-const PREFIX='__recall_daily_',TEMPLATE=PREFIX+'template_v1';
+const weekendTemplateButton=$('dailyWeekendTemplateMode');
+const PREFIX='__recall_daily_',TEMPLATE=PREFIX+'template_v1',WEEKEND_TEMPLATE=PREFIX+'weekend_template_v1';
 const defaults=[
 {id:'exercise',name:'Gym / run with Lucas',start:'05:00',end:'06:00'},
 {id:'morningcare',name:'Shower, skincare & red light',start:'06:00',end:'07:00'},
@@ -45,12 +46,26 @@ function sortTasks(tasks){
 }
 const liveHabits=()=>api.getHabits().filter(h=>!h.deleted&&!h.recordType);
 const findRecord=id=>api.getHabits().find(h=>h.id===id&&!h.deleted);
-const template=()=>{const r=findRecord(TEMPLATE);return r&&Array.isArray(r.tasks)?sortTasks(r.tasks):sortTasks(defaults)};
-let selected=isoDate(),editing=null,templateMode=false,lastDate=isoDate();
+function isWeekend(date){
+ const day=new Date(date+'T12:00:00').getDay();
+ return day===0||day===6;
+}
+function template(id){
+ const record=findRecord(id);
+ if(Array.isArray(record?.tasks))return sortTasks(record.tasks);
+ if(id===TEMPLATE)return sortTasks(defaults);
+ const tasks=template(TEMPLATE).filter(t=>t.id!=='othot'&&t.id!=='driving'&&normalize(t.name)!=='othot work');
+ const breakfast=tasks.find(t=>t.id==='breakfast'&&t.name===defaults.find(t=>t.id==='breakfast').name);
+ if(breakfast)breakfast.name='Matcha, plan & Lucas walk';
+ return sortTasks([
+  ...tasks,
+  {id:'weekend_drive',name:'Drive',start:'14:00',end:'17:00'},
+  {id:'weekend_dinner_resume',name:'Dinner & résumé prep',start:'17:00',end:'21:00'}
+ ]);
+}
+let selected=isoDate(),editing=null,templateMode=null,lastDate=isoDate();
 function getTasks(){
- if(templateMode)return template();
- const r=findRecord(PREFIX+selected);
- return r&&Array.isArray(r.tasks)?sortTasks(r.tasks):template();
+ return templateMode?template(templateMode):tasksForDate(selected);
 }
 function linkOf(t,tasks){
  const habits=liveHabits();
@@ -84,7 +99,7 @@ function linkOf(t,tasks){
 }
 function isDone(t,tasks){const h=linkOf(t,tasks);return h?(h.dates||[]).includes(selected):!!t.done}
 function writeTasks(tasks,extra){
- const id=templateMode?TEMPLATE:PREFIX+selected,now=new Date().toISOString(),previous=findRecord(id);
+ const id=templateMode||PREFIX+selected,now=new Date().toISOString(),previous=findRecord(id);
  const rec={...previous,id,recordType:templateMode?'dailyTemplate':'dailyDay',date:templateMode?'':selected,tasks:sortTasks(tasks),updatedAt:now};
  const saved=api.saveHabits(habits=>{
   const ix=habits.findIndex(h=>h.id===id);
@@ -110,13 +125,18 @@ function taskEnded(t){
 function render(){
  const tasks=getTasks(),done=templateMode?0:tasks.filter(t=>isDone(t,tasks)).length;
  const pct=templateMode?0:(tasks.length?Math.round(done/tasks.length*100):0);
- $('dailyHeading').textContent=templateMode?'Recurring daily template':'Daily checklist';
+ $('dailyHeading').textContent=templateMode===WEEKEND_TEMPLATE?'Recurring weekend template':templateMode?'Recurring weekday template':'Daily checklist';
  $('dailyDesc').textContent=templateMode?'Tasks sort automatically by time. Template edits apply to new or uncustomized days.':'Tasks sort automatically by time; untimed tasks appear last. Edit any day without changing other days.';
  $('dailyDate').value=selected;
  $('dailyDateBox').hidden=templateMode;
  $('dailyGoToday').hidden=templateMode;
  $('dailyOpenTomorrow').hidden=templateMode;
- $('dailyTemplateMode').textContent=templateMode?'← Back to checklist':'Edit recurring template';
+ $('dailyTemplateMode').hidden=templateMode===WEEKEND_TEMPLATE;
+ if(weekendTemplateButton){
+  weekendTemplateButton.hidden=templateMode===TEMPLATE;
+  weekendTemplateButton.textContent=templateMode?'← Back to checklist':'Edit weekend template';
+ }
+ $('dailyTemplateMode').textContent=templateMode?'← Back to checklist':'Edit weekday template';
  $('dailyStats').textContent=templateMode?tasks.length+' template tasks':done+' / '+tasks.length+' completed';
  $('dailyPercent').textContent=templateMode?'':pct+'%';
  $('dailyFill').style.width=pct+'%';
@@ -224,7 +244,7 @@ window.RecallDailyChecklist={
  },
  addSuggested(date,suggestions){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Array.isArray(suggestions))return {saved:false,added:0};
-  const existing=findRecord(PREFIX+date),tasks=existing&&Array.isArray(existing.tasks)?copy(existing.tasks):template();
+  const existing=findRecord(PREFIX+date),tasks=tasksForDate(date);
   let added=0;
   for(const item of suggestions){
    if(!item?.id||!item?.name||!item.reviewTopicId||tasks.some(t=>t.id===item.id||t.reviewTopicId===item.reviewTopicId))continue;
@@ -241,7 +261,14 @@ window.RecallDailyChecklist={
   return {saved,added:saved?added:0};
  }
 };
-$('dailyTemplateMode').onclick=()=>{templateMode=!templateMode;editing=null;$('dailyAddDetails').open=false;render()};
+function toggleTemplate(id){
+ templateMode=templateMode===id?null:id;
+ editing=null;
+ $('dailyAddDetails').open=false;
+ render();
+}
+$('dailyTemplateMode').onclick=()=>toggleTemplate(TEMPLATE);
+if(weekendTemplateButton)weekendTemplateButton.onclick=()=>toggleTemplate(WEEKEND_TEMPLATE);
 $('dailyGoToday').onclick=()=>{selected=isoDate();editing=null;render();checkReminders()};
 $('dailyDate').onchange=e=>{if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){selected=e.target.value;editing=null;render();checkReminders()}};
 const alertKey=(day,task,event)=>'recall-notify-v2:'+day+':'+task+':'+event;
@@ -250,7 +277,7 @@ function browserNotify(title,body,key){
 }
 function tasksForDate(date){
  const r=findRecord(PREFIX+date);
- return r&&Array.isArray(r.tasks)?sortTasks(r.tasks):template();
+ return r&&Array.isArray(r.tasks)?sortTasks(r.tasks):template(isWeekend(date)?WEEKEND_TEMPLATE:TEMPLATE);
 }
 function doneOnDate(t,tasks,date){
  const h=linkOf(t,tasks);return h?(h.dates||[]).includes(date):!!t.done;
@@ -265,6 +292,7 @@ function checkPlanPrompt(){
 $('dailyPlanTomorrow').onclick=()=>{
  const current=isoDate(),next=new Date();next.setDate(next.getDate()+1);
  selected=isoDate(next);
+ templateMode=null;
  localStorage.setItem('recall-night-plan-v1:'+current,'1');
  editing=null;
  $('dailyPlanBanner').hidden=true;
@@ -363,7 +391,7 @@ function setupSharedPlan(){
  button.type='button';button.className='btn small';button.textContent='Save this plan';
  button.onclick=()=>{
   if(findRecord(PREFIX+plan.date)&&!confirm('Replace the existing checklist for '+day+'? Your recurring template and other days will not change.'))return;
-  selected=plan.date;templateMode=false;editing=null;
+  selected=plan.date;templateMode=null;editing=null;
   if(!writeTasks(plan.tasks)){description.textContent='Device save failed. Check storage space and try again.';return}
   const params=new URLSearchParams(location.search);params.delete('dailyPlan');
   const clean=location.pathname+(params.toString()?'?'+params.toString():'')+location.hash;
