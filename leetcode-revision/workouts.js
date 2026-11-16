@@ -17,8 +17,19 @@ const save=()=>{
  }
 };
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const customFor=category=>(state.custom[sid()]||[]).filter(x=>x.category===category);
-const all=()=>[...plan[state.current][1].map((x,i)=>['s'+i,...x]),...plan[state.current][2].map((x,i)=>['c'+i,...x]),...customFor('strength').map(x=>[x.id,x.name,x.sets,x.reps]),...customFor('core').map(x=>[x.id,x.name,x.sets,x.reps])];
+let editingId='';
+const customFor=category=>(state.custom[sid()]||[]).filter(x=>x.category===category&&!x.deleted);
+function sectionRows(day,category){
+ const index=category==='strength'?1:2,prefix=category==='strength'?'s':'c';
+ const base=plan[day][index].flatMap((x,i)=>{
+  const id=prefix+i,override=(state.custom[String(day)]||[]).find(item=>item.category===category&&item.baseId===id);
+  if(override?.deleted)return [];
+  return [[override?.name??x[0],override?.sets??x[1],override?.reps??x[2],override?.range??x[3]??(x[2]+' reps'),id]];
+ });
+ const added=customFor(category).filter(item=>!item.baseId).map(item=>[item.name,item.sets,item.reps,item.range??(item.reps+' reps'),item.id]);
+ return [...base,...added];
+}
+const all=()=>[...sectionRows(state.current,'strength'),...sectionRows(state.current,'core')];
 const setId=(id,i)=>id+'-'+i;
 function previousExercise(name,id){
  const wanted=name.trim().toLowerCase();
@@ -43,21 +54,45 @@ function renderList(container,items,prefix){
  const session=current();
  $(container).innerHTML=items.map((e,i)=>{
   const id=e[4]||prefix+i,name=e[0],n=e[1],range=e[3]||e[2]+(name==='Side Plank'?' seconds / side':' reps'),w=session.weights[id]||{},link=state.links[name]||'',prev=previousExercise(name,id),isCustom=Boolean(e[4]);
-  const seconds=name==='Side Plank';
+  const seconds=name.toLowerCase().includes('plank');
   const previousText=prev?('Last workout ('+prev.date+'): '+(prev.normal?'working '+prev.normal+' lb · ':'')+(prev.max?'highest '+prev.max+' lb':prev.peak?'highest '+prev.peak+' lb':'weight not logged')+(prev.reps?' · '+prev.reps+(seconds?' sec':' reps'):'')):'No previous completed workout logged';
   const reps=w.reps??e[2];
   const setChecks=Array.from({length:n},(_,j)=>{const k=setId(id,j),v=session.sets[k]||{};return '<label class="setRow '+(v.done?'done':'')+'"><input type="checkbox" data-set="'+k+'" '+(v.done?'checked':'')+'> Set '+(j+1)+' completed</label>'}).join('');
-  return '<article class="exercise"><div class="exerciseHead"><div><strong>'+escapeHtml(name)+'</strong><small>'+n+' sets · '+escapeHtml(range)+'</small><small style="display:block;margin-top:6px;color:#9a477a;font-weight:700">'+escapeHtml(previousText)+'</small></div>'+(isCustom?'<button type="button" data-remove="'+escapeHtml(id)+'">Remove</button>':'')+'</div><div>'+setChecks+'</div><div class="fields"><label>'+(seconds?'Seconds per side':'Reps (for this exercise)')+'<select class="field" data-exreps="'+id+'">'+Array.from({length:61},(_,v)=>'<option value="'+v+'" '+(Number(reps)===v?'selected':'')+'>'+v+'</option>').join('')+'</select></label><label>Normal working weight (lb)<input type="number" min="0" step=".5" data-normal="'+id+'" value="'+escapeHtml(w.normal??'')+'"></label><label>Highest weight today (lb)<input type="number" min="0" step=".5" data-max="'+id+'" value="'+escapeHtml(w.max??'')+'"></label></div><div class="url"><input type="url" aria-label="Exercise video URL for '+escapeHtml(name)+'" placeholder="Paste exercise video URL" data-url="'+escapeHtml(name)+'" value="'+escapeHtml(link)+'"><a '+(link?'href="'+escapeHtml(/^https?:\/\//i.test(link)?link:'#')+'" target="_blank" rel="noopener noreferrer"':'href="#"')+'>Watch ↗</a></div></article>'
+  return '<article class="exercise"><div class="exerciseHead"><div><strong>'+escapeHtml(name)+'</strong><small>'+n+' sets · '+escapeHtml(range)+'</small><small style="display:block;margin-top:6px;color:#9a477a;font-weight:700">'+escapeHtml(previousText)+'</small></div><div class="controls"><button type="button" data-edit="'+escapeHtml(id)+'">Edit</button><button type="button" data-remove="'+escapeHtml(id)+'">Remove</button></div></div><div>'+setChecks+'</div>'+(editingId===id?'<form class="fields exerciseEditor" data-editor="'+escapeHtml(id)+'"><label>Exercise name<input name="name" required maxlength="100" value="'+escapeHtml(name)+'"></label><label>Sets<input name="sets" type="number" min="1" max="10" required value="'+n+'"></label><label>Target reps / seconds<input name="reps" type="number" min="1" max="60" required value="'+Number(reps)+'"></label><label>Rep range or note<input name="range" maxlength="50" value="'+escapeHtml(range)+'"></label><div class="controls"><button class="primary" type="submit">Save changes</button><button type="button" data-cancel-edit>Cancel</button></div></form>':'')+'<div class="fields"><label>'+(seconds?'Seconds per side':'Reps (for this exercise)')+'<select class="field" data-exreps="'+id+'">'+Array.from({length:61},(_,v)=>'<option value="'+v+'" '+(Number(reps)===v?'selected':'')+'>'+v+'</option>').join('')+'</select></label><label>Normal working weight (lb)<input type="number" min="0" step=".5" data-normal="'+id+'" value="'+escapeHtml(w.normal??'')+'"></label><label>Highest weight today (lb)<input type="number" min="0" step=".5" data-max="'+id+'" value="'+escapeHtml(w.max??'')+'"></label></div><div class="url"><input type="url" aria-label="Exercise video URL for '+escapeHtml(name)+'" placeholder="Paste exercise video URL" data-url="'+escapeHtml(name)+'" value="'+escapeHtml(link)+'"><a '+(link?'href="'+escapeHtml(/^https?:\/\//i.test(link)?link:'#')+'" target="_blank" rel="noopener noreferrer"':'href="#"')+'>Watch ↗</a></div></article>'
  }).join('')
 }
 function updateProgress(){const s=current();const ids=all().flatMap(x=>Array.from({length:x[2]},(_,i)=>setId(x[0],i)));const completed=ids.filter(k=>s.sets[k]?.done).length;$('count').textContent=completed+' / '+ids.length+' sets completed';$('progress').style.width=(completed/ids.length*100)+'%';$('finish').disabled=completed!==ids.length;$('status').textContent=completed===ids.length?'Ready to finish':'In progress';}
-function render(){const d=state.current;$('workoutName').textContent=plan[d][0];$('dayLabel').textContent='WORKOUT '+(d+1)+' OF '+plan.length;$('nextHint').textContent='Next: '+plan[(d+1)%4][0];renderList('strength',[...plan[d][1],...customFor('strength').map(x=>[x.name,x.sets,x.reps,x.reps+' reps',x.id])],'s');renderList('core',[...plan[d][2],...customFor('core').map(x=>[x.name,x.sets,x.reps,x.reps+' reps',x.id])],'c');updateProgress();$('history').textContent=state.history.length?state.history.slice(-6).reverse().map(h=>h.date+' — '+h.name).join(' | '):'No finished sessions yet.'}
+function render(){const d=state.current;$('workoutName').textContent=plan[d][0];$('dayLabel').textContent='WORKOUT '+(d+1)+' OF '+plan.length;$('nextHint').textContent='Next: '+plan[(d+1)%4][0];renderList('strength',sectionRows(d,'strength'),'s');renderList('core',sectionRows(d,'core'),'c');updateProgress();$('history').textContent=state.history.length?state.history.slice(-6).reverse().map(h=>h.date+' — '+h.name).join(' | '):'No finished sessions yet.'}
 $('addExercise').onsubmit=e=>{e.preventDefault();const name=$('newExercise').value.trim(),sets=Number($('newSets').value),reps=Number($('newReps').value);if(!name||!Number.isInteger(sets)||sets<1||sets>10||!Number.isInteger(reps)||reps<1||reps>60)return;state.custom[sid()] ||= [];state.custom[sid()].push({id:'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),name,sets,reps,category:$('newCategory').value});save();$('addExercise').reset();render()};
-document.addEventListener('click',e=>{const id=e.target.dataset?.remove;if(!id)return;if(!confirm('Remove this exercise from this day? Existing completed workout history will be preserved.'))return;state.custom[sid()]=(state.custom[sid()]||[]).filter(x=>x.id!==id);save();render()});
+document.addEventListener('click',e=>{
+ const t=e.target;
+ if(t.dataset?.edit){editingId=t.dataset.edit;render();return}
+ if(t.hasAttribute('data-cancel-edit')){editingId='';render();return}
+ const id=t.dataset?.remove;if(!id)return;
+ if(!confirm('Remove this exercise from this day? Existing completed workout history will be preserved.'))return;
+ const rows=state.custom[sid()]||[];
+ if(rows.some(x=>x.id===id&&!x.baseId))state.custom[sid()]=rows.filter(x=>x.id!==id);
+ else{
+  const base=(id[0]==='s'?plan[state.current][1]:plan[state.current][2])[Number(id.slice(1))];
+  const category=id[0]==='s'?'strength':'core';
+  state.custom[sid()]=rows.filter(x=>x.baseId!==id);
+  state.custom[sid()].push({id,baseId:id,name:base[0],sets:base[1],reps:base[2],range:base[3]||base[2]+' reps',category,deleted:true});
+ }
+ editingId='';save();render()
+});
+document.addEventListener('submit',e=>{
+ const form=e.target.closest('.exerciseEditor');if(!form)return;e.preventDefault();
+ const id=form.dataset.editor,name=form.elements.name.value.trim(),sets=Number(form.elements.sets.value),reps=Number(form.elements.reps.value),range=form.elements.range.value.trim();
+ if(!name||!Number.isInteger(sets)||sets<1||sets>10||!Number.isInteger(reps)||reps<1||reps>60)return;
+ const category=id[0]==='s'?'strength':id[0]==='c'?'core':(state.custom[sid()]||[]).find(x=>x.id===id)?.category||'strength';
+ const rows=state.custom[sid()]||[],existing=rows.find(x=>x.id===id||x.baseId===id);
+ const updated={id, ...(existing?.baseId?{baseId:existing.baseId}:((id[0]==='s'||id[0]==='c')?{baseId:id}:{})),name,sets,reps,range:range||reps+' reps',category};
+ state.custom[sid()]=rows.filter(x=>x.id!==id&&x.baseId!==id).concat(updated);editingId='';save();render()
+});
 document.addEventListener('change',e=>{const t=e.target,s=current();if(t.dataset.exreps){const id=t.dataset.exreps;s.weights[id] ||= {};s.weights[id].reps=Number(t.value);save()}else if(t.dataset.set){const k=t.dataset.set;s.sets[k]={...s.sets[k],done:t.checked};save();t.closest('label').classList.toggle('done',t.checked);updateProgress()}else if(t.dataset.reps){const k=t.dataset.reps;s.sets[k]={...(s.sets[k]||{}),reps:Number(t.value)};save()}else if(t.dataset.weight){const k=t.dataset.weight;s.sets[k]={...(s.sets[k]||{reps:10}),weight:t.value};save()}else if(t.dataset.normal||t.dataset.max){const id=t.dataset.normal||t.dataset.max;s.weights[id] ||= {};s.weights[id][t.dataset.normal?'normal':'max']=t.value;save()}else if(t.dataset.url){const v=t.value.trim();if(v&&!/^https?:\/\//i.test(v)){alert('Use a full https:// URL');return}state.links[t.dataset.url]=v;save();render()}});
 $('previous').onclick=()=>{state.current=(state.current+3)%4;save();render()};
 $('next').onclick=()=>{state.current=(state.current+1)%4;save();render()};
-$('finish').onclick=()=>{if($('finish').disabled)return;const d=state.current;state.history.push({id:crypto.randomUUID(),finishedAt:new Date().toISOString(),date:today(),name:plan[d][0],exercises:[...plan[d][1].map((e,i)=>({id:'s'+i,name:e[0]})),...plan[d][2].map((e,i)=>({id:'c'+i,name:e[0]})),...(state.custom[sid()]||[]).map(e=>({id:e.id,name:e.name}))],session:JSON.parse(JSON.stringify(current()))});delete state.sessions[sid()];state.current=(d+1)%4;save();render();window.scrollTo({top:0,behavior:'smooth'})};
+$('finish').onclick=()=>{if($('finish').disabled)return;const d=state.current;state.history.push({id:crypto.randomUUID(),finishedAt:new Date().toISOString(),date:today(),name:plan[d][0],exercises:[...sectionRows(d,'strength'),...sectionRows(d,'core')].map(e=>({id:e[4],name:e[0]})),session:JSON.parse(JSON.stringify(current()))});delete state.sessions[sid()];state.current=(d+1)%4;save();render();window.scrollTo({top:0,behavior:'smooth'})};
 $('export').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='recall-workouts-'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 $('import').onchange=async e=>{
  const file=e.target.files[0];
