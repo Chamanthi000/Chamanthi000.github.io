@@ -29,11 +29,11 @@ test('iPhone browser receives installation guidance instead of false success',as
 });
 function daily(clock,records){
  const elements=new Map(),alerts=[],intervals=[];
- const element=id=>{if(!elements.has(id))elements.set(id,{value:'',style:{},dataset:{},addEventListener(){},setAttribute(){},scrollIntoView(){}});return elements.get(id)};
+ const element=id=>{if(!elements.has(id))elements.set(id,{value:'',style:{},dataset:{},addEventListener(type,listener){this['on'+type]=listener},reset(){},setAttribute(){},scrollIntoView(){}});return elements.get(id)};
  const RealDate=Date;class Clock extends RealDate{constructor(...a){super(...(a.length?a:[clock]))}static now(){return +new RealDate(clock)}}
- const c={window:{RecallGoals:{getHabits:()=>records},RecallNotifications:{status:()=>'',show:(...a)=>alerts.push(a)},addEventListener(){}},document:{getElementById:element,querySelector:()=>null,addEventListener(){}},Date:Clock,localStorage:{getItem:()=>null,setItem(){}},location:{search:''},URLSearchParams,setInterval:f=>intervals.push(f),setTimeout};
+ const c={window:{RecallGoals:{getHabits:()=>records,saveHabits:update=>update(records)},RecallNotifications:{status:()=>'',show:(...a)=>alerts.push(a)},addEventListener(){}},document:{getElementById:element,querySelector:()=>null,addEventListener(){}},Date:Clock,localStorage:{getItem:()=>null,setItem(){}},location:{search:''},URLSearchParams,setInterval:f=>intervals.push(f),setTimeout};
  vm.runInNewContext(source('daily-checklist.js'),c);
- return {elements,alerts,tick:()=>intervals[0]()};
+ return {elements,element,alerts,checklist:c.window.RecallDailyChecklist,tick:()=>intervals[0]()};
 }
 test('today reminders run while tomorrow or recurring template is being edited',()=>{
  const records=[{id:'__recall_daily_template_v1',recordType:'dailyTemplate',tasks:[]},{id:'__recall_daily_2026-11-16',tasks:[{id:'a',name:'Study',start:'09:00',end:'10:00'}]}];
@@ -45,4 +45,56 @@ test('midnight pre-reminder is scheduled on previous day and completed tasks sta
 });
 test('completion reminders survive short suspension, but stale tasks do not flood alerts',()=>{
  const d=daily('2026-11-16T10:15:00',[{id:'__recall_daily_template_v1',tasks:[]},{id:'__recall_daily_2026-11-16',tasks:[{id:'a',name:'Recent',end:'10:00'},{id:'b',name:'Old',end:'09:00'}]}]);assert.equal(d.alerts.length,1);assert.equal(d.alerts[0][0],'Did you finish? · Recent');
+});
+test('Plan tomorrow loads Saturday and Sunday weekend tasks and Monday weekday tasks',()=>{
+ for(const [clock,date,weekend] of [
+  ['2026-11-20T22:00:00','2026-11-21',true],
+  ['2026-11-21T22:00:00','2026-11-22',true],
+  ['2026-11-22T22:00:00','2026-11-23',false]
+ ]){
+  const {elements}=daily(clock,[]);
+  elements.get('dailyOpenTomorrow').onclick();
+  assert.equal(elements.get('dailyDate').value,date);
+  const tasks=elements.get('dailyTasks').innerHTML;
+  if(weekend){
+   assert.match(tasks,/2 PM – 5 PM/);
+   assert.match(tasks,/Dinner &amp; résumé prep/);
+   assert.match(tasks,/5 PM – 9 PM/);
+   assert.doesNotMatch(tasks,/Othot work|Breakfast/);
+  }else{
+   assert.match(tasks,/Othot work/);
+   assert.doesNotMatch(tasks,/Dinner &amp; résumé prep/);
+  }
+ }
+});
+test('saved weekend dates take precedence over recurring defaults',()=>{
+ const records=[
+  {id:'__recall_daily_2026-11-21',tasks:[{id:'custom',name:'Saturday appointment'}]}
+ ];
+ const {elements}=daily('2026-11-20T22:00:00',records);
+ elements.get('dailyPlanTomorrow').onclick();
+ assert.match(elements.get('dailyTasks').innerHTML,/Saturday appointment/);
+ assert.doesNotMatch(elements.get('dailyTasks').innerHTML,/weekend_drive/);
+ elements.get('dailyWeekendTemplateMode').onclick();
+ assert.equal(elements.get('dailyHeading').textContent,'Recurring weekend template');
+ assert.match(elements.get('dailyTasks').innerHTML,/weekend_drive/);
+});
+test('editing the weekend template saves its own record and leaves the weekday template intact',()=>{
+ const weekday={id:'__recall_daily_template_v1',tasks:[{id:'study',name:'Study'}]};
+ const records=[weekday];
+ const {elements,element,checklist}=daily('2026-11-20T22:00:00',records);
+ elements.get('dailyWeekendTemplateMode').onclick();
+ const name=element('dailyNewName');
+ name.value='Weekend errands';
+ elements.get('dailyAddForm').onsubmit({preventDefault(){}});
+ const weekend=records.find(record=>record.id==='__recall_daily_weekend_template_v1');
+ assert.equal(weekend.recordType,'dailyTemplate');
+ assert.ok(weekend.tasks.some(task=>task.name==='Weekend errands'));
+ assert.equal(weekday.tasks.length,1);
+ const result=checklist.addSuggested('2026-11-22',[{id:'sort',name:'Review sorting',reviewTopicId:'sorting'}]);
+ assert.equal(result.added,1);
+ const sunday=records.find(record=>record.date==='2026-11-22');
+ assert.ok(sunday.tasks.some(task=>task.name==='Weekend errands'));
+ assert.ok(sunday.tasks.some(task=>task.id==='weekend_drive'));
+ assert.doesNotMatch(JSON.stringify(weekend.tasks),/Review sorting/);
 });
