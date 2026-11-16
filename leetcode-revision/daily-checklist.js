@@ -152,12 +152,13 @@ function render(){
   return '<div class="dailyRow '+(checked?'dailyDone':'')+'">'+
     (templateMode?'<span aria-hidden="true" class="dailyBullet">☰</span>':'<input class="dailyTick" type="checkbox" data-day-action="check" data-task="'+esc(t.id)+'" id="dailyTask'+i+'" '+(checked?'checked':'')+' aria-label="Complete '+esc(t.name)+'">')+
     '<div class="dailyMain"><label '+(templateMode?'':'for="dailyTask'+i+'"')+' class="dailyName">'+esc(t.name)+'</label>'+
-    '<div class="dailyTime">'+esc(time)+(h?' · ↔ '+esc(h.name):'')+(status?' · '+esc(status):'')+(until?' · Coming up soon':'')+'</div>'+
+    '<div class="dailyTime">'+esc(time)+(h?' · ↔ '+esc(h.name):'')+(status?' · '+esc(status):'')+(until?' · Coming up soon':'')+'</div>'+(t.notes?'<div class="dailyTaskNote">'+esc(t.notes)+'</div>':'')+
     (pending?'<div class="dailyQuestion"><span>Did you complete this task?</span><button class="btn small" type="button" data-day-action="yes" data-task="'+esc(t.id)+'">Yes ✓</button><button class="btn secondary small" type="button" data-day-action="no" data-task="'+esc(t.id)+'">No</button></div>':'')+
     '</div><button class="btn secondary small" type="button" data-day-action="edit" data-task="'+esc(t.id)+'" aria-label="Edit '+esc(t.name)+'">Edit</button></div>'+
     (editing===t.id?'<form class="dailyTaskEditor" data-edit-task="'+esc(t.id)+'"><label class="label">Task<input class="field" name="taskName" required maxlength="160" value="'+esc(t.name)+'"></label>'+
     '<div class="dailyFormGrid"><label class="label">Start time<input class="field" type="time" name="taskStart" value="'+esc(t.start||'')+'"></label>'+
     '<label class="label">End time<input class="field" type="time" name="taskEnd" value="'+esc(t.end||'')+'"></label></div>'+
+    '<label class="label">Notes<textarea class="field" name="taskNotes" maxlength="1000" placeholder="Add a note for this task">'+esc(t.notes||'')+'</textarea></label>'+
     '<label class="label">Link to existing habit<select class="field" name="taskHabit">'+options(linkId)+'</select></label>'+
     '<div class="dailyEditActions"><button class="btn small" type="submit">Save</button>'+
     '<button class="btn danger small" type="button" data-day-action="delete" data-task="'+esc(t.id)+'">Remove</button>'+
@@ -211,16 +212,16 @@ $('dailyTasks').addEventListener('submit',e=>{
  const name=form.elements.taskName.value.trim(),start=form.elements.taskStart.value,end=form.elements.taskEnd.value;
  if(!name)return;
  if(start&&end&&localTime(selected,end)<=localTime(selected,start)){alert('End time must be after start time.');return}
- t.name=name;t.start=start;t.end=end;t.linkedHabitId=form.elements.taskHabit.value;
+ t.name=name;t.start=start;t.end=end;t.notes=form.elements.taskNotes.value.trim();t.linkedHabitId=form.elements.taskHabit.value;
  editing=null;writeTasks(tasks);
 });
 $('dailyAddForm').addEventListener('submit',e=>{
  e.preventDefault();
- const name=$('dailyNewName').value.trim(),start=$('dailyNewStart').value,end=$('dailyNewEnd').value;
+ const name=$('dailyNewName').value.trim(),start=$('dailyNewStart').value,end=$('dailyNewEnd').value,notes=$('dailyNewNotes').value.trim();
  if(!name)return;
  if(start&&end&&localTime(selected,end)<=localTime(selected,start)){alert('End time must be after start time.');return}
  const tasks=getTasks();
- tasks.push({id:'task_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),name,start,end,linkedHabitId:$('dailyAddHabit').value,done:false});
+ tasks.push({id:'task_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),name,start,end,notes,linkedHabitId:$('dailyAddHabit').value,done:false});
  writeTasks(tasks);$('dailyAddForm').reset();$('dailyAddDetails').open=false;
 });
 // Add suggestions to a specific dated checklist without changing its template
