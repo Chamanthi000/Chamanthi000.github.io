@@ -10,6 +10,7 @@
 .dailyTop h2{margin:7px 0;font-size:24px}
 .dailyTop p{margin:5px 0;max-width:530px}
 .dailyTools{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+.dailyTools>[hidden]{display:none}
 .dailyTools>label{font-size:12px;font-weight:800;color:#925a79}
 .dailyTools input{display:block;min-height:44px;padding:10px;border-radius:11px;border:1px solid #ebcddd;color:#593d50;background:white}
 .dailyProgressLine{display:flex;justify-content:space-between;margin:18px 0 8px;font-weight:800;color:#925979}
@@ -155,8 +156,10 @@
   <div><div class="eyebrow">YOUR DAILY 75 HARD ROUTINE</div><h2 id="dailyHeading">Daily checklist</h2><p id="dailyDesc">Every morning, your editable checklist is ready.</p></div>
   <div class="dailyTools">
    <label id="dailyDateBox">Day<input type="date" id="dailyDate" aria-label="Checklist day"></label>
-   <button type="button" class="btn secondary small" id="dailyGoToday">Today</button>\n   <button type="button" class="btn small" id="dailyOpenTomorrow">＋ Plan tomorrow</button>
-   <button type="button" class="btn secondary small" id="dailyTemplateMode">Edit recurring template</button>
+   <button type="button" class="btn secondary small" id="dailyGoToday">Today</button>
+   <button type="button" class="btn small" id="dailyOpenTomorrow">＋ Plan tomorrow</button>
+   <button type="button" class="btn secondary small" id="dailyTemplateMode">Edit weekday template</button>
+   <button type="button" class="btn secondary small" id="dailyWeekendTemplateMode">Edit weekend template</button>
   </div>
  </div>
  <div class="dailyProgressLine"><span id="dailyStats" aria-live="polite">0 / 10 completed</span><span id="dailyPercent">0%</span></div>
@@ -299,7 +302,7 @@ window.RecallLocal=kind=>kind==='goals'?data.goals:kind==='habits'?data.habits:[
 window.addEventListener('recall-cloud-data',event=>{const {kind,items}=event.detail||{};if(!['goals','habits'].includes(kind)||!Array.isArray(items))return;let next;try{const raw=localStorage.getItem(KEY),envelope=raw===null?{}:JSON.parse(raw);if(!envelope||typeof envelope!=='object'||Array.isArray(envelope))throw Error('Invalid device storage');const other=kind==='goals'?'habits':'goals';if(envelope[other]!==undefined&&!Array.isArray(envelope[other]))throw Error('Invalid other collection');next={...data,[other]:envelope[other]??data[other],[kind]:items};const encoded=JSON.stringify({...envelope,...next});localStorage.setItem(KEY,encoded);if(localStorage.getItem(KEY)!==encoded)throw Error('Device save could not be verified');data=next;const syncSummary=$('syncSummary');if(syncSummary)delete syncSummary.dataset.deviceFailure;render()}catch(error){const message='⚠ Device save failed · Incoming cloud data was not applied in this view. Export/review before leaving.';notice(message);const status=$('syncSummary');if(status){status.textContent=message;status.dataset.deviceFailure=message;}window.dispatchEvent(new CustomEvent('recall-device-save-failed',{detail:{kind,message}}));}});
 
 render()})();
-</script><script src="./task-notifications.js?v=20261115-reminders-v1"></script><script src="./task-calendar.js?v=20261115-reminders-v1"></script><script src="./daily-checklist.js?v=20261115-time-order-v1"></script><script src="./revision-planner-core.js?v=20261114-sort-visible-v7"></script><script src="./revision-checklists.js?v=20261114-sorting-canonical-v7"></script><script src="./revision-planner-ui.js?v=20261114-sort-study-date-v6"></script><script src="./future-todos.js?v=20261115-reminders-v1"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261113-data-safety-v4"></script><script src="./recovery-review.js?v=20261113-recovery-v1"></script><script src="./auto-backup.js?v=20261113-data-safety-v4"></script><script>
+</script><script src="./task-notifications.js?v=20261115-reminders-v1"></script><script src="./task-calendar.js?v=20261115-reminders-v1"></script><script src="./daily-checklist.js?v=20261115-weekend-v1"></script><script src="./revision-planner-core.js?v=20261114-sort-visible-v7"></script><script src="./revision-checklists.js?v=20261114-sorting-canonical-v7"></script><script src="./revision-planner-ui.js?v=20261114-sort-study-date-v6"></script><script src="./future-todos.js?v=20261115-reminders-v1"></script><script src="./monthly-goals.js?v=20261112-monthly"></script><script src="./backup-all.js?v=20261113-data-safety-v4"></script><script src="./recovery-review.js?v=20261113-recovery-v1"></script><script src="./auto-backup.js?v=20261113-data-safety-v4"></script><script>
 (function(){
   const status=document.getElementById('firebaseStatus');
   const button=document.getElementById('firebaseLogin');
