@@ -239,12 +239,12 @@
 <div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" id="cancel">Cancel</button><button class="btn" type="submit">Save changes ✓</button></div></form></div></div><div id="notice" role="status" aria-live="polite"></div>
 <script>
 (()=>{'use strict';const KEY='recall-goals-habits-v1',$=id=>document.getElementById(id),today=()=>new Date().toLocaleDateString('en-CA'),uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let data={goals:[],habits:[]};let token=localStorage.getItem('recall-private-sync-token')||'',remoteRepo=localStorage.getItem('recall-private-sync-repo')||'',syncing=false,syncQueued=false,syncTimer=null,revision=0;try{const v=JSON.parse(localStorage.getItem(KEY)||'{}');data={goals:Array.isArray(v.goals)?v.goals:[],habits:Array.isArray(v.habits)?v.habits:[]}}catch{}function save(){let saved=true;try{
- // The Journal shares this account's private habits collection, but is not
- // a habit. A Goals tab opened before a journal edit must never overwrite it.
+ // Journal and workout entries share this account's private habits collection and are not
+ // a habit. Preserve edits made in either page while this Goals tab was open.
  const disk=JSON.parse(localStorage.getItem(KEY)||'{}');
  if(disk&&typeof disk==='object'&&!Array.isArray(disk)&&Array.isArray(disk.habits)){
   const byId=new Map(data.habits.map(x=>[x.id,x]));
-  for(const entry of disk.habits.filter(x=>x&&x.recordType==='journalEntry')){
+  for(const entry of disk.habits.filter(x=>x&&['journalEntry','workoutEntry'].includes(x.recordType))){
    const previous=byId.get(entry.id);
    if(!previous||String(entry.updatedAt||'')>=String(previous.updatedAt||''))byId.set(entry.id,entry);
   }
