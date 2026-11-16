@@ -32,9 +32,12 @@ function normalize(value) {
  next.links = Object.fromEntries(Object.entries(object(value.links)?value.links:{}).filter(([,url])=>typeof url==='string'));
  for(const [id,exercises] of Object.entries(object(value.custom)?value.custom:{})){
   if(day(id) && Array.isArray(exercises)){
-   next.custom[id] = exercises.filter(item => /^x[a-z0-9]+$/.test(item?.id || '') && typeof item.name === 'string'
+   next.custom[id] = exercises.filter(item => /^(?:x[a-z0-9]+|[sc][0-9]+)$/.test(item?.id || '') && typeof item.name === 'string'
     && ['strength','core'].includes(item.category) && Number.isInteger(item.sets) && item.sets >= 1 && item.sets <= 10
-    && Number.isInteger(item.reps) && item.reps >= 1 && item.reps <= 60);
+    && Number.isInteger(item.reps) && item.reps >= 1 && item.reps <= 60
+    && (item.baseId === undefined || /^[sc][0-9]+$/.test(item.baseId))
+    && (item.range === undefined || typeof item.range === 'string')
+    && (item.deleted === undefined || typeof item.deleted === 'boolean'));
   }
  }
  return next;
