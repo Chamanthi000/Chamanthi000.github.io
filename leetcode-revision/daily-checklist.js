@@ -2,6 +2,13 @@
    Daily records live alongside habits for compatibility with existing Firebase sync. */
 (()=>{'use strict';
 const api=window.RecallGoals;
+const codingPractice=window.RecallCodingPractice;
+const codingFallbackId='__recall_coding_practice';
+const scheduleStart='2026-11-19';
+const weekdaySlots=[
+ {id:'class',name:'Coding Practice',start:'16:00',end:'20:00',match:/\bcoding practice\b|^(coding class|leetcode( practice)?|dsa practice)$/},
+ {id:'assignment',name:'Class Homework',start:'07:00',end:'09:00',match:/\b(class homework|coding homework|coding class (assignment|homework)|coding assignment|class assignment|leetcode homework)\b/}
+];
 const $=id=>document.getElementById(id);
 if(!api||!$('dailyChecklist'))return;
 const weekendTemplateButton=$('dailyWeekendTemplateMode');
@@ -50,11 +57,37 @@ function isWeekend(date){
  const day=new Date(date+'T12:00:00').getDay();
  return day===0||day===6;
 }
-function template(id){
+function findSlot(tasks,slot){
+ return tasks.find(task=>slot.match.test(normalize(task.name)))||tasks.find(task=>task.id===slot.id);
+}
+function weekdaySchedule(tasks){
+ for(const slot of weekdaySlots){
+  const task=findSlot(tasks,slot);
+  if(!task){
+   tasks.push({id:slot.id,name:slot.name,start:slot.start,end:slot.end});
+   continue;
+  }
+  const habit=linkOf(task,tasks);
+  if(habit)task.linkedHabitId=habit.id;
+  Object.assign(task,{name:slot.name,start:slot.start,end:slot.end});
+ }
+ return sortTasks(tasks);
+}
+function template(id,applyWeekdaySchedule=true){
  const record=findRecord(id);
+ if(id===TEMPLATE){
+  const tasks=sortTasks(record?.tasks||defaults);
+  return applyWeekdaySchedule&&!record?.weekdayScheduleUpdated?weekdaySchedule(tasks):tasks;
+ }
  if(Array.isArray(record?.tasks))return sortTasks(record.tasks);
- if(id===TEMPLATE)return sortTasks(defaults);
- const tasks=template(TEMPLATE).filter(t=>t.id!=='othot'&&t.id!=='driving'&&normalize(t.name)!=='othot work');
+ const weekdayRecord=findRecord(TEMPLATE);
+ let weekdayTasks=template(TEMPLATE,false);
+ // An uncustomized weekend still uses the previous hours for these two slots.
+ if(Array.isArray(weekdayRecord?.weekendCodingSlots)){
+  const ids=new Set(weekdaySlots.map(slot=>findSlot(weekdayTasks,slot)?.id));
+  weekdayTasks=[...weekdayTasks.filter(task=>!ids.has(task.id)),...copy(weekdayRecord.weekendCodingSlots)];
+ }
+ const tasks=weekdayTasks.filter(t=>t.id!=='othot'&&t.id!=='driving'&&normalize(t.name)!=='othot work');
  const breakfast=tasks.find(t=>t.id==='breakfast'&&t.name===defaults.find(t=>t.id==='breakfast').name);
  if(breakfast)breakfast.name='Matcha, plan & Lucas walk';
  return sortTasks([
@@ -97,10 +130,18 @@ function linkOf(t,tasks){
  matches=habits.filter(h=>names.includes(normalize(h.name)));
  return matches.length===1?matches[0]:null;
 }
-function isDone(t,tasks){const h=linkOf(t,tasks);return h?(h.dates||[]).includes(selected):!!t.done}
-function writeTasks(tasks,extra){
+function isDone(t,tasks){return doneOnDate(t,tasks,selected)}
+function storedTasks(tasks){
+ return sortTasks(tasks.filter(t=>t.id!==codingFallbackId).map(({study,...task})=>task));
+}
+function writeTasks(tasks,extra,attempt){
  const id=templateMode||PREFIX+selected,now=new Date().toISOString(),previous=findRecord(id);
- const rec={...previous,id,recordType:templateMode?'dailyTemplate':'dailyDay',date:templateMode?'':selected,tasks:sortTasks(tasks),updatedAt:now};
+ const rec={...previous,id,recordType:templateMode?'dailyTemplate':'dailyDay',date:templateMode?'':selected,tasks:storedTasks(tasks),updatedAt:now};
+ if(templateMode===TEMPLATE){
+  rec.weekendCodingSlots=previous?.weekendCodingSlots||weekdaySlots.map(slot=>findSlot(previous?.tasks||defaults,slot)).filter(Boolean);
+  rec.weekdayScheduleUpdated=true;
+ }else if(!templateMode&&selected>=scheduleStart&&!isWeekend(selected))rec.weekdayScheduleUpdated=true;
+ if(attempt)rec.codingPractice=attempt;
  const saved=api.saveHabits(habits=>{
   const ix=habits.findIndex(h=>h.id===id);
   if(ix>=0)habits[ix]=rec;else habits.push(rec);
@@ -122,11 +163,23 @@ function taskEnded(t){
  const end=localTime(selected,t.end);
  return selected===isoDate()&&Number.isFinite(end)&&Date.now()>=end;
 }
+function studyDetails(study,descriptionId,today){
+ if(!study)return '';
+ const problems=study.problems.map(([slug,title,difficulty,instruction])=>
+  '<li><a href="https://algo.monster/problems/'+esc(slug)+'" target="_blank" rel="noopener">'+esc(title)+'</a> · '+esc(difficulty)+
+  '<div>'+esc(study.review?'Re-solve from memory and explain the approach and complexity.':instruction)+'</div></li>'
+ ).join('');
+ return '<div class="dailyStudy" id="'+descriptionId+'"><strong>'+esc(study.topic)+' · '+esc(study.title)+'</strong>'+
+  '<span class="dailyStudyTime"> · About '+study.minutes+' min</span><ul>'+problems+'</ul>'+
+  '<div>Tick when you can explain the pattern and code the assigned problems. The day is complete only when this task is checked.</div>'+
+  (selected>today?'<div>Preview. Finish any earlier assignment to stay on this schedule.</div>':'')+'</div>';
+}
 function render(){
  const tasks=getTasks(),done=templateMode?0:tasks.filter(t=>isDone(t,tasks)).length;
- const pct=templateMode?0:(tasks.length?Math.round(done/tasks.length*100):0);
+ const pct=templateMode||!tasks.length?0:done===tasks.length?100:Math.min(99,Math.round(done/tasks.length*100));
+ const today=isoDate();
  $('dailyHeading').textContent=templateMode===WEEKEND_TEMPLATE?'Recurring weekend template':templateMode?'Recurring weekday template':'Daily checklist';
- $('dailyDesc').textContent=templateMode?'Tasks sort automatically by time. Template edits apply to new or uncustomized days.':'Tasks sort automatically by time; untimed tasks appear last. Edit any day without changing other days.';
+ $('dailyDesc').textContent=templateMode?'Tasks sort automatically by time. Template edits apply to new or uncustomized days.':'Tasks sort automatically by time; untimed tasks appear last. Edit any day without changing other days.'+(codingPractice&&selected<codingPractice.start?' Weekday Coding Practice starts Monday, November 23.':'');
  $('dailyDate').value=selected;
  $('dailyDateBox').hidden=templateMode;
  $('dailyGoToday').hidden=templateMode;
@@ -144,17 +197,18 @@ function render(){
  const now=Date.now();
  $('dailyTasks').innerHTML=tasks.map((t,i)=>{
   const h=linkOf(t,tasks),checked=!templateMode&&isDone(t,tasks),status=statusFor(t,tasks);
+  const studyId='dailyStudy'+i, futureStudy=t.study&&selected>today;
   const time=t.start||t.end?formatTime(t.start)+' – '+formatTime(t.end):'No set time';
   const pending=!templateMode&&taskEnded(t)&&!checked&&t.response!=='no';
   const linkId=Object.prototype.hasOwnProperty.call(t,'linkedHabitId')?t.linkedHabitId:(h?.id||'');
   const before=localTime(selected,t.start);
   const until=!templateMode&&selected===isoDate()&&Number.isFinite(before)&&now<before&&before-now<=30*60000;
   return '<div class="dailyRow '+(checked?'dailyDone':'')+'">'+
-    (templateMode?'<span aria-hidden="true" class="dailyBullet">☰</span>':'<input class="dailyTick" type="checkbox" data-day-action="check" data-task="'+esc(t.id)+'" id="dailyTask'+i+'" '+(checked?'checked':'')+' aria-label="Complete '+esc(t.name)+'">')+
+    (templateMode?'<span aria-hidden="true" class="dailyBullet">☰</span>':'<input class="dailyTick" type="checkbox" data-day-action="check" data-task="'+esc(t.id)+'" id="dailyTask'+i+'" '+(checked?'checked':'')+' '+(t.study?'aria-describedby="'+studyId+'" ':'')+(futureStudy?'disabled ':'')+'aria-label="Complete '+esc(t.name)+'">')+
     '<div class="dailyMain"><label '+(templateMode?'':'for="dailyTask'+i+'"')+' class="dailyName">'+esc(t.name)+'</label>'+
-    '<div class="dailyTime">'+esc(time)+(h?' · ↔ '+esc(h.name):'')+(status?' · '+esc(status):'')+(until?' · Coming up soon':'')+'</div>'+(t.notes?'<div class="dailyTaskNote">'+esc(t.notes)+'</div>':'')+
+    '<div class="dailyTime">'+esc(time)+(h?' · ↔ '+esc(h.name):'')+(status?' · '+esc(status):'')+(until?' · Coming up soon':'')+'</div>'+(t.notes?'<div class="dailyTaskNote">'+esc(t.notes)+'</div>':'')+studyDetails(t.study,studyId,today)+
     (pending?'<div class="dailyQuestion"><span>Did you complete this task?</span><button class="btn small" type="button" data-day-action="yes" data-task="'+esc(t.id)+'">Yes ✓</button><button class="btn secondary small" type="button" data-day-action="no" data-task="'+esc(t.id)+'">No</button></div>':'')+
-    '</div><button class="btn secondary small" type="button" data-day-action="edit" data-task="'+esc(t.id)+'" aria-label="Edit '+esc(t.name)+'">Edit</button></div>'+
+    '</div>'+(t.id===codingFallbackId?'':'<button class="btn secondary small" type="button" data-day-action="edit" data-task="'+esc(t.id)+'" aria-label="Edit '+esc(t.name)+'">Edit</button>')+'</div>'+
     (editing===t.id?'<form class="dailyTaskEditor" data-edit-task="'+esc(t.id)+'"><label class="label">Task<input class="field" name="taskName" required maxlength="160" value="'+esc(t.name)+'"></label>'+
     '<div class="dailyFormGrid"><label class="label">Start time<input class="field" type="time" name="taskStart" value="'+esc(t.start||'')+'"></label>'+
     '<label class="label">End time<input class="field" type="time" name="taskEnd" value="'+esc(t.end||'')+'"></label></div>'+
@@ -169,7 +223,7 @@ function render(){
 function recordResponse(id,complete){
  if(templateMode)return;
  const tasks=getTasks(),t=tasks.find(x=>x.id===id);
- if(!t)return;
+ if(!t||t.study&&selected>isoDate())return;
  // Checking a revision reminder must never mean “I can code it from memory”.
  // Open the topic's actual assessment instead of silently recording mastery.
  if(complete&&t.reviewTopicId&&selected===isoDate()&&window.RecallRevisionPlanner?.openReviewFromChecklist){
@@ -179,15 +233,14 @@ function recordResponse(id,complete){
  }
  const h=linkOf(t,tasks);
  t.done=complete;t.response=complete?'yes':'no';
- const saved=writeTasks(tasks,(habits,now)=>{
+ writeTasks(tasks,(habits,now)=>{
   if(!h)return;
   const linked=habits.find(x=>x.id===h.id);
   if(!linked)return;
   const dates=new Set(linked.dates||[]);
   if(complete)dates.add(selected);else dates.delete(selected);
   linked.dates=[...dates].sort();linked.updatedAt=now;
- });
-
+ },t.study?{id:t.study.id,done:complete,response:t.response}:null);
 }
 $('dailyTasks').addEventListener('change',e=>{
  const tick=e.target.closest('[data-day-action="check"]');
@@ -253,7 +306,8 @@ window.RecallDailyChecklist={
   }
   if(!added)return {saved:true,added:0};
   const now=new Date().toISOString(),id=PREFIX+date;
-  const record={...existing,id,date,recordType:'dailyDay',tasks:sortTasks(tasks),updatedAt:now};
+  const record={...existing,id,date,recordType:'dailyDay',tasks:storedTasks(tasks),updatedAt:now};
+  if(date>=scheduleStart&&!isWeekend(date))record.weekdayScheduleUpdated=true;
   const saved=api.saveHabits(habits=>{
    const i=habits.findIndex(h=>h.id===id);
    if(i>=0)habits[i]=record;else habits.push(record);
@@ -278,9 +332,26 @@ function browserNotify(title,body,key){
 }
 function tasksForDate(date){
  const r=findRecord(PREFIX+date);
- return r&&Array.isArray(r.tasks)?sortTasks(r.tasks):template(isWeekend(date)?WEEKEND_TEMPLATE:TEMPLATE);
+ const weekend=isWeekend(date);
+ let tasks;
+ if(Array.isArray(r?.tasks)){
+  tasks=sortTasks(r.tasks);
+  if(!weekend&&date>=scheduleStart&&!r.weekdayScheduleUpdated)tasks=weekdaySchedule(tasks);
+ }else tasks=template(weekend?WEEKEND_TEMPLATE:TEMPLATE,date>=scheduleStart);
+ if(!codingPractice||date<codingPractice.start||weekend)return tasks;
+ const records=api.getHabits().filter(h=>!h.deleted&&h.recordType==='dailyDay'&&h.codingPractice);
+ const study=codingPractice.assignmentFor(date,isoDate(),records);
+ const practice=findSlot(tasks,weekdaySlots[0]);
+ const response=r?.codingPractice?.id===study.id?r.codingPractice.response:'';
+ if(practice){
+  practice.study=study;
+  practice.response=response;
+  return tasks;
+ }
+ return sortTasks([...tasks,{id:codingFallbackId,name:'Coding Practice',linkedHabitId:'',study,response}]);
 }
 function doneOnDate(t,tasks,date){
+ if(t.study)return t.study.done;
  const h=linkOf(t,tasks);return h?(h.dates||[]).includes(date):!!t.done;
 }
 function checkPlanPrompt(){
@@ -393,7 +464,8 @@ function setupSharedPlan(){
  button.onclick=()=>{
   if(findRecord(PREFIX+plan.date)&&!confirm('Replace the existing checklist for '+day+'? Your recurring template and other days will not change.'))return;
   selected=plan.date;templateMode=null;editing=null;
-  if(!writeTasks(plan.tasks)){description.textContent='Device save failed. Check storage space and try again.';return}
+  const tasks=selected>=scheduleStart&&!isWeekend(selected)?weekdaySchedule(copy(plan.tasks)):plan.tasks;
+  if(!writeTasks(tasks)){description.textContent='Device save failed. Check storage space and try again.';return}
   const params=new URLSearchParams(location.search);params.delete('dailyPlan');
   const clean=location.pathname+(params.toString()?'?'+params.toString():'')+location.hash;
   try{history.replaceState(history.state,'',clean)}catch{}

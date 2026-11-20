@@ -32,8 +32,8 @@ function daily(clock,records){
  const element=id=>{if(!elements.has(id))elements.set(id,{value:'',style:{},dataset:{},addEventListener(type,listener){this['on'+type]=listener},reset(){},setAttribute(){},scrollIntoView(){}});return elements.get(id)};
  const RealDate=Date;class Clock extends RealDate{constructor(...a){super(...(a.length?a:[clock]))}static now(){return +new RealDate(clock)}}
  const c={window:{RecallGoals:{getHabits:()=>records,saveHabits:update=>update(records)},RecallNotifications:{status:()=>'',show:(...a)=>alerts.push(a)},addEventListener(){}},document:{getElementById:element,querySelector:()=>null,addEventListener(){}},Date:Clock,localStorage:{getItem:()=>null,setItem(){}},location:{search:''},URLSearchParams,setInterval:f=>intervals.push(f),setTimeout};
- vm.runInNewContext(source('daily-checklist.js'),c);
- return {elements,element,alerts,checklist:c.window.RecallDailyChecklist,tick:()=>intervals[0]()};
+ for(const file of ['coding-practice-curriculum.js','coding-practice.js','daily-checklist.js'])vm.runInNewContext(source(file),c);
+ return {elements,element,alerts,checklist:c.window.RecallDailyChecklist,study:c.window.RecallCodingPractice,tick:()=>intervals[0]()};
 }
 test('today reminders run while tomorrow or recurring template is being edited',()=>{
  const records=[{id:'__recall_daily_template_v1',recordType:'dailyTemplate',tasks:[]},{id:'__recall_daily_2026-11-16',tasks:[{id:'a',name:'Study',start:'09:00',end:'10:00'}]}];
@@ -97,4 +97,51 @@ test('editing the weekend template saves its own record and leaves the weekday t
  assert.ok(sunday.tasks.some(task=>task.name==='Weekend errands'));
  assert.ok(sunday.tasks.some(task=>task.id==='weekend_drive'));
  assert.doesNotMatch(JSON.stringify(weekend.tasks),/Review sorting/);
+});
+test('weekday study updates saved time blocks, preserves notes, and gates daily progress',()=>{
+ const date='2026-11-23';
+ const records=[{id:'__recall_daily_'+date,date,recordType:'dailyDay',tasks:[
+  {id:'coding',name:'Coding Practice',start:'18:00',end:'19:00',notes:'Keep this note'},
+  {id:'homework',name:'Coding class assignment',start:'21:00',end:'22:00',done:true}
+ ]}];
+ const d=daily(date+'T14:00:00',records);
+ const tasks=d.element('dailyTasks');
+ assert.match(tasks.innerHTML,/Coding Practice.*4 PM – 8 PM/s);
+ assert.match(tasks.innerHTML,/Class Homework.*7 AM – 9 AM/s);
+ assert.match(tasks.innerHTML,/Keep this note/);
+ assert.match(tasks.innerHTML,/Binary Search · Exact match and first true/);
+ assert.match(tasks.innerHTML,/The day is complete only when this task is checked/);
+ assert.equal(d.element('dailyPercent').textContent,'50%');
+ tasks.onchange({target:{closest:()=>({dataset:{task:'coding'},checked:true})}});
+ assert.equal(d.element('dailyPercent').textContent,'100%');
+ assert.equal(records[0].codingPractice.done,true);
+ assert.equal(records[0].tasks.some(task=>Object.hasOwn(task,'study')),false);
+ const next=daily('2026-11-24T14:00:00',JSON.parse(JSON.stringify(records)));
+ assert.match(next.element('dailyTasks').innerHTML,/Lower bound and duplicates/);
+ assert.equal(next.element('dailyPercent').textContent,'0%');
+});
+test('unchecked assignments return the next weekday and the next topic starts on a Monday',()=>{
+ const {study}=daily('2026-11-19T14:00:00',[]);
+ const days=['2026-11-23','2026-11-24','2026-11-25','2026-11-26','2026-11-27','2026-11-30'];
+ const expected=['Exact match and first true','Lower bound and duplicates','Last true and integer roots','Search on an implicit boundary','Search on the answer','Read and write pointers'];
+ assert.deepEqual(days.map(day=>study.assignmentFor(day,'2026-11-19',[]).title),expected);
+ const records=days.slice(0,5).map((date,i)=>({date,codingPractice:{id:'0:'+i,done:i<4}}));
+ assert.equal(study.assignmentFor('2026-11-28','2026-11-28',records),null);
+ assert.equal(study.assignmentFor('2026-11-30','2026-11-30',records).title,expected[4]);
+ records.push({date:'2026-11-30',codingPractice:{id:'0:4',done:true}});
+ assert.equal(study.assignmentFor('2026-12-01','2026-12-01',records).title,'Recall and practice');
+ assert.equal(study.assignmentFor('2026-12-07','2026-12-07',records).topic,'Two Pointers');
+});
+test('editing the weekday template keeps both inherited weekend time blocks',()=>{
+ const records=[];
+ const d=daily('2026-11-23T14:00:00',records);
+ d.element('dailyTemplateMode').onclick();
+ d.element('dailyNewName').value='Weekday errand';
+ d.element('dailyAddForm').onsubmit({preventDefault(){}});
+ d.element('dailyTemplateMode').onclick();
+ d.element('dailyDate').onchange({target:{value:'2026-11-28'}});
+ const html=d.element('dailyTasks').innerHTML;
+ assert.match(html,/Coding class.*7 PM – 9 PM/s);
+ assert.match(html,/Coding class assignment.*9:30 PM – 11:30 PM/s);
+ assert.doesNotMatch(html,/dailyStudy/);
 });
